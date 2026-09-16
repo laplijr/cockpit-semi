@@ -1,4 +1,4 @@
-import { FATIGUE_SENSATIONS, Sensation, type Pain } from '../load/feedback'
+import { FATIGUE_SENSATIONS, type Pain, type Sensation } from '../load/feedback'
 import type { IsoDate } from '../plan/calendar'
 import { RunSessionCode } from '../running/session-types'
 import { Sport } from '../shared/sport'

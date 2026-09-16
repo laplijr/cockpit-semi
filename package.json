@@ -54,6 +54,10 @@
     "pre-commit": "pnpm exec lint-staged"
   },
   "lint-staged": {
-    "*.{ts,vue,mjs,json,css,yml}": "prettier --write"
+    "*.{ts,vue,mjs}": [
+      "prettier --write",
+      "eslint --fix --max-warnings 0"
+    ],
+    "*.{json,css,yml}": "prettier --write"
   }
 }
