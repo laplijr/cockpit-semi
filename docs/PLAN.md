@@ -40,7 +40,18 @@ P1 — Courses, forme, plan
 - [x] UI Cockpit v1 : cadran course A, cadran VDOT (plancher affiché comme tel), panneau « Aujourd'hui » avec la séance prévue ou l'état de pause (jour n, activités autorisées, bouton « Marquer la reprise »), bande semaine, frise cap. Les autres cadrans restent en stub jusqu'à P2/P3.
 - [x] Fini : tests domaine verts, parcours « onboarding → courses → plan généré → cockpit affiche la séance du jour » vérifié, commit « P1 — courses, forme, plan ».
 
-P2 → P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
+P2 — Strava + retour de séance + charge
+- [x] `server/domain/load` : `UA = RPE × durée_min`, charge quotidienne par sport, ratio 7 j / 21 j découplé, monotonie, indisponible tant que < 28 jours d'historique (§ 5). Tests : ratio sans historique, ratio nominal, charge combinée course + vélo + muscu.
+- [x] Schéma : `activity` (id externe, sport, date, durée, distance, allure, FC, puissance, D+, `session_id` nullable), `feedback` (RPE, sensations[], sommeil_h, douleur zone/intensité, notes), `load_daily`, `strava_token` (chiffré au repos). Migration générée et appliquée.
+- [x] `server/domain/matching` : rattachement d'une activité à une séance prévue (même sport à ± 1 jour) ; sinon événement imprévu avec RPE déduit de la FC si dispo, 5 sinon (§ 7.4). Tests sur les deux branches.
+- [ ] `server/infra/strava` : OAuth2 `read,activity:read_all`, stockage chiffré, refresh avant expiration, client d'API, import 24 mois paginé 200/page. Tests de contrat sur fixtures JSON anonymisées (une course, un vélo, un webhook create), aucun appel réseau en CI.
+- [ ] Routes : `/api/strava/connect`, `/api/strava/callback`, `/api/strava/webhook` (validation du challenge GET + create/update/delete POST), `/api/strava/import`.
+- [ ] Panneau Retour de séance : RPE, sensations, sommeil, douleur avec les zones à surveiller de la pause pré-cochées ; prescription vs réalisé côte à côte.
+- [ ] Cockpit : cadran charge combinée (ratio, avancement course / vélo / muscu) et réalisé Strava dans « Aujourd'hui », avec l'action unique « compléter le ressenti ».
+- [ ] UI Connexions : état de la connexion Strava, bouton de connexion, import initial, date de dernière synchronisation, nombre d'activités.
+- [ ] Fini : tests verts, parcours « activité importée → rattachée → ressenti saisi → charge à jour » vérifié sur fixture, commit « P2 — Strava, retour de séance, charge ».
+
+P3 → P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
 
 ## 0. Données réelles de départ (à seeder en P1)
 

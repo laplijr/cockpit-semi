@@ -13,6 +13,7 @@ import {
 } from 'drizzle-orm/pg-core'
 import type { AthleteConstraints } from '../../domain/athlete/constraints'
 import { FitnessOrigin } from '../../domain/fitness/fitness-point'
+import { Sensation, type Pain } from '../../domain/load/feedback'
 import { PauseType, type PauseAllowances } from '../../domain/pause/pause'
 import { PhaseType } from '../../domain/plan/phases'
 import { PlanTrigger, SessionOrigin, SessionStatus } from '../../domain/plan/session'
@@ -28,6 +29,7 @@ import { Sport } from '../../domain/shared/sport'
 
 export {
   FitnessOrigin,
+  Sensation,
   PauseType,
   PlanTrigger,
   SessionOrigin,
@@ -40,7 +42,7 @@ export {
   SegmentMode,
   Sport,
 }
-export type { AthleteConstraints, PauseAllowances, RaceIncident }
+export type { AthleteConstraints, Pain, PauseAllowances, RaceIncident }
 
 export const sportEnum = pgEnum('sport', enumValues(Sport))
 export const racePriorityEnum = pgEnum('race_priority', enumValues(RacePriority))
@@ -222,6 +224,60 @@ export const pause = pgTable('pause', {
   notes: text('notes'),
 })
 
+/** Activité importée de Strava, rattachée ou non à une séance prévue (§ 7). */
+export const activity = pgTable('activity', {
+  id: serial('id').primaryKey(),
+  externalId: text('external_id').notNull().unique(),
+  name: text('name'),
+  sport: sportEnum('sport').notNull(),
+  date: date('date').notNull(),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+  durationS: integer('duration_s').notNull(),
+  distanceM: real('distance_m'),
+  averagePaceSKm: real('average_pace_s_km'),
+  averageHr: integer('average_hr'),
+  maxHr: integer('max_hr'),
+  averageWatts: real('average_watts'),
+  elevationGainM: real('elevation_gain_m'),
+  sessionId: integer('session_id').references(() => session.id, { onDelete: 'set null' }),
+  importedAt: timestamp('imported_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const feedback = pgTable('feedback', {
+  id: serial('id').primaryKey(),
+  sessionId: integer('session_id')
+    .notNull()
+    .references(() => session.id, { onDelete: 'cascade' })
+    .unique(),
+  rpe: integer('rpe').notNull(),
+  sensations: jsonb('sensations').$type<Sensation[]>().notNull().default([]),
+  sleepHours: real('sleep_hours'),
+  pain: jsonb('pain').$type<Pain | null>(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/** Cache recalculable de la charge quotidienne, en unités arbitraires (§ 5). */
+export const loadDaily = pgTable('load_daily', {
+  date: date('date').primaryKey(),
+  runningUa: integer('running_ua').notNull().default(0),
+  cyclingUa: integer('cycling_ua').notNull().default(0),
+  strengthUa: integer('strength_ua').notNull().default(0),
+  otherUa: integer('other_ua').notNull().default(0),
+  totalUa: integer('total_ua').notNull().default(0),
+})
+
+/** Jetons Strava chiffrés au repos (§ 7.2). Une seule ligne, `id = 1`. */
+export const stravaToken = pgTable('strava_token', {
+  id: integer('id').primaryKey().default(1),
+  athleteId: text('athlete_id'),
+  accessToken: text('access_token').notNull(),
+  refreshToken: text('refresh_token').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  scope: text('scope'),
+  lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
+})
+
 export type Athlete = typeof athlete.$inferSelect
 export type NewAthlete = typeof athlete.$inferInsert
 export type Race = typeof race.$inferSelect
@@ -242,3 +298,11 @@ export type Session = typeof session.$inferSelect
 export type NewSession = typeof session.$inferInsert
 export type Pause = typeof pause.$inferSelect
 export type NewPause = typeof pause.$inferInsert
+export type Activity = typeof activity.$inferSelect
+export type NewActivity = typeof activity.$inferInsert
+export type Feedback = typeof feedback.$inferSelect
+export type NewFeedback = typeof feedback.$inferInsert
+export type LoadDaily = typeof loadDaily.$inferSelect
+export type NewLoadDaily = typeof loadDaily.$inferInsert
+export type StravaToken = typeof stravaToken.$inferSelect
+export type NewStravaToken = typeof stravaToken.$inferInsert
