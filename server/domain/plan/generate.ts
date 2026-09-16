@@ -19,6 +19,8 @@ export interface GeneratePlanInput {
   races: PlannedRace[]
   /** Volume de course de la première semaine pleine, en mètres. */
   baseWeeklyVolumeM: number
+  /** Volume hebdomadaire maximal visé sur le cycle. */
+  peakWeeklyVolumeM?: number
   vdot: number
   /** Pause en cours : le plan se cale alors sur la reprise, pas sur aujourd'hui. */
   openPause?: OpenPause
@@ -47,7 +49,7 @@ export function planStartDate(today: IsoDate, openPause?: OpenPause): IsoDate {
 }
 
 export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
-  const { today, constraints, races, baseWeeklyVolumeM, vdot, openPause } = input
+  const { today, constraints, races, baseWeeklyVolumeM, peakWeeklyVolumeM, vdot, openPause } = input
   const startDate = planStartDate(today, openPause)
   const upcoming = races.filter((race) => race.date >= startDate)
   const phases = buildPhases(startDate, upcoming)
@@ -56,6 +58,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     startDate,
     phases,
     baseWeeklyVolumeM,
+    peakWeeklyVolumeM,
     comebackWeeks: openPause ? COMEBACK_RATIOS.length : 0,
   })
 

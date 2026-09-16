@@ -1,4 +1,5 @@
 import type { AthleteConstraints } from '../domain/athlete/constraints'
+import type { PauseAllowances } from '../domain/pause/pause'
 import type { IsoDate } from '../domain/plan/calendar'
 import type { GeneratedPlan } from '../domain/plan/generate'
 import type { PlanTrigger } from '../domain/plan/session'
@@ -15,8 +16,13 @@ export interface AthleteSnapshot {
 
 export interface OpenPauseSnapshot {
   id: number
+  type: string
+  zone: string | null
   startDate: IsoDate
   estimatedEndDate: IsoDate | null
+  allowances: PauseAllowances
+  watchZones: string[]
+  notes: string | null
 }
 
 export interface FitnessSnapshot {
@@ -36,6 +42,7 @@ export interface PlanGateway {
 
 export interface PlanParameters extends Record<string, unknown> {
   baseWeeklyVolumeM: number
+  peakWeeklyVolumeM: number
   vdot: number
   vdotIsFloor: boolean
   provisional: boolean

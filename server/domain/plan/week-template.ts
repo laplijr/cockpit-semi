@@ -1,5 +1,10 @@
 import type { Prescription, PrescriptionContext } from '../running/session-types'
-import { RunSessionCode, isAllowedInPhase, prescription } from '../running/session-types'
+import {
+  RunSessionCode,
+  fitsInWeek,
+  isAllowedInPhase,
+  prescription,
+} from '../running/session-types'
 import type { AthleteConstraints } from '../athlete/constraints'
 import { MONDAY } from '../athlete/constraints'
 import type { IsoDate } from './calendar'
@@ -74,7 +79,8 @@ export function buildWeekTemplate({
 
   const allowed = (code: RunSessionCode) =>
     isAllowedInPhase(code, week.phaseType) &&
-    (week.allowedCodes === undefined || week.allowedCodes.includes(code))
+    (week.allowedCodes === undefined || week.allowedCodes.includes(code)) &&
+    fitsInWeek(code, vdot, week.targetRunM)
 
   const keyCodes = KEY_SESSIONS[week.phaseType].filter(allowed)
   const wantsLongRun = keyCodes.includes(RunSessionCode.LongRun)
@@ -93,17 +99,35 @@ export function buildWeekTemplate({
 
   const filler = allowed(RunSessionCode.Strides) ? RunSessionCode.Strides : RunSessionCode.Endurance
 
-  return available.map((weekday) => {
-    const code =
+  const codes = available.map((weekday) => ({
+    weekday,
+    code:
       assignments.get(weekday) ??
-      (easyDays.has(weekday) || !allowed(filler) ? RunSessionCode.Endurance : filler)
+      (easyDays.has(weekday) || !allowed(filler) ? RunSessionCode.Endurance : filler),
+    key: assignments.has(weekday),
+  }))
 
-    return {
-      date: dayOfWeek(week, weekday),
-      weekday,
-      code,
-      key: assignments.has(weekday),
-      prescription: prescription(code, context),
-    }
-  })
+  // Les séances clés prennent leur part réglée par les quotas ; le reste du
+  // volume de la semaine se répartit également sur les séances faciles.
+  const keyPrescriptions = new Map(
+    codes
+      .filter((entry) => entry.key)
+      .map((entry) => [entry.weekday, prescription(entry.code, context)] as const),
+  )
+  const keyVolume = [...keyPrescriptions.values()].reduce(
+    (total, item) => total + item.totalDistanceM,
+    0,
+  )
+  const easyCount = codes.length - keyPrescriptions.size
+  const easyShare = easyCount > 0 ? Math.max(0, week.targetRunM - keyVolume) / easyCount : 0
+
+  return codes.map((entry) => ({
+    date: dayOfWeek(week, entry.weekday),
+    weekday: entry.weekday,
+    code: entry.code,
+    key: entry.key,
+    prescription:
+      keyPrescriptions.get(entry.weekday) ??
+      prescription(entry.code, { ...context, targetDistanceM: Math.round(easyShare) }),
+  }))
 }

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { PhaseType } from '~~/server/domain/plan/phases'
 import {
+  QuotaBasis,
   RUN_SESSION_TYPES,
   RunSessionCode,
+  quotaBasisFor,
   isAllowedInPhase,
   maxDistanceFor,
   prescription,
@@ -71,11 +73,19 @@ describe('phases autorisées', () => {
 describe('prescription', () => {
   const context = { vdot: VDOT, weeklyVolumeM: WEEKLY_VOLUME_M }
 
-  it('respecte le quota du type qu’elle prescrit', () => {
+  it('respecte le quota du type qu’elle prescrit, sur la bonne assiette', () => {
     for (const code of Object.values(RunSessionCode)) {
       const result = prescription(code, context)
-      expect(respectsQuota(code, result.totalDistanceM, WEEKLY_VOLUME_M)).toBe(true)
+      const measured =
+        quotaBasisFor(code) === QuotaBasis.Total ? result.totalDistanceM : result.qualityDistanceM
+      expect(respectsQuota(code, measured, WEEKLY_VOLUME_M)).toBe(true)
     }
+  })
+
+  it('compte l’échauffement dans le total mais jamais dans le quota d’intensité', () => {
+    const vma = prescription(RunSessionCode.Vma, context)
+    expect(vma.qualityDistanceM).toBeLessThan(vma.totalDistanceM)
+    expect(vma.qualityDistanceM).toBeLessThanOrEqual(WEEKLY_VOLUME_M * 0.08)
   })
 
   it('prescrit des fractions VMA plus rapides que l’endurance', () => {

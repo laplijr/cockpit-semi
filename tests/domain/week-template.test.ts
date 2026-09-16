@@ -4,7 +4,12 @@ import { PhaseType } from '~~/server/domain/plan/phases'
 import { buildWeekTemplate } from '~~/server/domain/plan/week-template'
 import { buildWeeks } from '~~/server/domain/plan/weeks'
 import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
-import { RunSessionCode, respectsQuota } from '~~/server/domain/running/session-types'
+import {
+  QuotaBasis,
+  RunSessionCode,
+  quotaBasisFor,
+  respectsQuota,
+} from '~~/server/domain/running/session-types'
 
 const CONSTRAINTS = {
   availableDays: [1, 2, 3, 5, 6, 7],
@@ -87,10 +92,21 @@ describe('semaine type', () => {
   it('respecte les quotas sur chaque séance prescrite', () => {
     for (const week of weeks) {
       for (const session of buildWeekTemplate({ week, constraints: CONSTRAINTS, vdot: 40 })) {
-        expect(
-          respectsQuota(session.code, session.prescription.totalDistanceM, week.targetRunM),
-        ).toBe(true)
+        const measured =
+          quotaBasisFor(session.code) === QuotaBasis.Total
+            ? session.prescription.totalDistanceM
+            : session.prescription.qualityDistanceM
+        expect(respectsQuota(session.code, measured, week.targetRunM)).toBe(true)
       }
+    }
+  })
+
+  it('remplit le volume de la semaine sans le dépasser', () => {
+    for (const week of weeks.filter((item) => item.targetRunM > 5000)) {
+      const sessions = buildWeekTemplate({ week, constraints: CONSTRAINTS, vdot: 40 })
+      const total = sessions.reduce((sum, item) => sum + item.prescription.totalDistanceM, 0)
+      expect(total).toBeGreaterThan(week.targetRunM * 0.85)
+      expect(total).toBeLessThanOrEqual(week.targetRunM * 1.15)
     }
   })
 

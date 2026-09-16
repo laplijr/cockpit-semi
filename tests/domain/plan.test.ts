@@ -151,6 +151,16 @@ describe('semaines générées', () => {
     }
   })
 
+  it('plafonne le volume : la progression de +10 % ne compose pas indéfiniment', () => {
+    const capped = buildWeeks({
+      startDate: REPRISE,
+      phases,
+      baseWeeklyVolumeM: 25_000,
+      peakWeeklyVolumeM: 55_000,
+    })
+    expect(Math.max(...capped.map((week) => week.targetRunM))).toBeLessThanOrEqual(55_000)
+  })
+
   it('borne la sortie longue à 30 % du volume de la semaine', () => {
     for (const week of weeks) {
       expect(week.longRunMaxM).toBeLessThanOrEqual(week.targetRunM * LONG_RUN_MAX_SHARE + 1)

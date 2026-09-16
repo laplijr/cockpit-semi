@@ -9,6 +9,12 @@ export const BLOCK_WEEKS = 4
 export const WEEKLY_PROGRESSION = 1.1
 export const LIGHT_WEEK_FACTOR = 0.7
 export const LONG_RUN_MAX_SHARE = 0.3
+/**
+ * Plafond de volume, exprimé en multiple du volume de départ. La progression
+ * de +10 %/semaine du § 5 est un maximum, pas une obligation : sans plafond
+ * elle compose et produit des semaines invraisemblables sur un plan long.
+ */
+export const PEAK_VOLUME_MULTIPLE = 2.2
 
 /** Montée de charge d'une reprise surveillée après pause (§ 0). */
 export const COMEBACK_RATIOS = [0.6, 0.8, 1] as const
@@ -54,6 +60,8 @@ export interface WeekPlanInput {
   baseWeeklyVolumeM: number
   /** Nombre de semaines de reprise surveillée ; 0 quand il n'y a pas eu de pause. */
   comebackWeeks?: number
+  /** Volume hebdomadaire maximal ; par défaut un multiple du volume de départ. */
+  peakWeeklyVolumeM?: number
 }
 
 export function buildWeeks({
@@ -61,6 +69,7 @@ export function buildWeeks({
   phases,
   baseWeeklyVolumeM,
   comebackWeeks = COMEBACK_RATIOS.length,
+  peakWeeklyVolumeM = baseWeeklyVolumeM * PEAK_VOLUME_MULTIPLE,
 }: WeekPlanInput): PlanWeek[] {
   const lastWeek = phases.reduce((max, phase) => Math.max(max, phase.endWeek), 0)
   const firstMonday = startOfWeek(startDate)
@@ -74,7 +83,10 @@ export function buildWeeks({
 
     const positionInBlock = (index - 1) % BLOCK_WEEKS
     const light = positionInBlock === BLOCK_WEEKS - 1
-    const ramped = blockBase * WEEKLY_PROGRESSION ** Math.min(positionInBlock, BLOCK_WEEKS - 2)
+    const ramped = Math.min(
+      peakWeeklyVolumeM,
+      blockBase * WEEKLY_PROGRESSION ** Math.min(positionInBlock, BLOCK_WEEKS - 2),
+    )
     const beforePhase = light ? ramped * LIGHT_WEEK_FACTOR : ramped
     const afterPhase = beforePhase * (PHASE_VOLUME_FACTOR[phase.type] ?? 1)
 
@@ -95,7 +107,7 @@ export function buildWeeks({
       allowedCodes: index <= comebackWeeks ? COMEBACK_ALLOWED[index - 1] : undefined,
     })
 
-    if (light) blockBase = ramped
+    if (light) blockBase = Math.min(ramped, peakWeeklyVolumeM)
   }
 
   return weeks

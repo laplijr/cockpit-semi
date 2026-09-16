@@ -43,7 +43,16 @@ export function createPlanGateway(db: Database): PlanGateway {
         .orderBy(desc(pause.startDate))
         .limit(1)
       if (!row) return undefined
-      return { id: row.id, startDate: row.startDate, estimatedEndDate: row.estimatedEndDate }
+      return {
+        id: row.id,
+        type: row.type,
+        zone: row.zone,
+        startDate: row.startDate,
+        estimatedEndDate: row.estimatedEndDate,
+        allowances: row.allowances,
+        watchZones: row.watchZones,
+        notes: row.notes,
+      }
     },
 
     async loadCurrentFitness(): Promise<FitnessSnapshot | undefined> {

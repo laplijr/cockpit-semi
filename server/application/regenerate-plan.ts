@@ -10,6 +10,9 @@ import type { Clock, PlanGateway } from './ports'
  */
 export const PRUDENT_START_VOLUME_M = 25_000
 
+/** Pic de volume visé sur un cycle, faute de valeur renseignée par l'athlète. */
+export const PEAK_VOLUME_M = 55_000
+
 /** Faute de point de forme, le plancher de Daniels le plus bas utilisable. */
 export const FALLBACK_VDOT = 30
 
@@ -40,6 +43,7 @@ export async function regeneratePlan(
     constraints: athlete?.constraints ?? DEFAULT_CONSTRAINTS,
     races,
     baseWeeklyVolumeM: PRUDENT_START_VOLUME_M,
+    peakWeeklyVolumeM: PEAK_VOLUME_M,
     vdot,
     openPause: openPause
       ? { startDate: openPause.startDate, estimatedEndDate: openPause.estimatedEndDate }
@@ -48,6 +52,7 @@ export async function regeneratePlan(
 
   const planVersionId = await gateway.savePlan(plan, trigger, {
     baseWeeklyVolumeM: PRUDENT_START_VOLUME_M,
+    peakWeeklyVolumeM: PEAK_VOLUME_M,
     vdot,
     vdotIsFloor: fitness?.isFloor ?? true,
     provisional: plan.provisional,
