@@ -83,3 +83,25 @@ export const SESSION_LABELS: Record<string, string> = {
 }
 
 export const PRIORITY_LABELS: Record<string, string> = { A: 'A', B: 'B', C: 'C' }
+
+export const SPORT_LABELS: Record<string, string> = {
+  course: 'Course à pied',
+  velo: 'Vélo',
+  muscu: 'Musculation',
+  autre: 'Autre',
+}
+
+/** Icône et couleur par sport, pour distinguer les séances d'un même jour. */
+export const SPORT_STYLES: Record<
+  string,
+  { icon: 'run' | 'velo' | 'muscu' | 'gauge'; tone: string }
+> = {
+  course: { icon: 'run', tone: 'text-accent' },
+  velo: { icon: 'velo', tone: 'text-cycling' },
+  muscu: { icon: 'muscu', tone: 'text-ok' },
+  autre: { icon: 'gauge', tone: 'text-text-muted' },
+}
+
+export function sportStyle(sport: string) {
+  return SPORT_STYLES[sport] ?? SPORT_STYLES.autre!
+}

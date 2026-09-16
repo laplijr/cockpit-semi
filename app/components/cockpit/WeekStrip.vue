@@ -37,25 +37,13 @@ const days = computed(() => {
     </div>
 
     <div class="grid grid-cols-7 gap-2">
-      <div
+      <CockpitDayCell
         v-for="day in days"
         :key="day.date"
-        class="flex min-h-[96px] flex-col gap-2 rounded-md border p-3"
-        :class="
-          day.isToday ? 'border-accent/45 bg-surface-raised' : 'border-line-soft bg-surface-inset'
-        "
-      >
-        <span class="label text-[10px]">{{ day.label }}</span>
-        <div v-for="session in day.sessions" :key="session.id" class="flex flex-col gap-px">
-          <span class="display text-[15px] font-semibold">
-            {{ SESSION_LABELS[session.code] ?? session.code }}
-          </span>
-          <span class="mono text-[11px] text-text-muted">
-            {{ formatDistance(session.prescription.totalDistanceM) }}
-          </span>
-        </div>
-        <span v-if="day.sessions.length === 0" class="text-[12px] text-text-muted">repos</span>
-      </div>
+        :label="day.label"
+        :sessions="day.sessions"
+        :is-today="day.isToday"
+      />
     </div>
   </div>
 </template>

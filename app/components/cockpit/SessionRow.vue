@@ -1,21 +1,30 @@
 <script setup lang="ts">
 import type { PlanSession } from '~/stores/plan'
 
-defineProps<{ session: PlanSession; muted?: boolean; actionable?: boolean }>()
+const props = defineProps<{ session: PlanSession; muted?: boolean; actionable?: boolean }>()
 const ui = useUiStore()
+
+const sport = computed(() => sportStyle(props.session.sport))
 </script>
 
 <template>
   <div class="flex items-center gap-3 border-t border-line-soft py-[10px] first:border-t-0">
-    <span
-      class="size-2 shrink-0 rounded-full"
-      :class="session.key ? 'bg-accent' : 'bg-line-strong'"
+    <UiAppIcon
+      :name="sport.icon"
+      :size="18"
+      :class="sport.tone"
+      :title="SPORT_LABELS[session.sport] ?? session.sport"
     />
+
     <div class="flex min-w-0 flex-col gap-px">
-      <span class="display text-[17px] font-semibold" :class="muted && 'text-text-dim'">
-        {{ SESSION_LABELS[session.code] ?? session.code }}
+      <span class="display flex items-center gap-2 text-[17px] font-semibold">
+        <span :class="muted && 'text-text-dim'">
+          {{ SESSION_LABELS[session.code] ?? session.code }}
+        </span>
+        <span v-if="session.key" class="pill bg-accent/15 text-[10px] text-accent">clé</span>
       </span>
       <span class="mono text-[11.5px] text-text-muted">
+        {{ SPORT_LABELS[session.sport] ?? session.sport }} ·
         {{ formatDistance(session.prescription.totalDistanceM) }}
         <template v-for="step in session.prescription.steps" :key="step.label">
           <template v-if="step.paceSecPerKm && step.label !== 'Retour au calme'">
@@ -27,6 +36,7 @@ const ui = useUiStore()
 
     <div class="ml-auto flex items-center gap-3">
       <span v-if="session.status === 'faite'" class="pill pill-done">faite</span>
+      <span v-else-if="session.status === 'sautee'" class="pill">manquée</span>
       <span v-else class="pill">RPE {{ session.prescription.expectedRpe }}</span>
       <button
         v-if="actionable"
