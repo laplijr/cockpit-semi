@@ -11,60 +11,29 @@ import {
   timestamp,
   unique,
 } from 'drizzle-orm/pg-core'
+import { FitnessOrigin } from '../../domain/fitness/fitness-point'
+import { PhaseType } from '../../domain/plan/phases'
+import {
+  ObjectiveMode,
+  RacePriority,
+  RaceSource,
+  RaceStatus,
+  SegmentMode,
+  type RaceIncident,
+} from '../../domain/races/race'
+import { Sport } from '../../domain/shared/sport'
 
-export enum Sport {
-  Running = 'course',
-  Cycling = 'velo',
-  Strength = 'muscu',
-  Other = 'autre',
+export {
+  FitnessOrigin,
+  ObjectiveMode,
+  PhaseType,
+  RacePriority,
+  RaceSource,
+  RaceStatus,
+  SegmentMode,
+  Sport,
 }
-
-export enum RacePriority {
-  A = 'A',
-  B = 'B',
-  C = 'C',
-}
-
-/** Une course vise un chrono, ou la meilleure performance possible du jour. */
-export enum ObjectiveMode {
-  Time = 'temps',
-  MaxPerformance = 'performance_max',
-}
-
-export enum RaceStatus {
-  Planned = 'planifiee',
-  Raced = 'courue',
-  Cancelled = 'annulee',
-}
-
-export enum RaceSource {
-  Manual = 'manuel',
-  Search = 'recherche',
-}
-
-export enum SegmentMode {
-  Running = 'course',
-  WalkRun = 'marche_course',
-  Walking = 'marche',
-}
-
-export enum PhaseType {
-  Base = 'base',
-  ShortBase = 'base_courte',
-  Development = 'developpement',
-  Specific = 'specifique',
-  Speed = 'vitesse',
-  Taper = 'affutage',
-  Recovery = 'recup',
-  Rebuild = 'relance',
-  Transition = 'transition',
-}
-
-export enum FitnessOrigin {
-  Race = 'course',
-  Test = 'test',
-  InitialImport = 'import_initial',
-}
+export type { RaceIncident }
 
 export const sportEnum = pgEnum('sport', enumValues(Sport))
 export const racePriorityEnum = pgEnum('race_priority', enumValues(RacePriority))
@@ -93,12 +62,6 @@ export const athlete = pgTable('athlete', {
   notes: text('notes'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
-
-export interface RaceIncident {
-  km: number
-  type: string
-  note: string
-}
 
 export const race = pgTable('race', {
   id: serial('id').primaryKey(),
