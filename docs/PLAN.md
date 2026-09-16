@@ -1,6 +1,7 @@
 # Cockpit d'entraînement — plan d'implémentation
 
 Projet personnel, indépendant de bonx-next. Web **desktop** (largeur cible 1440, minimum 1280), gratuit. Une seule connexion externe : Strava. Le mobile viendra plus tard, en vue réduite de la même app.
+Application déployée : https://cockpit-semi.vercel.app
 Maquettes de référence (v5, desktop) : https://claude.ai/artifact/GHF88CMB93rHvF8xQfaYDA (sources dans `~/Documents/dev/cockpit-semi-design`, générateur `build_desktop.py`).
 
 ## État d'avancement et consigne aux agents
@@ -55,15 +56,15 @@ Les valeurs des maquettes (VDOT 45, 1:42 au semi, objectif 1:38, Madrid le 18 av
 
 | Course | Date | Distance | Priorité | Objectif |
 |---|---|---|---|---|
-| Semi de Paris | dim. 7 mars 2027 | 21,1 km | A | à fixer après le premier test |
-| Semi de Madrid | dim. 4 avril 2027 (4 semaines après Paris) | 21,1 km | B | à fixer |
+| Semi de Paris | dim. 7 mars 2027 | 21,1 km | A | **se tester** : couru à fond, sans chrono cible, pour recaler le VDOT |
+| Semi de Madrid | dim. 4 avril 2027 (4 semaines après Paris) | 21,1 km | B | **performance maximale** : l'objectif est la projection du jour, recalée par Paris |
 | 5 km · Île d'Arz | dim. 8 août 2027 (confirmé) | 5 km | A | **performance maximale** : pas de chrono cible, l'objectif est la projection du jour, à battre |
 
 **Conséquences immédiates sur le plan**
 - **Pause active au 16 sept.** : ongle de pied cassé, douloureux, pas de course tant que la douleur en marchant n'est pas nulle. Type « blessure », zone « pied », durée inconnue : la pause reste ouverte jusqu'à ce que Ronan marque la reprise dans l'app. Pendant la pause : muscu haut du corps autorisée, vélo et muscu jambes seulement si la chaussure ne fait pas mal, mobilité. Le plan (reprise, test, phases) est calé sur la **date de reprise**, pas sur une date fixe : tout ce qui suit est exprimé en semaines après reprise.
 - Blessure du 13 sept. : douleur derrière le genou droit (creux poplité), **disparue depuis**. À la fin de la pause, le plan enchaîne sur une **reprise surveillée** de 3 semaines (60 → 80 → 100 % d'un volume de départ prudent, endurance seule la première semaine, pas de VMA avant la semaine 3), avec la zone « genou droit, face postérieure » pré-cochée dans le retour de séance. Toute douleur > 2/10 à cet endroit déclenche R5 immédiatement.
 - Madrid n'est qu'à **4 semaines** de Paris : mini-cycle Récup 2 · Relance 1 · Affûtage 1. Madrid se court sur la forme de Paris, sans bloc de progression entre les deux.
-- Aucun VDOT fiable : premier **test 20'** planifié en semaine 4 après la reprise ; les objectifs de Paris et Madrid se fixent à partir de ce test, pas avant. D'ici là, les allures d'entraînement se calculent depuis le plancher VDOT ≈ 33 (E ≈ 6:50 – 7:35, T ≈ 6:05, I ≈ 5:30) et seront revues à la hausse dès le test.
+- Aucun VDOT fiable : premier **test 20'** planifié en semaine 4 après la reprise. Ni Paris ni Madrid n'ont de chrono cible : les deux sont en mode performance maximale, Paris servant de test grandeur nature qui recale le VDOT pour Madrid. D'ici là, les allures d'entraînement se calculent depuis le plancher VDOT ≈ 33 (E ≈ 6:50 – 7:35, T ≈ 6:05, I ≈ 5:30) et seront revues à la hausse dès le test.
 - Le 5 km d'août ajoute un **troisième cycle** après Madrid : Récup 2 · Base courte 4 · Vitesse 8 (VMA, répétitions, côtes) · Affûtage 1. La muscu y bascule en force-puissance et pliométrie. Voir § 5.
 
 ## 1. Principes non négociables
