@@ -15,7 +15,14 @@ const volume = computed(() =>
 </script>
 
 <template>
-  <div class="flex items-center gap-3 border-t border-line-soft py-[10px] first:border-t-0">
+  <div
+    class="tile-action flex items-center gap-3 rounded-md border border-transparent border-t-line-soft px-2 py-[10px] first:border-t-transparent"
+    role="button"
+    :tabindex="0"
+    @click="ui.openModal('seance', session.id)"
+    @keydown.enter.prevent="ui.openModal('seance', session.id)"
+    @keydown.space.prevent="ui.openModal('seance', session.id)"
+  >
     <UiAppIcon
       :name="sport.icon"
       :size="18"
@@ -30,13 +37,9 @@ const volume = computed(() =>
         </span>
         <span v-if="session.key" class="pill bg-accent/15 text-[10px] text-accent">clé</span>
       </span>
+      <!-- Un seul chiffre au premier niveau : le détail vit dans le dialog (§ 8). -->
       <span class="mono text-[11.5px] text-text-muted">
         {{ SPORT_LABELS[session.sport] ?? session.sport }} · {{ volume }}
-        <template v-for="step in session.prescription.steps" :key="step.label">
-          <template v-if="step.paceSecPerKm && step.label !== 'Retour au calme'">
-            · {{ step.repeats ? `${step.repeats} × ` : '' }}{{ formatPace(step.paceSecPerKm) }}/km
-          </template>
-        </template>
       </span>
     </div>
 
@@ -49,7 +52,7 @@ const volume = computed(() =>
         type="button"
         class="btn"
         :class="session.status === 'faite' && 'btn-ghost'"
-        @click="ui.openPanel('retour', session.id)"
+        @click.stop="ui.openModal('seance', session.id)"
       >
         {{ session.status === 'faite' ? 'Modifier le ressenti' : 'Compléter le ressenti' }}
       </button>

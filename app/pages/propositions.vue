@@ -17,7 +17,7 @@ async function apply() {
 </script>
 
 <template>
-  <div class="flex max-w-[980px] flex-col gap-4">
+  <div class="flex flex-col gap-4">
     <CockpitDecisionList />
 
     <div class="tile">

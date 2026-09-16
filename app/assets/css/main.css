@@ -67,6 +67,25 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
+
+  /*
+   * Tailwind 4 a retiré `cursor: pointer` du preflight : sans ça, seule la
+   * classe `.btn` le portait et la cloche, la barre ⌘K ou les pills se
+   * survolaient avec une flèche.
+   */
+  button,
+  [role='button'],
+  select,
+  summary,
+  label:has(> input[type='checkbox']),
+  label:has(> input[type='file']) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role='button'][aria-disabled='true'] {
+    cursor: not-allowed;
+  }
 }
 
 @layer components {
@@ -175,6 +194,24 @@
     white-space: nowrap;
     background: var(--color-surface-muted);
     color: var(--color-text-dim);
+  }
+
+  /* Tuile qui s'ouvre : elle se signale au survol et se prend au clavier. */
+  .tile-action {
+    cursor: pointer;
+    transition:
+      border-color 120ms ease,
+      background 120ms ease;
+  }
+
+  .tile-action:hover {
+    border-color: var(--color-line-strong);
+    background: var(--color-surface-raised);
+  }
+
+  .tile-action:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 
   .pill-done {

@@ -122,7 +122,7 @@ async function logout() {
 </script>
 
 <template>
-  <div class="flex max-w-[860px] flex-col gap-4">
+  <div class="flex flex-col gap-4">
     <div v-if="!athlete?.onboarded" class="tile" style="border-color: rgba(242, 162, 58, 0.35)">
       <span class="label">Première configuration</span>
       <p class="text-[13px] text-text-dim">
@@ -136,7 +136,7 @@ async function logout() {
       <div class="flex items-start gap-4">
         <img :src="avatarSrc" alt="" class="size-16 rounded-full" />
         <div class="flex flex-col gap-2">
-          <label class="btn btn-ghost cursor-pointer">
+          <label class="btn btn-ghost">
             <input type="file" accept="image/*" class="hidden" @change="onPhoto" />
             {{ form.avatar ? 'Remplacer la photo' : 'Ajouter une photo' }}
           </label>

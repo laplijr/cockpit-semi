@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const ui = useUiStore()
 const { data } = await useFetch('/api/readiness')
 
 const STATES = {
@@ -11,7 +12,14 @@ const state = computed(() => (data.value ? STATES[data.value.state] : null))
 </script>
 
 <template>
-  <div class="tile">
+  <div
+    class="tile tile-action"
+    role="button"
+    :tabindex="0"
+    @click="ui.openDial('forme')"
+    @keydown.enter.prevent="ui.openDial('forme')"
+    @keydown.space.prevent="ui.openDial('forme')"
+  >
     <div class="flex items-baseline justify-between">
       <span class="label">Forme du jour</span>
       <span v-if="state" class="pill" :class="data!.state === 'pret' ? 'pill-done' : 'pill-warn'">
@@ -23,15 +31,11 @@ const state = computed(() => (data.value ? STATES[data.value.state] : null))
       {{ data?.score ?? '—' }}
     </span>
 
-    <div v-if="data?.causes.length" class="flex flex-col gap-1">
-      <span class="label text-[10px]">Causes</span>
-      <span v-for="cause in data.causes" :key="cause" class="text-[12.5px] text-text-dim">
-        {{ cause }}
-      </span>
-    </div>
-
-    <p class="border-t border-line-soft pt-2 text-[12.5px] text-text-muted">
-      {{ data?.suggestion }}
-    </p>
+    <span class="mono text-[11.5px] text-text-muted">
+      <template v-if="data?.causes.length">
+        {{ data.causes.length }} signal{{ data.causes.length > 1 ? 'aux' : '' }} · ouvre le détail
+      </template>
+      <template v-else>aucun signal particulier</template>
+    </span>
   </div>
 </template>

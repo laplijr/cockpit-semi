@@ -3,7 +3,7 @@ const { data } = await useFetch('/api/activities/latest')
 </script>
 
 <template>
-  <div class="flex max-w-[860px] flex-col gap-4">
+  <div class="flex flex-col gap-4">
     <div class="tile">
       <div class="flex items-center gap-2">
         <UiAppIcon name="strava" class="text-strava" />

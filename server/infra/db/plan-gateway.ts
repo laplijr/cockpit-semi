@@ -19,7 +19,17 @@ import { FitnessOrigin } from '../../domain/fitness/fitness-point'
 import { RaceStatus } from '../../domain/races/race'
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
-import { athlete, fitnessPoint, pause, phase, planVersion, race, session, week } from './schema'
+import {
+  athlete,
+  feedback,
+  fitnessPoint,
+  pause,
+  phase,
+  planVersion,
+  race,
+  session,
+  week,
+} from './schema'
 
 export function createPlanGateway(db: Database): PlanGateway {
   return {
@@ -196,6 +206,8 @@ export async function loadActivePlanVersion(db: Database) {
           .select()
           .from(session)
           .innerJoin(week, eq(session.weekId, week.id))
+          /** Le RPE réel sert au « prescrit contre réalisé » du dialog de séance (§ 8). */
+          .leftJoin(feedback, eq(feedback.sessionId, session.id))
           .where(and(eq(week.planVersionId, version.id)))
           .orderBy(session.date)
 
@@ -203,6 +215,6 @@ export async function loadActivePlanVersion(db: Database) {
     version,
     phases,
     weeks,
-    sessions: sessions.map((row) => row.session),
+    sessions: sessions.map((row) => ({ ...row.session, feedbackRpe: row.feedback?.rpe ?? null })),
   }
 }

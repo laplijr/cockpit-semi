@@ -51,7 +51,7 @@ async function apply() {
         <button
           type="button"
           class="self-start text-left text-[12.5px] text-text-muted hover:text-text"
-          @click="ui.openPanel('proposition', item.id)"
+          @click="ui.openModal('proposition', item.id)"
         >
           {{ item.explanation }}
         </button>

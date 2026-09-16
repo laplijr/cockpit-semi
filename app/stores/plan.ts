@@ -6,6 +6,10 @@ export interface PlanSession {
   code: string
   key: boolean
   status: string
+  actualDurationMin: number | null
+  actualDistanceM: number | null
+  /** RPE du ressenti enregistré ; nul tant qu'il n'y en a pas. */
+  feedbackRpe: number | null
   prescription: {
     label: string
     totalDistanceM: number

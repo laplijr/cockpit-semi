@@ -32,4 +32,33 @@ describe('pile d’affichage de la coque', () => {
     ui.closeTopLayer()
     expect(ui.panel).toBeNull()
   })
+
+  it('vise un objet avec la fenêtre, et oublie la cible en fermant', () => {
+    const ui = useUiStore()
+    ui.openModal('seance', 42)
+
+    expect(ui.modal).toBe('seance')
+    expect(ui.modalTargetId).toBe(42)
+
+    ui.closeModal()
+    expect(ui.modalTargetId).toBeNull()
+  })
+
+  it('ouvre le détail d’un cadran, qui n’a pas d’identifiant en base', () => {
+    const ui = useUiStore()
+    ui.openDial('charge')
+
+    expect(ui.modal).toBe('cadran')
+    expect(ui.modalDial).toBe('charge')
+    expect(ui.modalTargetId).toBeNull()
+  })
+
+  it('oublie le cadran quand la fenêtre suivante vise un objet', () => {
+    const ui = useUiStore()
+    ui.openDial('vdot')
+    ui.openModal('seance', 7)
+
+    expect(ui.modalDial).toBeNull()
+    expect(ui.modalTargetId).toBe(7)
+  })
 })

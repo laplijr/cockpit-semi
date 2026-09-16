@@ -51,7 +51,16 @@ async function remove(id: number) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="race in upcoming" :key="race.id" class="border-t border-line-soft">
+          <tr
+            v-for="race in upcoming"
+            :key="race.id"
+            class="tile-action border-t border-line-soft"
+            role="button"
+            :tabindex="0"
+            @click="ui.openModal('course', race.id)"
+            @keydown.enter.prevent="ui.openModal('course', race.id)"
+            @keydown.space.prevent="ui.openModal('course', race.id)"
+          >
             <td class="py-[10px]">{{ race.name }}</td>
             <td class="mono py-[10px] text-text-dim">{{ formatDate(race.date) }}</td>
             <td class="mono py-[10px] text-text-dim">{{ formatDistance(race.distanceM) }}</td>
@@ -75,7 +84,7 @@ async function remove(id: number) {
               <button
                 type="button"
                 class="text-text-muted hover:text-text"
-                @click="remove(race.id)"
+                @click.stop="remove(race.id)"
               >
                 <UiAppIcon name="close" :size="15" />
               </button>

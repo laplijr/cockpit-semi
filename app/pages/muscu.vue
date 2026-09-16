@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { data } = await useFetch('/api/library/strength')
+const ui = useUiStore()
 
 const planned = computed(() => new Set(data.value?.plannedCodes ?? []))
 
@@ -65,7 +66,13 @@ const preventionBlock = computed(() =>
           <div
             v-for="step in item.prescription.steps"
             :key="step.label"
-            class="flex flex-col gap-px"
+            class="flex flex-col gap-px rounded-sm border border-transparent px-1"
+            :class="step.exerciseId && 'tile-action -mx-1'"
+            :role="step.exerciseId ? 'button' : undefined"
+            :tabindex="step.exerciseId ? 0 : undefined"
+            @click="step.exerciseId && ui.openExercise(step.exerciseId)"
+            @keydown.enter.prevent="step.exerciseId && ui.openExercise(step.exerciseId)"
+            @keydown.space.prevent="step.exerciseId && ui.openExercise(step.exerciseId)"
           >
             <span class="flex items-baseline gap-2">
               <span class="text-[13px]">{{ step.label }}</span>
@@ -98,7 +105,12 @@ const preventionBlock = computed(() =>
         <div
           v-for="exercise in preventionBlock"
           :key="exercise.id"
-          class="flex flex-col gap-px border-t border-line-soft pt-2"
+          class="tile-action -mx-1 flex flex-col gap-px rounded-sm border border-transparent border-t-line-soft px-1 pt-2"
+          role="button"
+          :tabindex="0"
+          @click="ui.openExercise(exercise.id)"
+          @keydown.enter.prevent="ui.openExercise(exercise.id)"
+          @keydown.space.prevent="ui.openExercise(exercise.id)"
         >
           <span class="flex items-baseline gap-2">
             <span class="text-[13px]">{{ exercise.label }}</span>

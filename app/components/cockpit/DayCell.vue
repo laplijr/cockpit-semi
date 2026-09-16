@@ -10,6 +10,8 @@ withDefaults(
   }>(),
   { isToday: false, compact: false },
 )
+
+const ui = useUiStore()
 </script>
 
 <template>
@@ -27,8 +29,13 @@ withDefaults(
     <div
       v-for="(session, index) in sessions"
       :key="session.id"
-      class="flex flex-col gap-px"
-      :class="index > 0 && 'border-t border-line-soft pt-2'"
+      class="tile-action -mx-1 flex flex-col gap-px rounded-sm border border-transparent px-1"
+      :class="index > 0 && 'mt-1 border-t-line-soft pt-2'"
+      role="button"
+      :tabindex="0"
+      @click="ui.openModal('seance', session.id)"
+      @keydown.enter.prevent="ui.openModal('seance', session.id)"
+      @keydown.space.prevent="ui.openModal('seance', session.id)"
     >
       <span class="flex items-center gap-[6px]">
         <UiAppIcon
