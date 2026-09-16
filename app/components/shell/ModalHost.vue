@@ -12,11 +12,7 @@ const MODALS = {
 
 <template>
   <Teleport to="body">
-    <ShellAppModal
-      v-if="ui.modal"
-      :title="MODALS[ui.modal].title"
-      @close="ui.closeModal()"
-    >
+    <ShellAppModal v-if="ui.modal" :title="MODALS[ui.modal].title" @close="ui.closeModal()">
       <UiPhaseStub :phase="MODALS[ui.modal].phase">{{ MODALS[ui.modal].body }}</UiPhaseStub>
     </ShellAppModal>
   </Teleport>
