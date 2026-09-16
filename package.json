@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
+    "vercel-build": "drizzle-kit migrate && nuxt build",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
