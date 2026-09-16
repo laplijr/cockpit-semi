@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const ui = useUiStore()
 const plan = usePlanStore()
+const proposals = usePropositionsStore()
 
 const STUBS = {
   imprevu: {
@@ -23,9 +24,28 @@ const STUBS = {
   },
 } as const
 
+type StubId = keyof typeof STUBS
+
+const stub = computed(() => (ui.panel && ui.panel in STUBS ? STUBS[ui.panel as StubId] : null))
+
 const session = computed(
   () => plan.plan?.sessions.find((item) => item.id === ui.panelTargetId) ?? null,
 )
+
+const proposition = computed(
+  () => proposals.pending.find((item) => item.id === ui.panelTargetId) ?? null,
+)
+
+async function acceptOne(id: number) {
+  await proposals.applyOne(id)
+  await plan.load()
+  ui.closePanel()
+}
+
+async function refuseOne(id: number) {
+  await proposals.refuse(id)
+  ui.closePanel()
+}
 
 async function onSaved() {
   await plan.load()
@@ -49,12 +69,47 @@ async function onSaved() {
     </ShellSidePanel>
 
     <ShellSidePanel
-      v-else-if="ui.panel && ui.panel !== 'retour'"
-      :title="STUBS[ui.panel].title"
-      :subtitle="STUBS[ui.panel].subtitle"
+      v-else-if="ui.panel === 'proposition' && proposition"
+      :title="`Proposition ${proposition.ruleId}`"
+      subtitle="règle, valeur actuelle et valeur proposée"
       @close="ui.closePanel()"
     >
-      <UiPhaseStub :phase="STUBS[ui.panel].phase">{{ STUBS[ui.panel].body }}</UiPhaseStub>
+      <div class="tile">
+        <span class="label text-[10.5px]">Ce qui change</span>
+        <span class="mono text-[15px]">
+          <span class="text-text-muted line-through">{{ proposition.before }}</span>
+          <span class="mx-2 text-text-muted">→</span>{{ proposition.after }}
+        </span>
+      </div>
+
+      <div class="tile">
+        <span class="label text-[10.5px]">Pourquoi</span>
+        <p class="text-[13px] text-text-dim">{{ proposition.explanation }}</p>
+      </div>
+
+      <div class="tile">
+        <span class="label text-[10.5px]">Origine</span>
+        <span class="mono text-[12.5px] text-text-muted">
+          Règle {{ proposition.ruleId }} · déclenchée par {{ proposition.trigger }} ·
+          {{ formatDate(proposition.createdAt.slice(0, 10)) }}
+        </span>
+      </div>
+
+      <div class="flex gap-2">
+        <button type="button" class="btn" @click="acceptOne(proposition.id)">Appliquer</button>
+        <button type="button" class="btn btn-ghost" @click="refuseOne(proposition.id)">
+          Refuser
+        </button>
+      </div>
+    </ShellSidePanel>
+
+    <ShellSidePanel
+      v-else-if="stub"
+      :title="stub.title"
+      :subtitle="stub.subtitle"
+      @close="ui.closePanel()"
+    >
+      <UiPhaseStub :phase="stub.phase">{{ stub.body }}</UiPhaseStub>
     </ShellSidePanel>
   </Teleport>
 </template>

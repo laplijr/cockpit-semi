@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const proposals = usePropositionsStore()
 const plan = usePlanStore()
+const ui = useUiStore()
 const applying = ref(false)
 
 async function apply() {
@@ -47,7 +48,13 @@ async function apply() {
             <span>{{ item.after }}</span>
           </span>
         </div>
-        <span class="text-[12.5px] text-text-muted">{{ item.explanation }}</span>
+        <button
+          type="button"
+          class="self-start text-left text-[12.5px] text-text-muted hover:text-text"
+          @click="ui.openPanel('proposition', item.id)"
+        >
+          {{ item.explanation }}
+        </button>
       </div>
       <button
         type="button"

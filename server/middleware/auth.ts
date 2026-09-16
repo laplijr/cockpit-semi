@@ -1,5 +1,5 @@
 /** Chemins qui doivent rester joignables sans session : ce sont eux qui l'établissent. */
-const PUBLIC_PREFIXES = ['/api/auth/', '/api/_auth/']
+const PUBLIC_PREFIXES = ['/api/auth/', '/api/_auth/', '/api/cron/']
 
 /** Toutes les autres routes d'API exigent la session. */
 export default defineEventHandler(async (event) => {

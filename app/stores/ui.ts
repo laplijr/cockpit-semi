@@ -1,4 +1,4 @@
-export const PANEL_IDS = ['imprevu', 'pause', 'retour', 'propositions'] as const
+export const PANEL_IDS = ['imprevu', 'pause', 'retour', 'propositions', 'proposition'] as const
 export const MODAL_IDS = ['nouvelle-course'] as const
 
 export type PanelId = (typeof PANEL_IDS)[number]

@@ -9,6 +9,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     appPassword: '',
     databaseUrl: '',
+    /** Protège la route de cron ; Vercel l'envoie en en-tête Authorization. */
+    cronSecret: '',
   },
   app: {
     head: {

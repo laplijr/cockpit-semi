@@ -1,12 +1,14 @@
-import { and, asc, desc, eq, gte, inArray, lt } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNull, lt } from 'drizzle-orm'
 import { addDays } from '../../domain/plan/calendar'
 import { SessionStatus } from '../../domain/plan/session'
+import { PauseType } from '../../domain/pause/pause'
 import { applyToPrescription, isSessionEffect } from '../../domain/rules/apply'
+import { toCyclingPrescription } from '../../domain/rules/convert'
 import { ProposalStatus, type ProposalTrigger } from '../../domain/rules/proposal-status'
 import {
+  ProposalEffect,
   evaluateRules,
   type Proposal as DomainProposal,
-  type ProposalEffect,
   type RuleContext,
   type SessionOutcome,
   type UpcomingSession,
@@ -14,7 +16,7 @@ import {
 import type { RunSessionCode, Prescription } from '../../domain/running/session-types'
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
-import { feedback, proposal, session } from './schema'
+import { feedback, pause, proposal, session, week } from './schema'
 
 /** Fenêtre de séances passées examinée par les règles. */
 const LOOKBACK_DAYS = 10
@@ -143,24 +145,26 @@ export async function listProposals(db: Database) {
 }
 
 /** Accepte une proposition : l'effet est appliqué, puis la décision archivée. */
-export async function acceptProposal(db: Database, id: number) {
+export async function acceptProposal(db: Database, id: number, today: string) {
   const [row] = await db.select().from(proposal).where(eq(proposal.id, id)).limit(1)
   if (!row) return undefined
 
   const effect = row.effect as ProposalEffect
 
   if (isSessionEffect(effect) && row.targetId !== null) {
-    const [target] = await db.select().from(session).where(eq(session.id, row.targetId)).limit(1)
-    if (target) {
-      const updated = applyToPrescription(target.prescription as unknown as Prescription, effect)
-      await db
-        .update(session)
-        .set({
-          prescription: updated as unknown as Record<string, unknown>,
-          status: SessionStatus.Modified,
-        })
-        .where(eq(session.id, row.targetId))
-    }
+    await updateSessionPrescription(db, row.targetId, (prescription) =>
+      applyToPrescription(prescription, effect),
+    )
+  }
+
+  if (effect === ProposalEffect.ConvertToCycling && row.targetId !== null) {
+    await updateSessionPrescription(db, row.targetId, toCyclingPrescription, Sport.Cycling)
+  }
+
+  if (effect === ProposalEffect.FreezeProgression) await freezeProgression(db, today)
+  if (effect === ProposalEffect.RestoreProgression) await restoreProgression(db, today)
+  if (effect === ProposalEffect.ProposePause || effect === ProposalEffect.ForcePause) {
+    await openPause(db, today, row.explanation)
   }
 
   await db
@@ -169,6 +173,101 @@ export async function acceptProposal(db: Database, id: number) {
     .where(eq(proposal.id, id))
 
   return row
+}
+
+async function updateSessionPrescription(
+  db: Database,
+  sessionId: number,
+  transform: (prescription: Prescription) => Prescription,
+  sport?: Sport,
+) {
+  const [target] = await db.select().from(session).where(eq(session.id, sessionId)).limit(1)
+  if (!target) return
+
+  const updated = transform(target.prescription as unknown as Prescription)
+  await db
+    .update(session)
+    .set({
+      prescription: updated as unknown as Record<string, unknown>,
+      status: SessionStatus.Modified,
+      ...(sport ? { sport } : {}),
+    })
+    .where(eq(session.id, sessionId))
+}
+
+/** Gèle la montée : la semaine suivante reprend le volume de la semaine en cours. */
+async function freezeProgression(db: Database, today: string) {
+  const [current, next] = await db
+    .select()
+    .from(week)
+    .where(gte(week.endDate, today))
+    .orderBy(asc(week.index))
+    .limit(2)
+
+  if (!current || !next || next.targetRunM <= current.targetRunM) return
+  await scaleWeek(db, next, current.targetRunM)
+}
+
+/** Restaure la montée : la semaine suivante retrouve +10 % sur la semaine en cours. */
+async function restoreProgression(db: Database, today: string) {
+  const [current, next] = await db
+    .select()
+    .from(week)
+    .where(gte(week.endDate, today))
+    .orderBy(asc(week.index))
+    .limit(2)
+
+  if (!current || !next) return
+  await scaleWeek(db, next, Math.round(current.targetRunM * 1.1))
+}
+
+/** Ramène une semaine à un volume cible, et ses séances avec elle. */
+async function scaleWeek(db: Database, target: typeof week.$inferSelect, volumeM: number) {
+  const factor = target.targetRunM === 0 ? 1 : volumeM / target.targetRunM
+
+  await db
+    .update(week)
+    .set({ targetRunM: volumeM, longRunMaxM: Math.round(volumeM * 0.3) })
+    .where(eq(week.id, target.id))
+
+  const sessions = await db.select().from(session).where(eq(session.weekId, target.id))
+  for (const item of sessions) {
+    const prescription = item.prescription as unknown as Prescription
+    await db
+      .update(session)
+      .set({
+        prescription: {
+          ...prescription,
+          totalDistanceM: Math.round(prescription.totalDistanceM * factor),
+          steps: prescription.steps.map((step) => ({
+            ...step,
+            distanceM:
+              step.distanceM === undefined ? undefined : Math.round(step.distanceM * factor),
+          })),
+        } as unknown as Record<string, unknown>,
+      })
+      .where(eq(session.id, item.id))
+  }
+}
+
+/** Ouvre une pause course, vélo et muscu haut autorisés si indolores (§ 5, R5). */
+async function openPause(db: Database, today: string, reason: string) {
+  const [existing] = await db.select().from(pause).where(isNull(pause.endDate)).limit(1)
+  if (existing) return
+
+  await db.insert(pause).values({
+    type: PauseType.Injury,
+    zone: null,
+    startDate: today,
+    allowances: {
+      running: false,
+      cycling: true,
+      upperBodyStrength: true,
+      legStrength: false,
+      conditions: ['Vélo seulement si indolore'],
+    },
+    notes: reason,
+  })
 }
 
 export async function refuseProposal(db: Database, id: number) {

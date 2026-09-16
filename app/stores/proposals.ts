@@ -43,6 +43,12 @@ export const usePropositionsStore = defineStore('proposals', () => {
     await load()
   }
 
+  /** Applique une seule proposition, depuis son panneau de détail. */
+  async function applyOne(id: number) {
+    await request(`/api/proposals/${id}/accept`, { method: 'POST' })
+    await load()
+  }
+
   async function refuse(id: number) {
     await request(`/api/proposals/${id}/refuse`, { method: 'POST' })
     await load()
@@ -50,5 +56,5 @@ export const usePropositionsStore = defineStore('proposals', () => {
 
   const pendingCount = computed(() => pending.value.length)
 
-  return { pending, decided, selected, pendingCount, load, toggle, applySelected, refuse }
+  return { pending, decided, selected, pendingCount, load, toggle, applySelected, applyOne, refuse }
 })
