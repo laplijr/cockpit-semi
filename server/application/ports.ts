@@ -14,12 +14,14 @@ export interface AthleteSnapshot {
   onboarded: boolean
 }
 
-export interface OpenPauseSnapshot {
+export interface PauseSnapshot {
   id: number
   type: string
   zone: string | null
   startDate: IsoDate
   estimatedEndDate: IsoDate | null
+  /** Nulle tant que la pause est ouverte. */
+  endDate: IsoDate | null
   allowances: PauseAllowances
   watchZones: string[]
   notes: string | null
@@ -35,8 +37,11 @@ export interface FitnessSnapshot {
 export interface PlanGateway {
   loadAthlete(): Promise<AthleteSnapshot | undefined>
   loadRaces(): Promise<PlannedRace[]>
-  loadOpenPause(): Promise<OpenPauseSnapshot | undefined>
+  /** Dernière pause, ouverte ou fermée : sa fin déclenche la reprise surveillée. */
+  loadLatestPause(): Promise<PauseSnapshot | undefined>
   loadCurrentFitness(): Promise<FitnessSnapshot | undefined>
+  /** Date du dernier test 20′, qui borne la replanification du suivant. */
+  loadLastTestDate(): Promise<IsoDate | null>
   savePlan(plan: GeneratedPlan, trigger: PlanTrigger, parameters: PlanParameters): Promise<number>
 }
 

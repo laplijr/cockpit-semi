@@ -1,4 +1,4 @@
-import { asc, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, lte } from 'drizzle-orm'
 import { raceTimeForVdot } from '../domain/fitness/vdot'
 import { ProposalStatus } from '../domain/rules/proposal-status'
 import { SessionStatus } from '../domain/plan/session'
@@ -23,7 +23,7 @@ export default defineEventHandler(async () => {
       .select()
       .from(session)
       .leftJoin(feedback, eq(feedback.sessionId, session.id))
-      .where(eq(session.key, true))
+      .where(and(eq(session.key, true), lte(session.date, today)))
       .orderBy(desc(session.date))
       .limit(40),
   ])
@@ -41,8 +41,15 @@ export default defineEventHandler(async () => {
     }
   })
 
-  const planned = (active?.sessions ?? []).filter((item) => item.date <= today)
-  const done = planned.filter((item) => item.status !== SessionStatus.Planned)
+  // L'adhérence se lit sur toutes les séances passées, pas seulement sur celles
+  // de la version courante : une régénération ne doit pas effacer le passé.
+  const pastSessions = await db
+    .select({ status: session.status })
+    .from(session)
+    .where(lte(session.date, today))
+  const done = pastSessions.filter(
+    (item) => item.status === SessionStatus.Done || item.status === SessionStatus.Modified,
+  )
 
   const decided = decisions.filter((item) => item.status !== ProposalStatus.Proposed)
   const accepted = decided.filter((item) => item.status === ProposalStatus.Accepted)
@@ -66,7 +73,8 @@ export default defineEventHandler(async () => {
     })),
     weeks,
     /** Part des séances prévues effectivement réalisées. */
-    adherence: planned.length === 0 ? null : Math.round((done.length / planned.length) * 100),
+    adherence:
+      pastSessions.length === 0 ? null : Math.round((done.length / pastSessions.length) * 100),
     /** Part des propositions acceptées parmi celles décidées. */
     acceptanceRate:
       decided.length === 0 ? null : Math.round((accepted.length / decided.length) * 100),

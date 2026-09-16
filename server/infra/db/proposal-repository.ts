@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lt } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNull, lt, notInArray } from 'drizzle-orm'
 import { addDays } from '../../domain/plan/calendar'
 import { SessionStatus } from '../../domain/plan/session'
 import { PauseType } from '../../domain/pause/pause'
@@ -109,6 +109,8 @@ export async function evaluateAndStore(
   today: string,
   trigger: ProposalTrigger,
 ): Promise<DomainProposal[]> {
+  await expireOrphanProposals(db)
+
   const found = evaluateRules(await buildContext(db, today))
   if (found.length === 0) return []
 
@@ -275,6 +277,23 @@ export async function refuseProposal(db: Database, id: number) {
     .update(proposal)
     .set({ status: ProposalStatus.Refused, decidedAt: new Date() })
     .where(eq(proposal.id, id))
+}
+
+/**
+ * Une proposition visant une séance disparue avec une régénération de plan
+ * n'a plus d'objet : elle expire au lieu d'encombrer la liste.
+ */
+export async function expireOrphanProposals(db: Database) {
+  await db
+    .update(proposal)
+    .set({ status: ProposalStatus.Expired, decidedAt: new Date() })
+    .where(
+      and(
+        eq(proposal.status, ProposalStatus.Proposed),
+        eq(proposal.targetKind, 'session'),
+        notInArray(proposal.targetId, db.select({ id: session.id }).from(session)),
+      ),
+    )
 }
 
 /** Une proposition non décidée devient caduque au bout d'une semaine. */

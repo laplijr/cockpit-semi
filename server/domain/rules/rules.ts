@@ -47,6 +47,8 @@ export const SLEEP_DEBT_HOURS = 6
 export const PAIN_PROPOSE_PAUSE = 3
 export const PAIN_FORCE_PAUSE = 4
 export const MIN_HOURS_BETWEEN_KEY_SESSIONS = 48
+/** Une règle ne propose jamais d'ajuster plus de séances que ça d'un coup. */
+export const MAX_TARGETS_PER_RULE = 3
 
 export interface SessionOutcome {
   sessionId: number
@@ -133,14 +135,16 @@ function r2(context: RuleContext): Proposal[] {
   const last = context.recent[0]
   if (!last || fatigueSignals(last) < 2) return []
 
-  const proposals: Proposal[] = easyRuns(context.upcoming).map((session) => ({
-    ruleId: RuleId.R2,
-    effect: ProposalEffect.ReduceEasyVolume,
-    target: { kind: 'session' as const, id: session.sessionId },
-    before: `${Math.round(session.distanceM / 100) / 10} km`,
-    after: `${Math.round((session.distanceM * 0.7) / 100) / 10} km, sous 70 % de FCmax`,
-    explanation: 'Deux signaux de fatigue sont actifs sur ta dernière séance.',
-  }))
+  const proposals: Proposal[] = easyRuns(context.upcoming)
+    .slice(0, MAX_TARGETS_PER_RULE)
+    .map((session) => ({
+      ruleId: RuleId.R2,
+      effect: ProposalEffect.ReduceEasyVolume,
+      target: { kind: 'session' as const, id: session.sessionId },
+      before: `${Math.round(session.distanceM / 100) / 10} km`,
+      after: `${Math.round((session.distanceM * 0.7) / 100) / 10} km, sous 70 % de FCmax`,
+      explanation: 'Deux signaux de fatigue sont actifs sur ta dernière séance.',
+    }))
 
   const longRun = nextLongRun(context.upcoming)
   if (longRun) {
@@ -281,6 +285,7 @@ function r8(context: RuleContext): Proposal[] {
   return context.upcoming
     .filter((session) => session.sport === Sport.Running)
     .filter((session) => session.code !== RunSessionCode.LongRun || inPain)
+    .slice(0, MAX_TARGETS_PER_RULE)
     .map((session) => ({
       ruleId: RuleId.R8,
       effect: ProposalEffect.ConvertToCycling,

@@ -7,7 +7,10 @@ import { FitnessOrigin } from '../server/domain/fitness/fitness-point'
 import { PauseType } from '../server/domain/pause/pause'
 import { PlanTrigger } from '../server/domain/plan/session'
 import { ObjectiveMode, RacePriority, RaceStatus, SegmentMode } from '../server/domain/races/race'
+import { fixedClock } from '../server/domain/shared/clock'
 import { createPlanGateway } from '../server/infra/db/plan-gateway'
+import { resolveScenario } from './scenarios'
+import { simulate } from './simulate'
 import * as schema from '../server/infra/db/schema'
 
 const url = process.env.NUXT_DATABASE_URL
@@ -50,6 +53,8 @@ async function reset() {
   if (names.length === 0) return
   await db.execute(sql.raw(`truncate table ${names.map((n) => `"${n}"`).join(', ')} cascade`))
 }
+
+const scenario = resolveScenario(process.argv.slice(2))
 
 async function seed() {
   await reset()
@@ -142,18 +147,27 @@ async function seed() {
     notes: 'Ongle de pied cassé. Reprise quand la douleur en marchant est nulle.',
   })
 
+  const clock = fixedClock(scenario.resumeDate ?? scenario.simulatedDay)
   const { planVersionId, plan } = await regeneratePlan(
     createPlanGateway(db),
-    { today: () => new Date().toISOString().slice(0, 10) },
+    clock,
     PlanTrigger.Onboarding,
   )
 
+  console.log(`Scénario « ${scenario.name} » — ${scenario.description}`)
   console.log(
-    `Plan ${planVersionId} — départ ${plan.startDate}${plan.provisional ? ' (provisoire, pause ouverte)' : ''}`,
+    `Plan ${planVersionId} — départ ${plan.startDate ?? 'non daté'}, ${plan.phases.length} phases, ${plan.weeks.length} semaines, plancher VDOT ${floor.vdot.toFixed(2)}`,
   )
-  console.log(
-    `${plan.phases.length} phases, ${plan.weeks.length} semaines, plancher VDOT ${floor.vdot.toFixed(2)}`,
-  )
+
+  const progress = await simulate(db, scenario)
+  if (scenario.resumeDate) {
+    console.log(
+      `Rejeu du ${scenario.resumeDate} au ${scenario.simulatedDay} : ${progress.sessionsDone} séances faites, ${progress.sessionsMissed} manquées, ${progress.tests} test(s), VDOT ${progress.lastVdot.toFixed(2)}`,
+    )
+  }
+
+  console.log('')
+  console.log(`export NUXT_COCKPIT_TODAY=${scenario.simulatedDay}`)
 }
 
 await seed()

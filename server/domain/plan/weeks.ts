@@ -65,6 +65,8 @@ export interface WeekPlanInput {
   peakWeeklyVolumeM: number
   /** Nombre de semaines de reprise surveillée ; 0 quand il n'y a pas eu de pause. */
   comebackWeeks?: number
+  /** Date du dernier test 20′ : l'intervalle de six semaines repart de là. */
+  lastTestDate?: IsoDate | null
 }
 
 function phaseFactor(phase: PlanPhase, weekInPhase: number): number | undefined {
@@ -91,6 +93,7 @@ export function buildWeeks({
   baseWeeklyVolumeM,
   peakWeeklyVolumeM,
   comebackWeeks = COMEBACK_RATIOS.length,
+  lastTestDate = null,
 }: WeekPlanInput): PlanWeek[] {
   const lastWeek = phases.reduce((max, phase) => Math.max(max, phase.endWeek), 0)
   const firstMonday = startOfWeek(startDate)
@@ -141,7 +144,14 @@ export function buildWeeks({
       blockPosition += 1
     }
 
-    const test = isTestWeek({ index, comebackWeeks, phase, lastTestWeek })
+    const test = isTestWeek({
+      index,
+      comebackWeeks,
+      phase,
+      lastTestWeek,
+      weekStart: addWeeks(firstMonday, index - 1),
+      lastTestDate,
+    })
     if (test) lastTestWeek = index
 
     const startOfThisWeek = addWeeks(firstMonday, index - 1)
@@ -170,11 +180,29 @@ interface TestWeekInput {
   comebackWeeks: number
   phase: PlanPhase
   lastTestWeek: number | undefined
+  weekStart: IsoDate
+  lastTestDate: IsoDate | null
 }
 
 /** Test 20′ : semaine 4 après une reprise, puis tous les six semaines, hors affûtage et récup. */
-function isTestWeek({ index, comebackWeeks, phase, lastTestWeek }: TestWeekInput): boolean {
+function isTestWeek({
+  index,
+  comebackWeeks,
+  phase,
+  lastTestWeek,
+  weekStart,
+  lastTestDate,
+}: TestWeekInput): boolean {
   if (phase.type === PhaseType.Taper || phase.type === PhaseType.Recovery) return false
+
+  // Un test déjà passé impose son propre délai : régénérer le plan ne doit pas
+  // en replanifier un aussitôt, mais la première semaine éligible en porte un.
+  if (lastTestDate) {
+    const earliest = addWeeks(lastTestDate, TEST_INTERVAL_WEEKS)
+    if (weekStart < earliest) return false
+    if (lastTestWeek === undefined) return true
+    return index - lastTestWeek >= TEST_INTERVAL_WEEKS
+  }
 
   const firstTestWeek = comebackWeeks + 1
   if (index < firstTestWeek) return false

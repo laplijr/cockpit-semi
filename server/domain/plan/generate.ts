@@ -25,6 +25,14 @@ export interface GeneratePlanInput {
   vdot: number
   /** Pause en cours : le plan se cale alors sur la reprise, pas sur aujourd'hui. */
   openPause?: OpenPause
+  /**
+   * Nombre de semaines de reprise surveillée. C'est la *fin* d'une pause qui
+   * les déclenche, pas son ouverture : sans elles, le plan repartirait au
+   * volume plein le jour de la reprise (§ 0).
+   */
+  comebackWeeks?: number
+  /** Date du dernier test 20′ enregistré, pour ne pas en replanifier un aussitôt. */
+  lastTestDate?: IsoDate | null
 }
 
 export interface GeneratedWeek extends PlanWeek {
@@ -52,7 +60,17 @@ export function planStartDate(today: IsoDate, openPause?: OpenPause): IsoDate | 
 }
 
 export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
-  const { today, constraints, races, baseWeeklyVolumeM, peakWeeklyVolumeM, vdot, openPause } = input
+  const {
+    today,
+    constraints,
+    races,
+    baseWeeklyVolumeM,
+    peakWeeklyVolumeM,
+    vdot,
+    openPause,
+    comebackWeeks = openPause ? COMEBACK_RATIOS.length : 0,
+    lastTestDate = null,
+  } = input
   const startDate = planStartDate(today, openPause)
   /** Sans date de reprise, on raisonne quand même depuis aujourd'hui pour les phases. */
   const anchor = startDate ?? today
@@ -64,7 +82,8 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     phases,
     baseWeeklyVolumeM,
     peakWeeklyVolumeM,
-    comebackWeeks: openPause ? COMEBACK_RATIOS.length : 0,
+    comebackWeeks,
+    lastTestDate,
   })
 
   // Jour de course : aucune séance. Lendemain d'une course A : repos (§ 5).

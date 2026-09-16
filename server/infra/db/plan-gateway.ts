@@ -1,8 +1,8 @@
-import { and, desc, eq, isNull } from 'drizzle-orm'
+import { and, desc, eq, notInArray } from 'drizzle-orm'
 import type {
   AthleteSnapshot,
   FitnessSnapshot,
-  OpenPauseSnapshot,
+  PauseSnapshot,
   PlanGateway,
   PlanParameters,
 } from '../../application/ports'
@@ -13,7 +13,8 @@ import {
 } from '../../domain/athlete/constraints'
 import type { GeneratedPlan } from '../../domain/plan/generate'
 import type { PlannedRace } from '../../domain/plan/periodization'
-import type { PlanTrigger } from '../../domain/plan/session'
+import { SessionStatus, type PlanTrigger } from '../../domain/plan/session'
+import { FitnessOrigin } from '../../domain/fitness/fitness-point'
 import { RaceStatus } from '../../domain/races/race'
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
@@ -44,13 +45,8 @@ export function createPlanGateway(db: Database): PlanGateway {
       }))
     },
 
-    async loadOpenPause(): Promise<OpenPauseSnapshot | undefined> {
-      const [row] = await db
-        .select()
-        .from(pause)
-        .where(isNull(pause.endDate))
-        .orderBy(desc(pause.startDate))
-        .limit(1)
+    async loadLatestPause(): Promise<PauseSnapshot | undefined> {
+      const [row] = await db.select().from(pause).orderBy(desc(pause.startDate)).limit(1)
       if (!row) return undefined
       return {
         id: row.id,
@@ -58,6 +54,7 @@ export function createPlanGateway(db: Database): PlanGateway {
         zone: row.zone,
         startDate: row.startDate,
         estimatedEndDate: row.estimatedEndDate,
+        endDate: row.endDate,
         allowances: row.allowances,
         watchZones: row.watchZones,
         notes: row.notes,
@@ -72,6 +69,16 @@ export function createPlanGateway(db: Database): PlanGateway {
         .limit(1)
       if (!row) return undefined
       return { vdot: row.vdot, isFloor: row.isFloor, date: row.date }
+    },
+
+    async loadLastTestDate(): Promise<string | null> {
+      const [row] = await db
+        .select({ date: fitnessPoint.date })
+        .from(fitnessPoint)
+        .where(eq(fitnessPoint.origin, FitnessOrigin.Test))
+        .orderBy(desc(fitnessPoint.date))
+        .limit(1)
+      return row?.date ?? null
     },
 
     async savePlan(
@@ -130,6 +137,20 @@ export function createPlanGateway(db: Database): PlanGateway {
           })),
         )
       }
+
+      // Une version périmée ne garde que son historique : ses séances encore
+      // prévues sont remplacées par celles de la nouvelle version.
+      await db
+        .delete(session)
+        .where(
+          and(
+            eq(session.status, SessionStatus.Planned),
+            notInArray(
+              session.weekId,
+              db.select({ id: week.id }).from(week).where(eq(week.planVersionId, planVersionId)),
+            ),
+          ),
+        )
 
       return planVersionId
     },

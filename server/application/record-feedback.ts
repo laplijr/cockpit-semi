@@ -31,6 +31,7 @@ export interface FeedbackGateway {
   markDone(input: FeedbackInput): Promise<void>
   recomputeLoad(date: IsoDate): Promise<DailyLoadRow>
   evaluateRules(today: IsoDate, trigger: ProposalTrigger): Promise<Proposal[]>
+  markSkipped(sessionId: number): Promise<void>
 }
 
 export interface RecordFeedbackResult {
@@ -59,4 +60,9 @@ export async function recordFeedback(
   const proposals = await gateway.evaluateRules(clock.today(), ProposalTrigger.Feedback)
 
   return { date, load, proposals }
+}
+
+/** Séance manquée : pas de rattrapage, pas de ressenti, mais l'état est enregistré (§ 5, R6). */
+export async function skipSession(gateway: FeedbackGateway, sessionId: number): Promise<void> {
+  await gateway.markSkipped(sessionId)
 }

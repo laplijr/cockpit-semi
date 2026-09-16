@@ -81,11 +81,11 @@ Le seed actuel pose l'état réel du 16 sept. : pause ouverte, aucune séance fa
 
 - [x] Horloge : `systemClock` (`server/utils/context.ts`) lit `NUXT_COCKPIT_TODAY` (date ISO) quand elle est définie, sinon la date réelle. Variable réservée au local, jamais définie sur Vercel (le noter dans `.env.example`) ; le seed et `pnpm dev` la partagent pour voir le cockpit au jour simulé. Test : l'horloge retourne la date forcée.
 - [x] `application` : extraire l'enregistrement d'un ressenti (`recordFeedback` : ressenti, statut fait, réalisé, recalcul de `load_daily`, évaluation des règles) de `server/api/sessions/[id]/feedback.put.ts`, et la reprise de pause (`resumePause`) de `server/api/pause/resume.post.ts`, vers `server/application/`, avec l'horloge en paramètre. Les routes et le seed passent par le même code : le seed ne fait aucun insert brut d'`activity`, `feedback`, `load_daily`, `fitness_point` de test ni `proposal`.
-- [ ] Simulation : `pnpm db:seed --scenario=<nom>` rejoue jour par jour du 16 sept. au jour simulé. Reprise à la date du scénario (`resumePause` avec l'horloge à cette date, plan `Resume`), puis pour chaque séance planifiée passée : réalisé = prescription ± 5 %, RPE = RPE attendu ± 1, sommeil 6,5–8 h, sensations cohérentes avec l'écart de RPE, douleur « genou droit, face postérieure » qui décroît de 3 à 0 sur les 3 semaines de reprise ; environ 10 % de séances manquées (statut manquée, sans ressenti) ; chaque test 20' planifié enregistré via `recordTest` avec la distance déduite du VDOT visé (progression estimée : +0,6 VDOT par test, paramètre du scénario), ce qui régénère le plan comme dans l'app ; dans la dernière semaine du scénario, deux séances clés d'affilée à RPE prévu + 2 pour qu'au moins une règle déclenche. Générateur pseudo-aléatoire seedé : deux exécutions produisent exactement les mêmes données.
-- [ ] Scénarios, chacun fixe la date de reprise, le jour simulé et la graine : `pause` (défaut, état réel actuel, identique au seed d'aujourd'hui) ; `reprise-s2` (reprise le 28 sept., jour simulé 8 oct. : deux semaines de réalisé, ratio de charge encore indisponible, forme du jour calculable) ; `bloc-2` (jour simulé 22 nov. : test de semaine 4 fait, ratio disponible, deux points VDOT) ; `affutage-paris` (jour simulé 1er mars 2027 : quatre tests, semaine d'affûtage à 70 %, Madrid à 5 semaines). Le scénario affiche en fin d'exécution la `NUXT_COCKPIT_TODAY` à exporter avant `pnpm dev`.
-- [ ] Fini : lint, typecheck, tests (générateur déterministe ; réalisé et RPE dans les bornes ; VDOT strictement croissant d'un test au suivant) et build verts ; `pnpm db:seed --scenario=bloc-2` puis `pnpm dev` au jour simulé : cockpit avec la séance du jour, la charge disponible et la semaine courante avec ses séances faites et manquées, table `proposal` non vide ; cadran forme du jour, « À décider » et Progression garnis ; commit « P3.5 — seed daté et horloge simulée ».
+- [x] Simulation : `pnpm db:seed --scenario=<nom>` rejoue jour par jour du 16 sept. au jour simulé. Reprise à la date du scénario (`resumePause` avec l'horloge à cette date, plan `Resume`), puis pour chaque séance planifiée passée : réalisé = prescription ± 5 %, RPE = RPE attendu ± 1, sommeil 6,5–8 h, sensations cohérentes avec l'écart de RPE, douleur « genou droit, face postérieure » qui décroît de 3 à 0 sur les 3 semaines de reprise ; environ 10 % de séances manquées (statut manquée, sans ressenti) ; chaque test 20' planifié enregistré via `recordTest` avec la distance déduite du VDOT visé (progression estimée : +0,6 VDOT par test, paramètre du scénario), ce qui régénère le plan comme dans l'app ; dans la dernière semaine du scénario, deux séances clés d'affilée à RPE prévu + 2 pour qu'au moins une règle déclenche. Générateur pseudo-aléatoire seedé : deux exécutions produisent exactement les mêmes données.
+- [x] Scénarios, chacun fixe la date de reprise, le jour simulé et la graine : `pause` (défaut, état réel actuel, identique au seed d'aujourd'hui) ; `reprise-s2` (reprise le 28 sept., jour simulé 8 oct. : deux semaines de réalisé, ratio de charge encore indisponible, forme du jour calculable) ; `bloc-2` (jour simulé 22 nov. : test de semaine 4 fait, ratio disponible, deux points VDOT) ; `affutage-paris` (jour simulé 1er mars 2027 : quatre tests, semaine d'affûtage à 70 %, Madrid à 5 semaines). Le scénario affiche en fin d'exécution la `NUXT_COCKPIT_TODAY` à exporter avant `pnpm dev`.
+- [x] Fini : lint, typecheck, tests (générateur déterministe ; réalisé et RPE dans les bornes ; VDOT strictement croissant d'un test au suivant) et build verts ; `pnpm db:seed --scenario=bloc-2` puis `pnpm dev` au jour simulé : cockpit avec la séance du jour, la charge disponible et la semaine courante avec ses séances faites et manquées, table `proposal` non vide ; cadran forme du jour, « À décider » et Progression garnis ; commit « P3.5 — seed daté et horloge simulée ».
 
-P4 → P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
+P4 → P7 (dont P5.5, itinéraires GPX) : voir § 9, à transformer en cases au moment d'attaquer la phase.
 
 ## 0. Données réelles de départ (à seeder en P1)
 
@@ -133,6 +133,7 @@ Les valeurs des maquettes (VDOT 45, 1:42 au semi, objectif 1:38, Madrid le 18 av
 | Hébergement | **Vercel Hobby** (usage personnel) | URL publique HTTPS requise par le callback OAuth et le webhook Strava ; cron quotidien inclus |
 | Jobs | Vercel Cron (1/jour : forme du jour, revérification des dates de course, calibration) + webhook Strava pour le temps réel | Le Hobby n'autorise qu'un cron quotidien : suffisant |
 | LLM | **Claude API** via `@anthropic-ai/sdk`, modèle `claude-opus-5`, thinking adaptatif, `output_config.format` pour du JSON strict, outil serveur `web_search_20260209` pour la recherche de course | Volume très faible (quelques appels/semaine), quelques centimes/mois |
+| Itinéraires | **OpenRouteService** (clé gratuite, 2 000 requêtes/jour) : géocodage d'adresse et boucles à distance cible (`round_trip`, profil `foot-walking`), export GPX natif | Gratuit, service côté serveur sans compte pour l'utilisateur, résultat reproductible à graine égale |
 | Tests | Vitest (moteur), Playwright (3 parcours critiques) | Le moteur porte la valeur : il doit être couvert |
 | Qualité | ESLint + Prettier + `vue-tsc`, CI GitHub Actions | |
 
@@ -155,12 +156,14 @@ server/
     pause/                # gel + reprise progressive
     learning/             # détection d'habitudes, calibration, règles personnelles
     nutrition/            # repères g/kg par type de jour, protocole semaine de course, plan ravito + hydratation en course
+    routes/               # distances cibles des sorties sur place pour une course, validation d'une trace GPX
   application/            # cas d'usage : orchestrent domain + repos + adapters
   infra/
     db/                   # Drizzle schema, repos
     strava/               # OAuth, import, webhook, rattachement
     llm/                  # client Claude, prompts, schémas de sortie
     search/               # recherche de course (LLM + web_search)
+    routing/              # OpenRouteService : géocodage, boucles à distance cible, GPX
   api/                    # Nitro routes (REST minimal, JSON)
 app/                      # pages Nuxt (desktop), coque (barre latérale, panneaux, ⌘K), composants, stores Pinia
 ```
@@ -174,6 +177,8 @@ Règle : `domain` n'importe rien de `infra`. Les cas d'usage reçoivent leurs d�
 - `race.fuel_plan` (jsonb, généré à J−7, modifiable) : glucides g/h, prises (km ou minute, produit), eau ml/h, sodium mg/h, caféine, consignes pré-départ ; `null` quand la course ne le justifie pas.
 - `race_segment` : race, km_debut, km_fin, mode (course | marche_course | marche), allure_s_km, note. Optionnel : une course sans segment se lit comme avant, un seul chrono. Ajouté parce que la course de référence du 13 sept. n'est lisible qu'en segments.
 - `race_lookup` : résultat brut de la recherche automatique par champ, statut (sûr / à confirmer / estimé), sources, dernière vérification.
+- `race.start_address` : adresse de la ligne de départ, saisie à la main ou issue de la recherche ; sert d'arrivée à l'itinéraire logement → départ.
+- `race_route` : race, adresse de départ saisie (logement), lat / lon géocodés, cible (session ou distance_m), type (boucle | aller), graine, distance_m réelle, D+, nombre de virages, gpx (texte), généré le. Une ligne par variante conservée.
 - `fitness_point` : date, vdot, origine (course, test, import initial).
 - `plan_version` : générée le, déclencheur (course ajoutée, pause, recalcul accepté…), paramètres ; immuable. Le plan actif = dernière version.
 - `phase` : plan_version, type (base, développement, spécifique, affûtage, récup, relance, transition), semaine début/fin, cible volume.
@@ -239,6 +244,7 @@ Les règles apprises (habitudes acceptées) s'ajoutent comme R100+ avec un poids
 - **Recherche de course** : entrée = nom tapé ; outil serveur `web_search_20260209` (max 5 usages) ; sortie JSON par champ `{value, status: sûr|à_confirmer|estimé, sources[]}`. Revérification mensuelle de la date par le cron jusqu'à ouverture des inscriptions. Aucune donnée personnelle envoyée.
 - **Explications** (optionnel, v2) : reformuler une proposition en phrase naturelle à partir de la règle et des valeurs, sans données Strava.
 - Toute sortie LLM est validée par schéma avant usage ; en cas d'échec, l'écran demande une correction manuelle.
+- **Hors périmètre LLM** : les itinéraires GPX (P5.5) sont produits par un service de routage déterministe, sans LLM ; seule l'adresse saisie quitte le serveur.
 - Si tu veux réduire encore le coût, `claude-haiku-4-5` suffit pour l'Imprévu ; c'est ta décision, la valeur par défaut reste `claude-opus-5`.
 
 ## 7. Intégration Strava
@@ -271,7 +277,7 @@ Une bibliothèque n'est pas un plan : on y consulte et on y ajuste le contenu (c
 2. Zone d'action : **Aujourd'hui** (séances du jour, réalisé Strava vs prévu, une seule action par ligne : compléter le ressenti / ouvrir la séance ; ligne « demain ») et **À décider** (propositions, une case par ligne, règle affichée, « Appliquer n »).
 3. Contexte : semaine en cours sur 7 colonnes, frise de saison.
 
-**Panneaux latéraux** (par-dessus le cockpit, Échap ferme) : Retour de séance, Imprévu (⌘K), Pause / blessure, détail des propositions. **Fenêtre** : Nouvelle course (recherche automatique à gauche, formulaire pré-rempli à droite).
+**Panneaux latéraux** (par-dessus le cockpit, Échap ferme) : Retour de séance, Imprévu (⌘K), Pause / blessure, détail des propositions. **Fenêtre** : Nouvelle course (recherche automatique à gauche, formulaire pré-rempli à droite) ; Itinéraires (depuis la ligne d'une course : adresse du logement, date d'arrivée, une ligne par sortie sur place avec tracé, distance, D+ et téléchargement du GPX).
 
 Règles d'ergonomie : une action principale par ligne, jamais deux boutons pleins côte à côte ; toute valeur proposée affiche l'ancienne barrée ; les nombres en police mono alignée ; aucun écran secondaire n'est nécessaire pour la routine séance → ressenti → décision.
 
@@ -303,6 +309,9 @@ Bibliothèque d'exercices et de séances (données des maquettes), phases, place
 **P5 — Imprévu, pause, recherche de course**
 Client Claude, ⌘K Imprévu → propositions ; panneau Pause + reprise progressive + régénération ; fenêtre Nouvelle course avec recherche (statuts et sources), revérification mensuelle. Livrable : « 1 h de squash, pas dispo vendredi » réorganise la semaine ; une blessure d'une semaine produit un plan de reprise ; « semi madrid 2027 » pré-remplit le formulaire.
 
+**P5.5 — Itinéraires GPX pour un évènement**
+Pour une course à venir, Ronan saisit l'adresse de départ de ses sorties sur place (hôtel, logement) et sa date d'arrivée (défaut J−1) ; l'app géocode l'adresse et génère des boucles GPX à la distance de chaque séance de course à pied planifiée entre l'arrivée et la course (footing de veille, déblocage, échauffement), plus l'aller logement → ligne de départ quand `race.start_address` est renseignée. Moteur `domain/routes`, pur et testé : liste des cibles (séance, distance_m) depuis le plan actif ; validation d'une trace (distance à ± 10 % de la cible, D+ ≤ 10 m/km, départ = arrivée pour une boucle) ; classement des variantes par D+ puis par nombre de virages ; tests sur des GPX fixtures. `infra/routing` : OpenRouteService, profil `foot-walking`, `round_trip` avec graine, trois variantes par cible, clé `NUXT_ORS_API_KEY` côté serveur uniquement ; réponses enregistrées en fixtures pour les tests, aucun appel réseau en CI. Schéma : `race.start_address`, `race_route` (§ 4), migration. UI : fenêtre « Itinéraires » ouverte depuis la ligne de la course (§ 8) ; tracé dessiné en SVG depuis les points du GPX, sans fond de carte ni bibliothèque ; par ligne, une action principale « Télécharger le GPX » et un lien « Autre variante » ; rien de nouveau dans le cockpit. Aucun LLM, aucune donnée d'entraînement envoyée : seule l'adresse saisie part vers le service. Livrable : « Semi de Madrid, hôtel calle Mayor » produit en une minute les GPX du footing de veille et de l'échauffement, importables dans la montre.
+
 **P6 — Apprentissage + nutrition**
 Détecteurs d'habitudes, page Apprentissage, calibration hebdo, règles personnelles R100+ ; Progression v2 (calibration du ressenti, charges muscu, récupération, filtres de période) ; page Nutrition (repères par type de jour, ravito d'entraînement, protocole J−7, **plan ravito + hydratation en course** généré par course, affiché sur la fiche de la course et dans le cockpit la semaine de course) et rappel nutrition dans la ligne « demain » du cockpit. Livrable : premières habitudes proposées après ~8 semaines de données ; protocole nutrition généré à J−7 de la course A.
 
@@ -329,6 +338,7 @@ Ordre de valeur si le temps manque : P0 → P1 → P1.5 → P2 → P3 → P3.5. 
 | Dette de « données d'exemple » des maquettes | Aucune valeur en dur : tout vient de `athlete`, `race`, `fitness_point` |
 | Le cockpit se remplit et perd sa hiérarchie | Règle : un nouvel élément sur l'écran principal doit remplacer ou rétrograder un existant ; sinon il va dans une page ou un panneau |
 | Confiance excessive dans la projection | Toujours affichée avec son intervalle et la date du prochain test |
+| Quota et qualité d'OpenRouteService (2 000 req/j ; boucles parfois tortueuses ou sur route passante) | Génération à la demande seulement, variantes mises en cache dans `race_route` ; trois graines par cible, classement par D+ et virages ; si aucune variante ne passe la validation, message clair et saisie d'un GPX à la main |
 
 ## 12. Décisions à prendre avant P0
 

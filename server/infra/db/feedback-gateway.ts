@@ -4,6 +4,7 @@ import type {
   FeedbackGateway,
   FeedbackInput,
 } from '../../application/record-feedback'
+import type { FitnessGateway } from '../../application/record-test'
 import type { PauseGateway } from '../../application/resume-pause'
 import type { IsoDate } from '../../domain/plan/calendar'
 import { SessionStatus } from '../../domain/plan/session'
@@ -11,7 +12,7 @@ import type { ProposalTrigger } from '../../domain/rules/proposal-status'
 import type { Database } from './client'
 import { recomputeLoadFor } from './load-repository'
 import { evaluateAndStore } from './proposal-repository'
-import { feedback, pause, session } from './schema'
+import { feedback, fitnessPoint, pause, session } from './schema'
 
 export function createFeedbackGateway(db: Database): FeedbackGateway {
   return {
@@ -56,6 +57,21 @@ export function createFeedbackGateway(db: Database): FeedbackGateway {
 
     evaluateRules(today: IsoDate, trigger: ProposalTrigger) {
       return evaluateAndStore(db, today, trigger)
+    },
+
+    async markSkipped(sessionId: number) {
+      await db
+        .update(session)
+        .set({ status: SessionStatus.Skipped })
+        .where(eq(session.id, sessionId))
+    },
+  }
+}
+
+export function createFitnessGateway(db: Database): FitnessGateway {
+  return {
+    async saveFitnessPoint(point) {
+      await db.insert(fitnessPoint).values(point)
     },
   }
 }
