@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { PlanSession } from '~/stores/plan'
 
-defineProps<{ session: PlanSession; muted?: boolean }>()
+defineProps<{ session: PlanSession; muted?: boolean; actionable?: boolean }>()
+const ui = useUiStore()
 </script>
 
 <template>
@@ -23,6 +24,19 @@ defineProps<{ session: PlanSession; muted?: boolean }>()
         </template>
       </span>
     </div>
-    <span class="pill ml-auto">RPE {{ session.prescription.expectedRpe }}</span>
+
+    <div class="ml-auto flex items-center gap-3">
+      <span v-if="session.status === 'faite'" class="pill pill-done">faite</span>
+      <span v-else class="pill">RPE {{ session.prescription.expectedRpe }}</span>
+      <button
+        v-if="actionable"
+        type="button"
+        class="btn"
+        :class="session.status === 'faite' && 'btn-ghost'"
+        @click="ui.openPanel('retour', session.id)"
+      >
+        {{ session.status === 'faite' ? 'Modifier le ressenti' : 'Compléter le ressenti' }}
+      </button>
+    </div>
   </div>
 </template>

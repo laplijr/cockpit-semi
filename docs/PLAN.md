@@ -40,16 +40,19 @@ P1 — Courses, forme, plan
 - [x] UI Cockpit v1 : cadran course A, cadran VDOT (plancher affiché comme tel), panneau « Aujourd'hui » avec la séance prévue ou l'état de pause (jour n, activités autorisées, bouton « Marquer la reprise »), bande semaine, frise cap. Les autres cadrans restent en stub jusqu'à P2/P3.
 - [x] Fini : tests domaine verts, parcours « onboarding → courses → plan généré → cockpit affiche la séance du jour » vérifié, commit « P1 — courses, forme, plan ».
 
-P2 — Strava + retour de séance + charge
-- [x] `server/domain/load` : `UA = RPE × durée_min`, charge quotidienne par sport, ratio 7 j / 21 j découplé, monotonie, indisponible tant que < 28 jours d'historique (§ 5). Tests : ratio sans historique, ratio nominal, charge combinée course + vélo + muscu.
-- [x] Schéma : `activity` (id externe, sport, date, durée, distance, allure, FC, puissance, D+, `session_id` nullable), `feedback` (RPE, sensations[], sommeil_h, douleur zone/intensité, notes), `load_daily`, `strava_token` (chiffré au repos). Migration générée et appliquée.
-- [x] `server/domain/matching` : rattachement d'une activité à une séance prévue (même sport à ± 1 jour) ; sinon événement imprévu avec RPE déduit de la FC si dispo, 5 sinon (§ 7.4). Tests sur les deux branches.
-- [ ] `server/infra/strava` : OAuth2 `read,activity:read_all`, stockage chiffré, refresh avant expiration, client d'API, import 24 mois paginé 200/page. Tests de contrat sur fixtures JSON anonymisées (une course, un vélo, un webhook create), aucun appel réseau en CI.
-- [ ] Routes : `/api/strava/connect`, `/api/strava/callback`, `/api/strava/webhook` (validation du challenge GET + create/update/delete POST), `/api/strava/import`.
-- [ ] Panneau Retour de séance : RPE, sensations, sommeil, douleur avec les zones à surveiller de la pause pré-cochées ; prescription vs réalisé côte à côte.
-- [ ] Cockpit : cadran charge combinée (ratio, avancement course / vélo / muscu) et réalisé Strava dans « Aujourd'hui », avec l'action unique « compléter le ressenti ».
-- [ ] UI Connexions : état de la connexion Strava, bouton de connexion, import initial, date de dernière synchronisation, nombre d'activités.
-- [ ] Fini : tests verts, parcours « activité importée → rattachée → ressenti saisi → charge à jour » vérifié sur fixture, commit « P2 — Strava, retour de séance, charge ».
+P2 — Réalisé, retour de séance et charge
+
+**Décision du 16 sept. 2026 : Strava est abandonné.** L'accès à l'API est désormais réservé aux abonnés payants (« L'accès à l'API Strava est réservé aux abonné(e)s », constaté sur `strava.com/settings/api` avec un compte gratuit). Le § 7 devient caduc : plus d'OAuth, plus d'import automatique, plus de webhook. Le réalisé se saisit à la main, ce qui ne coûte que quelques secondes par séance puisque la prescription est déjà à l'écran. Conséquence : le ratio de charge reste indisponible les 28 premiers jours, au lieu d'être fourni d'emblée par l'import.
+
+- [x] `server/domain/load` : `UA = RPE × durée_min`, charge quotidienne par sport, ratio 7 j / 21 j découplé, monotonie, indisponible tant que < 28 jours d'historique (§ 5).
+- [x] `server/domain/matching` : rattachement d'une activité à une séance prévue (même sport à ± 1 jour), RPE déduit de la FC. Sert à l'import de fichier et aux activités hors plan.
+- [x] Schéma : `activity`, `feedback`, `load_daily`.
+- [x] Retirer `strava_token` du schéma : la table est morte.
+- [x] Marquer une séance faite depuis le cockpit, avec réalisé saisi (durée, distance) pré-rempli par la prescription.
+- [x] Panneau Retour de séance : RPE, sensations, sommeil, douleur avec les zones à surveiller de la pause pré-cochées ; prescription vs réalisé côte à côte.
+- [x] Recalcul de `load_daily` à chaque enregistrement, cadran charge combinée dans le cockpit (ratio, zone de référence, avancement par sport).
+- [x] UI Connexions : indiquer qu'aucune connexion externe n'est active, pourquoi, et ce que ça change.
+- [x] Fini : tests verts, parcours « séance du jour → marquée faite → ressenti saisi → charge à jour » vérifié, commit « P2 — réalisé, retour de séance, charge ».
 
 P3 → P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
 

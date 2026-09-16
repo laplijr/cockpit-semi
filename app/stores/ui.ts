@@ -11,13 +11,17 @@ export type ModalId = (typeof MODAL_IDS)[number]
 export const useUiStore = defineStore('ui', () => {
   const panel = ref<PanelId | null>(null)
   const modal = ref<ModalId | null>(null)
+  /** Cible du panneau ouvert, quand il en vise une (la séance d'un retour). */
+  const panelTargetId = ref<number | null>(null)
 
-  function openPanel(id: PanelId) {
+  function openPanel(id: PanelId, targetId: number | null = null) {
     panel.value = id
+    panelTargetId.value = targetId
   }
 
   function closePanel() {
     panel.value = null
+    panelTargetId.value = null
   }
 
   function openModal(id: ModalId) {
@@ -36,5 +40,14 @@ export const useUiStore = defineStore('ui', () => {
     closePanel()
   }
 
-  return { panel, modal, openPanel, closePanel, openModal, closeModal, closeTopLayer }
+  return {
+    panel,
+    panelTargetId,
+    modal,
+    openPanel,
+    closePanel,
+    openModal,
+    closeModal,
+    closeTopLayer,
+  }
 })

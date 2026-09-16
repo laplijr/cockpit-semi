@@ -34,6 +34,9 @@ const REFERENCE_SEGMENTS = [
 ]
 
 async function reset() {
+  await db.delete(schema.loadDaily)
+  await db.delete(schema.activity)
+  await db.delete(schema.feedback)
   await db.delete(schema.session)
   await db.delete(schema.week)
   await db.delete(schema.phase)

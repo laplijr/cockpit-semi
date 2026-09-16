@@ -207,6 +207,9 @@ export const session = pgTable('session', {
   status: sessionStatusEnum('status').notNull().default(SessionStatus.Planned),
   origin: sessionOriginEnum('origin').notNull().default(SessionOrigin.Plan),
   key: boolean('key').notNull().default(false),
+  /** Réalisé saisi à la main, faute de connexion à une montre. */
+  actualDurationMin: real('actual_duration_min'),
+  actualDistanceM: real('actual_distance_m'),
 })
 
 export const pause = pgTable('pause', {
@@ -267,17 +270,6 @@ export const loadDaily = pgTable('load_daily', {
   totalUa: integer('total_ua').notNull().default(0),
 })
 
-/** Jetons Strava chiffrés au repos (§ 7.2). Une seule ligne, `id = 1`. */
-export const stravaToken = pgTable('strava_token', {
-  id: integer('id').primaryKey().default(1),
-  athleteId: text('athlete_id'),
-  accessToken: text('access_token').notNull(),
-  refreshToken: text('refresh_token').notNull(),
-  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-  scope: text('scope'),
-  lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
-})
-
 export type Athlete = typeof athlete.$inferSelect
 export type NewAthlete = typeof athlete.$inferInsert
 export type Race = typeof race.$inferSelect
@@ -304,5 +296,3 @@ export type Feedback = typeof feedback.$inferSelect
 export type NewFeedback = typeof feedback.$inferInsert
 export type LoadDaily = typeof loadDaily.$inferSelect
 export type NewLoadDaily = typeof loadDaily.$inferInsert
-export type StravaToken = typeof stravaToken.$inferSelect
-export type NewStravaToken = typeof stravaToken.$inferInsert

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 const ui = useUiStore()
+const plan = usePlanStore()
 
-const PANELS = {
+const STUBS = {
   imprevu: {
     title: 'Imprévu',
     subtitle: 'texte libre → événements structurés',
@@ -14,12 +15,6 @@ const PANELS = {
     phase: 'P5',
     body: 'Déclarer une blessure, une maladie ou un voyage gèle les semaines couvertes, conserve les activités autorisées et régénère un plan de reprise 60 → 80 → 100 %.',
   },
-  retour: {
-    title: 'Retour de séance',
-    subtitle: 'RPE, sensations, sommeil, douleur',
-    phase: 'P2',
-    body: 'Le réalisé vient de Strava, il ne reste que le ressenti à saisir : RPE, sensations, heures de sommeil, douleur éventuelle.',
-  },
   propositions: {
     title: 'Propositions',
     subtitle: 'règles R1 – R8',
@@ -27,17 +22,39 @@ const PANELS = {
     body: 'Chaque proposition affiche sa règle, la valeur actuelle barrée et la valeur proposée. Rien n’est appliqué sans ta décision.',
   },
 } as const
+
+const session = computed(
+  () => plan.plan?.sessions.find((item) => item.id === ui.panelTargetId) ?? null,
+)
+
+async function onSaved() {
+  await plan.load()
+  ui.closePanel()
+}
 </script>
 
 <template>
   <Teleport to="body">
     <ShellSidePanel
-      v-if="ui.panel"
-      :title="PANELS[ui.panel].title"
-      :subtitle="PANELS[ui.panel].subtitle"
+      v-if="ui.panel === 'retour' && session"
+      title="Retour de séance"
+      :subtitle="`${SESSION_LABELS[session.code] ?? session.code} · ${formatDate(session.date)}`"
       @close="ui.closePanel()"
     >
-      <UiPhaseStub :phase="PANELS[ui.panel].phase">{{ PANELS[ui.panel].body }}</UiPhaseStub>
+      <FeedbackFeedbackForm
+        :session="session"
+        :watch-zones="plan.pause?.watchZones ?? plan.lastWatchZones"
+        @saved="onSaved"
+      />
+    </ShellSidePanel>
+
+    <ShellSidePanel
+      v-else-if="ui.panel && ui.panel !== 'retour'"
+      :title="STUBS[ui.panel].title"
+      :subtitle="STUBS[ui.panel].subtitle"
+      @close="ui.closePanel()"
+    >
+      <UiPhaseStub :phase="STUBS[ui.panel].phase">{{ STUBS[ui.panel].body }}</UiPhaseStub>
     </ShellSidePanel>
   </Teleport>
 </template>

@@ -65,6 +65,7 @@ async function onResume() {
             v-for="session in plan.todaySessions"
             :key="session.id"
             :session="session"
+            actionable
           />
         </template>
         <p v-else class="text-[13px] text-text-muted">Repos aujourd'hui.</p>

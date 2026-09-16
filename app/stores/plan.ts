@@ -69,6 +69,7 @@ export interface OpenPause {
 
 export interface PlanPayload {
   today: string
+  watchZones: string[]
   plan: ActivePlan | null
   pause: OpenPause | null
   todaySessions: PlanSession[]
@@ -98,6 +99,8 @@ export const usePlanStore = defineStore('plan', () => {
   const plan = computed(() => payload.value?.plan ?? null)
   const pause = computed(() => payload.value?.pause ?? null)
   const todaySessions = computed(() => payload.value?.todaySessions ?? [])
+  /** Zones à surveiller héritées de la dernière pause, même refermée (§ 0). */
+  const lastWatchZones = computed(() => payload.value?.watchZones ?? [])
 
   const currentWeek = computed(() =>
     plan.value?.weeks.find((week) => week.startDate <= today.value && today.value <= week.endDate),
@@ -128,6 +131,7 @@ export const usePlanStore = defineStore('plan', () => {
     plan,
     pause,
     todaySessions,
+    lastWatchZones,
     tomorrowSessions,
     currentWeek,
     sessionsByWeek,

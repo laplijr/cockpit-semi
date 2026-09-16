@@ -1,0 +1,155 @@
+<script setup lang="ts">
+import type { PlanSession } from '~/stores/plan'
+
+const props = defineProps<{ session: PlanSession; watchZones: string[] }>()
+const emit = defineEmits<{ saved: [] }>()
+
+const SENSATIONS = [
+  { value: 'aisance', label: 'Aisance' },
+  { value: 'jambes_fraiches', label: 'Jambes fraîches' },
+  { value: 'jambes_lourdes', label: 'Jambes lourdes' },
+  { value: 'essoufflement', label: 'Essoufflement' },
+  { value: 'raideur', label: 'Raideur' },
+  { value: 'nausee', label: 'Nausée' },
+]
+
+/** Durée prévue, déduite de la distance et de l'allure de la prescription. */
+const plannedMinutes = computed(() => {
+  const steps = props.session.prescription.steps
+  const seconds = steps.reduce((total, step) => {
+    const repeats = step.repeats ?? 1
+    if (step.durationS) return total + step.durationS * repeats + (step.recoveryS ?? 0) * repeats
+    if (step.distanceM && step.paceSecPerKm) {
+      return total + (step.distanceM / 1000) * step.paceSecPerKm * repeats
+    }
+    return total
+  }, 0)
+  return Math.round(seconds / 60)
+})
+
+const form = reactive({
+  rpe: props.session.prescription.expectedRpe,
+  sensations: [] as string[],
+  sleepHours: null as number | null,
+  painZone: '',
+  painIntensity: 0,
+  durationMin: plannedMinutes.value,
+  distanceM: props.session.prescription.totalDistanceM,
+  notes: '',
+})
+
+const saving = ref(false)
+const error = ref('')
+
+function toggleSensation(value: string) {
+  const index = form.sensations.indexOf(value)
+  if (index === -1) form.sensations.push(value)
+  else form.sensations.splice(index, 1)
+}
+
+async function save() {
+  saving.value = true
+  error.value = ''
+  try {
+    await $fetch(`/api/sessions/${props.session.id}/feedback`, {
+      method: 'PUT',
+      body: {
+        rpe: form.rpe,
+        sensations: form.sensations,
+        sleepHours: form.sleepHours,
+        pain: form.painZone ? { zone: form.painZone, intensity: form.painIntensity } : null,
+        durationMin: form.durationMin,
+        distanceM: form.distanceM,
+        notes: form.notes || null,
+      },
+    })
+    emit('saved')
+  } catch {
+    error.value = 'Enregistrement impossible.'
+  } finally {
+    saving.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="flex flex-col gap-4">
+    <div class="tile bg-surface-inset">
+      <span class="label text-[10.5px]">Prévu</span>
+      <span class="mono text-[13px] text-text-dim">
+        {{ formatDistance(session.prescription.totalDistanceM) }} · {{ plannedMinutes }} min · RPE
+        {{ session.prescription.expectedRpe }}
+      </span>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <label class="flex flex-col gap-[6px]">
+        <span class="label text-[10.5px]">Durée réelle (min)</span>
+        <input v-model.number="form.durationMin" type="number" class="input mono" />
+      </label>
+      <label class="flex flex-col gap-[6px]">
+        <span class="label text-[10.5px]">Distance réelle (m)</span>
+        <input v-model.number="form.distanceM" type="number" class="input mono" />
+      </label>
+    </div>
+
+    <div class="flex flex-col gap-[6px]">
+      <span class="label text-[10.5px]">Effort perçu — RPE {{ form.rpe }}</span>
+      <input v-model.number="form.rpe" type="range" min="1" max="10" class="w-full accent-accent" />
+    </div>
+
+    <div class="flex flex-col gap-[6px]">
+      <span class="label text-[10.5px]">Sensations</span>
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-for="item in SENSATIONS"
+          :key="item.value"
+          type="button"
+          class="pill"
+          :class="form.sensations.includes(item.value) && 'bg-accent/15 text-text'"
+          @click="toggleSensation(item.value)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+    </div>
+
+    <label class="flex flex-col gap-[6px]">
+      <span class="label text-[10.5px]">Sommeil la nuit dernière (h)</span>
+      <input v-model.number="form.sleepHours" type="number" step="0.5" class="input mono" />
+    </label>
+
+    <div class="flex flex-col gap-[6px]">
+      <span class="label text-[10.5px]">Douleur</span>
+      <div v-if="watchZones.length > 0" class="flex flex-wrap gap-2">
+        <button
+          v-for="zone in watchZones"
+          :key="zone"
+          type="button"
+          class="pill pill-warn"
+          :class="form.painZone === zone && 'ring-1 ring-warn'"
+          @click="form.painZone = form.painZone === zone ? '' : zone"
+        >
+          {{ zone }}
+        </button>
+      </div>
+      <input v-model="form.painZone" type="text" class="input" placeholder="Aucune douleur" />
+      <div v-if="form.painZone" class="flex flex-col gap-[6px]">
+        <span class="label text-[10.5px]">Intensité — {{ form.painIntensity }} / 10</span>
+        <input
+          v-model.number="form.painIntensity"
+          type="range"
+          min="0"
+          max="10"
+          class="w-full accent-warn"
+        />
+      </div>
+    </div>
+
+    <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+
+    <button type="button" class="btn btn-lg" :disabled="saving" @click="save">
+      Enregistrer le ressenti
+    </button>
+  </div>
+</template>

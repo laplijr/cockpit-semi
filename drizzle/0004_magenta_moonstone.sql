@@ -1,0 +1,1 @@
+DROP TABLE "strava_token" CASCADE;
