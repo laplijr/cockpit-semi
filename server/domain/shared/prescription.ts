@@ -20,6 +20,14 @@ export interface PrescriptionStep {
   reps?: number
   /** Vrai quand les répétitions sont des secondes de maintien. */
   isometric?: boolean
+  /** Vrai quand la série se fait côté par côté : la durée compte les deux. */
+  unilateral?: boolean
+  /** Tempo en quatre temps d'une répétition de muscu : « 2-0-X-0 ». */
+  tempo?: string
+  /** Durée d'une répétition, en secondes : elle donne la durée réelle de la séance. */
+  repDurationS?: number
+  /** Étapes qui partagent une clé s'enchaînent en superset antagoniste. */
+  superset?: string
   /** Repère d'intensité en toutes lettres : « 85–90 % », « 56–75 % FTP ». */
   intensity?: string
   note?: string

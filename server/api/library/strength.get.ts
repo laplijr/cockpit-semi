@@ -1,5 +1,9 @@
 import { desc, eq } from 'drizzle-orm'
-import { STRENGTH_EXERCISES } from '../../domain/strength/exercises'
+import {
+  EFFORT_LABELS,
+  EFFORT_RECOVERY_S,
+  STRENGTH_EXERCISES,
+} from '../../domain/strength/exercises'
 import {
   STRENGTH_DOSES,
   STRENGTH_PHASE_LABELS,
@@ -56,6 +60,9 @@ export default defineEventHandler(async () => {
     strengthPhaseLabel: STRENGTH_PHASE_LABELS[strengthPhase],
     dose: STRENGTH_DOSES[strengthPhase],
     plannedCodes: STRENGTH_PER_PHASE[phaseType],
+    efforts: EFFORT_LABELS,
+    recoveryByEffort: EFFORT_RECOVERY_S,
+    restFactor: STRENGTH_DOSES[strengthPhase].restFactor,
     phasePlan: Object.values(PhaseType).map((type) => ({
       type,
       strengthPhase: strengthPhaseFor(type, 1),
@@ -65,7 +72,10 @@ export default defineEventHandler(async () => {
     lastLoadsKg,
     sessions: Object.values(STRENGTH_SESSION_TYPES).map((type) => ({
       ...type,
-      prescription: strengthPrescription(type.code, { phase: strengthPhase, weekInPhase }),
+      prescription: strengthPrescription(type.code, {
+        phase: strengthPhase,
+        progressionWeek: current?.index ?? 1,
+      }),
     })),
   }
 })

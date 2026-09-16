@@ -31,7 +31,16 @@ export interface StrengthDose {
   volumeFactor: number
   /** La pliométrie n'entre qu'en force-puissance (§ 5). */
   plyometrics: boolean
-  restS: number
+  /** Module le repos que la nature de l'effort fixe, sans le remplacer (§ 5). */
+  restFactor: number
+  /**
+   * Décalage de l'effort perçu de la séance. Un Legs d'affûtage et un Legs de
+   * force-puissance ne pèsent pas pareil dans la charge, mais un Push ne pèse
+   * pas non plus comme un Legs : la phase décale, elle ne remplace pas (§ 5).
+   */
+  rpeShift: number
+  /** Vrai quand l'exercice principal est dosé à 85 % ou plus (§ 5, G1). */
+  heavyMainLift: boolean
 }
 
 export const STRENGTH_DOSES: Record<StrengthPhase, StrengthDose> = {
@@ -41,15 +50,19 @@ export const STRENGTH_DOSES: Record<StrengthPhase, StrengthDose> = {
     intensity: '70 %',
     volumeFactor: 1,
     plyometrics: false,
-    restS: 90,
+    restFactor: 1,
+    rpeShift: -1,
+    heavyMainLift: false,
   },
   [StrengthPhase.Force]: {
     sets: 4,
     reps: 5,
-    intensity: '85–90 %',
+    intensity: '85 %',
     volumeFactor: 1,
     plyometrics: false,
-    restS: 150,
+    restFactor: 1,
+    rpeShift: 0,
+    heavyMainLift: true,
   },
   [StrengthPhase.ForcePower]: {
     sets: 4,
@@ -57,7 +70,9 @@ export const STRENGTH_DOSES: Record<StrengthPhase, StrengthDose> = {
     intensity: '≥ 85 %',
     volumeFactor: 1,
     plyometrics: true,
-    restS: 180,
+    restFactor: 1,
+    rpeShift: 1,
+    heavyMainLift: true,
   },
   [StrengthPhase.Maintenance]: {
     sets: 3,
@@ -65,15 +80,19 @@ export const STRENGTH_DOSES: Record<StrengthPhase, StrengthDose> = {
     intensity: '85 %',
     volumeFactor: 0.7,
     plyometrics: false,
-    restS: 150,
+    restFactor: 0.9,
+    rpeShift: -1,
+    heavyMainLift: true,
   },
   [StrengthPhase.Light]: {
     sets: 2,
-    reps: 5,
-    intensity: '70 %',
+    reps: 3,
+    intensity: '85 %',
     volumeFactor: 0.5,
     plyometrics: false,
-    restS: 120,
+    restFactor: 0.8,
+    rpeShift: -3,
+    heavyMainLift: false,
   },
   [StrengthPhase.Mobility]: {
     sets: 2,
@@ -81,7 +100,9 @@ export const STRENGTH_DOSES: Record<StrengthPhase, StrengthDose> = {
     intensity: 'à vide',
     volumeFactor: 0.5,
     plyometrics: false,
-    restS: 60,
+    restFactor: 0.7,
+    rpeShift: 0,
+    heavyMainLift: false,
   },
   [StrengthPhase.Off]: {
     sets: 0,
@@ -89,7 +110,9 @@ export const STRENGTH_DOSES: Record<StrengthPhase, StrengthDose> = {
     intensity: '—',
     volumeFactor: 0,
     plyometrics: false,
-    restS: 0,
+    restFactor: 0,
+    rpeShift: 0,
+    heavyMainLift: false,
   },
 }
 

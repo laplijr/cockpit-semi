@@ -26,6 +26,10 @@ export interface PlanSession {
       exerciseId?: string
       reps?: number
       isometric?: boolean
+      unilateral?: boolean
+      tempo?: string
+      repDurationS?: number
+      superset?: string
       intensity?: string
       loadKg?: number
       note?: string

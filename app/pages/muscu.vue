@@ -56,8 +56,8 @@ const preventionBlock = computed(() =>
           <span v-if="planned.has(item.code)" class="pill bg-accent/15 text-accent">
             cette semaine
           </span>
-          <span class="pill ml-auto">RPE {{ item.expectedRpe }}</span>
-          <span class="pill">{{ formatMinutes(item.durationMin) }}</span>
+          <span class="pill ml-auto">RPE {{ item.prescription.expectedRpe }}</span>
+          <span class="pill">{{ formatMinutes(item.prescription.durationMin) }}</span>
         </div>
 
         <p class="text-[13px] text-text-muted">{{ item.note }}</p>
@@ -77,15 +77,18 @@ const preventionBlock = computed(() =>
             <span class="flex items-baseline gap-2">
               <span class="text-[13px]">{{ step.label }}</span>
               <span v-if="step.repeats && step.reps" class="mono text-[12px] text-text-dim">
-                {{ step.repeats }} × {{ step.reps }}{{ step.isometric ? '″' : '' }}
+                {{ step.repeats }} × {{ step.reps }}{{ step.isometric ? '″' : ''
+                }}{{ step.unilateral ? '/côté' : '' }}
               </span>
               <span v-else-if="step.durationS" class="mono text-[12px] text-text-dim">
                 {{ formatMinutes(step.durationS / 60) }}
               </span>
+              <span v-if="step.superset" class="pill text-[10px]">superset</span>
               <span v-if="step.intensity" class="pill ml-auto">{{ step.intensity }}</span>
-              <span v-if="step.loadKg" class="mono text-[12px] text-accent">
-                {{ formatLoad(step.loadKg) }}
-              </span>
+            </span>
+            <span v-if="step.recoveryS || step.tempo" class="mono text-[11.5px] text-text-muted">
+              <template v-if="step.tempo">tempo {{ step.tempo }} · </template>
+              <template v-if="step.recoveryS">récup {{ step.recoveryS }}″</template>
             </span>
             <span v-if="step.note" class="text-[12px] text-text-muted">{{ step.note }}</span>
           </div>
@@ -95,9 +98,9 @@ const preventionBlock = computed(() =>
 
     <div class="tile">
       <div class="flex items-baseline gap-3">
-        <span class="label">Bloc prévention</span>
+        <span class="label">Exercices de prévention</span>
         <span class="mono text-[11.5px] text-text-muted">
-          dix minutes en fin de chaque séance chargée
+          en rotation à la fin de chaque séance chargée
         </span>
       </div>
 

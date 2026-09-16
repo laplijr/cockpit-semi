@@ -13,7 +13,8 @@ import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
 import { RunSessionCode } from '~~/server/domain/running/session-types'
 import { prescribedUnits } from '~~/server/domain/shared/prescription'
 import { Sport } from '~~/server/domain/shared/sport'
-import { StrengthSessionCode } from '~~/server/domain/strength/session-types'
+import { strengthExercise } from '~~/server/domain/strength/exercises'
+import { StrengthSessionCode, strengthSessionType } from '~~/server/domain/strength/session-types'
 
 const CONSTRAINTS = { availableDays: [1, 2, 3, 4, 5, 6, 7], longRunDay: 7, easyDays: [1] }
 const VDOT = 33.15
@@ -214,6 +215,70 @@ describe('placement de la musculation (§ 5)', () => {
 
     expect(codes).not.toContain(StrengthSessionCode.Legs)
     expect(codes).toContain(StrengthSessionCode.Push)
+  })
+
+  it('G1 — aucune séance jambes la veille d’un jour dur en force et en force-puissance', () => {
+    for (const week of weeks.filter((item) => !item.comebackRatio)) {
+      const { runs, sessions } = support(week)
+      const hard = new Set(
+        runs
+          .filter((run) => run.key || run.code === RunSessionCode.LongRun)
+          .map((run) => run.weekday),
+      )
+
+      for (const item of sessions.filter((entry) => entry.sport === Sport.Strength)) {
+        if (!strengthSessionType(item.code as StrengthSessionCode).lowerBody) continue
+        const next = item.weekday === 7 ? 1 : item.weekday + 1
+        expect(hard.has(next)).toBe(false)
+      }
+    }
+  })
+
+  it('G4 — Push et Pull restent plaçables la veille d’une séance clé', () => {
+    const placed = weeks.flatMap((week) =>
+      support(week).sessions.filter((item) =>
+        [StrengthSessionCode.Push, StrengthSessionCode.Pull].includes(
+          item.code as StrengthSessionCode,
+        ),
+      ),
+    )
+    expect(placed.length).toBeGreaterThan(0)
+  })
+
+  it('G7 — une pause sans jambes remplace Legs par une reprise, sans trou', () => {
+    const allowances = {
+      running: false,
+      cycling: true,
+      upperBodyStrength: true,
+      legStrength: false,
+    }
+    const sessions = support(weekIn(PhaseType.Development), { allowances }).sessions
+    const codes = sessions.map((item) => item.code)
+
+    expect(codes).toContain(StrengthSessionCode.Comeback)
+    expect(codes).not.toContain(StrengthSessionCode.Legs)
+
+    // Les autres séances perdent leurs exercices jambes plutôt que de disparaître.
+    const push = sessions.find((item) => item.code === StrengthSessionCode.Push)!
+    const legExercises = push.prescription.steps.filter(
+      (step) => step.exerciseId && strengthExercise(step.exerciseId)?.lowerBody,
+    )
+    expect(legExercises).toHaveLength(0)
+  })
+
+  it('G8 — la force basse cadence reste à 48 h du Legs', () => {
+    for (const week of weeks) {
+      const { sessions } = support(week)
+      const legs = sessions.find((item) => item.code === StrengthSessionCode.Legs)
+      const force = sessions.find((item) => item.code === CycleSessionCode.LowCadenceForce)
+      if (!legs || !force) continue
+      expect(dayGap(legs.weekday, force.weekday)).toBeGreaterThanOrEqual(2)
+    }
+  })
+
+  it('l’affûtage garde un rappel de force sur les jambes (§ 5)', () => {
+    const codes = support(weekIn(PhaseType.Taper)).sessions.map((item) => item.code)
+    expect(codes).toContain(StrengthSessionCode.Full)
   })
 
   it('ne pose jamais deux séances de muscu le même jour', () => {

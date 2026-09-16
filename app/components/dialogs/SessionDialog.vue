@@ -27,6 +27,26 @@ const history = computed(() => {
     .reverse()
 })
 
+interface StrengthState {
+  exerciseId: string
+  lastLoadKg: number | null
+  suggestedLoadKg: number | null
+}
+
+/** Charges tenues et proposées, quand la séance est une muscu (§ 9, P5.9). */
+const { data: strength } = useFetch<{ exercises: StrengthState[] }>(
+  () => `/api/sessions/${props.sessionId}/strength`,
+  { immediate: computed(() => session.value?.sport === 'muscu') as unknown as boolean },
+)
+
+const loads = computed(() =>
+  Object.fromEntries(
+    (strength.value?.exercises ?? [])
+      .filter((item) => item.lastLoadKg !== null)
+      .map((item) => [item.exerciseId, item]),
+  ),
+)
+
 const plannedMinutes = computed(() => {
   const prescription = session.value?.prescription
   if (!prescription) return 0
@@ -78,8 +98,10 @@ const plannedMinutes = computed(() => {
                 {{ step.label }}
               </span>
               <span v-if="step.repeats && step.reps" class="mono text-[12px] text-text-dim">
-                {{ step.repeats }} × {{ step.reps }}{{ step.isometric ? '″' : '' }}
+                {{ step.repeats }} × {{ step.reps }}{{ step.isometric ? '″' : ''
+                }}{{ step.unilateral ? '/côté' : '' }}
               </span>
+              <span v-if="step.superset" class="pill text-[10px]">superset</span>
               <span v-if="step.intensity" class="pill ml-auto text-[10.5px]">
                 {{ step.intensity }}
               </span>
@@ -92,7 +114,17 @@ const plannedMinutes = computed(() => {
               <template v-if="step.paceSecPerKm">
                 · {{ formatPace(step.paceSecPerKm) }}/km
               </template>
+              <template v-if="step.tempo"> · tempo {{ step.tempo }}</template>
               <template v-if="step.recoveryS"> · récup {{ step.recoveryS }}″</template>
+              <template v-if="loads[step.exerciseId ?? '']">
+                ·
+                <span class="text-text-muted line-through">
+                  {{ formatLoad(loads[step.exerciseId!]!.lastLoadKg) }}
+                </span>
+                <span class="ml-1 text-accent">
+                  {{ formatLoad(loads[step.exerciseId!]!.suggestedLoadKg) }}
+                </span>
+              </template>
             </span>
             <span v-if="step.note" class="text-[12px] text-text-muted">{{ step.note }}</span>
           </div>

@@ -5,8 +5,14 @@ import { RunSessionCode } from '../running/session-types'
 import type { Prescription } from '../shared/prescription'
 import { prescribedUnits } from '../shared/prescription'
 import { Sport } from '../shared/sport'
-import { strengthPhaseFor } from '../strength/phases'
-import { StrengthSessionCode, strengthPrescription } from '../strength/session-types'
+import { StrengthEffort, strengthExercise } from '../strength/exercises'
+import { STRENGTH_DOSES, strengthPhaseFor } from '../strength/phases'
+import {
+  StrengthSessionCode,
+  strengthPrescription,
+  strengthSessionType,
+} from '../strength/session-types'
+import { MONDAY, SUNDAY } from '../athlete/constraints'
 import type { IsoDate } from './calendar'
 import { addDays } from './calendar'
 import { dayBefore, dayGap } from './week-template'
@@ -27,10 +33,16 @@ export const STRENGTH_PER_PHASE: Record<PhaseType, StrengthSessionCode[]> = {
     StrengthSessionCode.Push,
     StrengthSessionCode.Pull,
   ],
-  [PhaseType.Speed]: [StrengthSessionCode.Legs, StrengthSessionCode.Push, StrengthSessionCode.Pull],
+  /** En vitesse, la puissance remplace Legs : la pliométrie y est en tête (§ 5). */
+  [PhaseType.Speed]: [
+    StrengthSessionCode.Power,
+    StrengthSessionCode.Push,
+    StrengthSessionCode.Pull,
+  ],
   [PhaseType.Specific]: [StrengthSessionCode.Legs, StrengthSessionCode.Push],
   [PhaseType.Rebuild]: [StrengthSessionCode.Legs, StrengthSessionCode.Push],
-  [PhaseType.Taper]: [StrengthSessionCode.Push],
+  /** L'affûtage garde un rappel de force sur les jambes, pas seulement le haut (§ 5). */
+  [PhaseType.Taper]: [StrengthSessionCode.Full],
   [PhaseType.Recovery]: [StrengthSessionCode.Mobility, StrengthSessionCode.Push],
   [PhaseType.Transition]: [],
 }
@@ -158,11 +170,18 @@ function placeStrength({
   allowances,
 }: StrengthPlacementInput): PlannedSupportSession[] {
   const legsAllowed = allowances?.legStrength ?? true
-  const codes = STRENGTH_PER_PHASE[week.phaseType].filter(
-    (code) => legsAllowed || code !== StrengthSessionCode.Legs,
+  const phase = strengthPhaseFor(week.phaseType, weekInPhase)
+  const dose = STRENGTH_DOSES[phase]
+
+  /**
+   * G7 — une pause qui interdit la muscu jambes ne supprime pas la séance :
+   * Legs devient une reprise, et les autres séances perdent leurs exercices
+   * jambes au lieu de disparaître (§ 5).
+   */
+  const codes = STRENGTH_PER_PHASE[week.phaseType].map((code) =>
+    !legsAllowed && code === StrengthSessionCode.Legs ? StrengthSessionCode.Comeback : code,
   )
 
-  const phase = strengthPhaseFor(week.phaseType, weekInPhase)
   const sessions: PlannedSupportSession[] = []
   const taken = new Set<number>()
 
@@ -170,41 +189,94 @@ function placeStrength({
     const day = available
       .filter((weekday) => !taken.has(weekday))
       .filter((weekday) => !isRaceWeek(week, weekday, nextRaceADate))
+      /** G1 — filtre dur, appliqué avant le tri : un malus ne bloque rien. */
+      .filter((weekday) => allowsLegLoad(weekday, code))
       .sort((a, b) => strengthScore(b, code) - strengthScore(a, code) || a - b)
       .at(0)
 
-    if (day === undefined) break
+    if (day === undefined) continue
     taken.add(day)
     sessions.push({
       date: addDays(week.startDate, day - 1),
       weekday: day,
       sport: Sport.Strength,
       code,
-      prescription: strengthPrescription(code, { phase, weekInPhase }),
+      prescription: strengthPrescription(code, {
+        phase,
+        /** La rampe de progression se compte depuis le début du plan (§ 5). */
+        progressionWeek: week.index,
+        excludedIds: excludedFor(day, code),
+      }),
     })
   }
 
   return sessions.sort((a, b) => a.weekday - b.weekday)
 
+  /** Jours durs qu'il faut protéger : séances clés et sortie longue. */
+  function isEveOfHardRun(weekday: number): boolean {
+    const next = weekday === SUNDAY ? MONDAY : weekday + 1
+    return keyDays.has(next) || next === longRunDay
+  }
+
   /**
-   * Le Legs va sur un jour dur, jamais la veille de la sortie longue ni d'une
-   * séance clé ; le haut du corps suit les autres jours de course, pour laisser
-   * les jours vides au vélo.
+   * G1 — une séance qui charge les jambes est interdite la veille d'un jour dur
+   * dès que la phase active la pliométrie ou dose l'exercice principal à 85 %
+   * ou plus. G4 : Push, Pull et Mobilité n'imposent aucun écart (§ 5).
+   */
+  function allowsLegLoad(weekday: number, code: StrengthSessionCode): boolean {
+    if (!strengthSessionType(code).lowerBody) return true
+    if (!dose.plyometrics && !dose.heavyMainLift) return true
+    return !isEveOfHardRun(weekday)
+  }
+
+  /**
+   * G3 — à moins de 48 h d'une séance clé, l'excentrique lourd et la
+   * pliométrie sortent de la séance ; le reste est conservé. G5 : la contrainte
+   * suit l'exercice, pas le type de séance (§ 5).
+   */
+  function excludedFor(weekday: number, code: StrengthSessionCode): string[] {
+    const excluded = new Set<string>()
+
+    if (isEveOfHardRun(weekday)) {
+      for (const id of exerciseIdsOf(code)) {
+        const exercise = strengthExercise(id)
+        if (exercise?.eccentricLoad || exercise?.effort === StrengthEffort.SpeedStrength) {
+          excluded.add(id)
+        }
+      }
+    }
+
+    if (!legsAllowed) {
+      for (const id of exerciseIdsOf(code)) {
+        if (strengthExercise(id)?.lowerBody && code !== StrengthSessionCode.Comeback) {
+          excluded.add(id)
+        }
+      }
+    }
+
+    return [...excluded]
+  }
+
+  /**
+   * Le Legs va sur un jour dur ; le haut du corps suit les autres jours de
+   * course, pour laisser les jours vides au vélo.
    */
   function strengthScore(weekday: number, code: StrengthSessionCode): number {
     const isKey = keyDays.has(weekday)
     const isRun = runDays.has(weekday)
-    const eveOfLongRun = longRunDay !== undefined && weekday === longRunDay - 1
-    const eveOfKey = keyDays.has(weekday + 1)
 
-    if (code !== StrengthSessionCode.Legs) return isRun ? 2 : 1
+    if (!strengthSessionType(code).lowerBody) return isRun ? 2 : 1
 
     let score = isKey && weekday !== longRunDay ? 4 : isRun && weekday !== longRunDay ? 2 : 1
     if (weekday === longRunDay) score -= 4
-    if (eveOfLongRun) score -= 5
-    if (eveOfKey) score -= 3
     return score
   }
+}
+
+/** Tous les exercices d'une séance, pliométrie et bloc prévention compris. */
+function exerciseIdsOf(code: StrengthSessionCode): string[] {
+  const type = strengthSessionType(code)
+  return [...type.plyometricIds, ...type.exerciseIds, ...type.preventionIds]
 }
 
 /** Sept jours avant une course A, la muscu s'arrête (§ 5). */
