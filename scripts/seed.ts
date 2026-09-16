@@ -61,6 +61,7 @@ async function seed() {
 
   await db.insert(schema.athlete).values({
     id: 1,
+    firstName: 'Ronan',
     constraints: { availableDays: [1, 2, 3, 4, 5, 6, 7], longRunDay: 7, easyDays: [1] },
     availableDays: [1, 2, 3, 4, 5, 6, 7],
     startWeeklyVolumeM: 20_000,

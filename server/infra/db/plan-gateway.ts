@@ -11,6 +11,7 @@ import {
   DEFAULT_PEAK_VOLUME_M,
   DEFAULT_START_VOLUME_M,
 } from '../../domain/athlete/constraints'
+import { STANDARD_INCREASE_PCT, defaultsFor } from '../../domain/athlete/profile'
 import type { GeneratedPlan } from '../../domain/plan/generate'
 import type { PlannedRace } from '../../domain/plan/periodization'
 import { SessionStatus, type PlanTrigger } from '../../domain/plan/session'
@@ -29,6 +30,9 @@ export function createPlanGateway(db: Database): PlanGateway {
         constraints: row.constraints ?? DEFAULT_CONSTRAINTS,
         startWeeklyVolumeM: row.startWeeklyVolumeM ?? DEFAULT_START_VOLUME_M,
         peakWeeklyVolumeM: row.peakWeeklyVolumeM ?? DEFAULT_PEAK_VOLUME_M,
+        maxWeeklyIncreasePct: row.profile
+          ? defaultsFor(row.profile).maxWeeklyIncreasePct
+          : STANDARD_INCREASE_PCT,
         onboarded: row.onboarded,
       }
     },

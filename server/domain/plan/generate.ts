@@ -38,6 +38,8 @@ export interface GeneratePlanInput {
   comebackWeeks?: number
   /** Date du dernier test 20′ enregistré, pour ne pas en replanifier un aussitôt. */
   lastTestDate?: IsoDate | null
+  /** Montée hebdomadaire maximale, en pourcentage ; celle du profil (§ 5). */
+  maxWeeklyIncreasePct?: number
 }
 
 export interface GeneratedWeek extends PlanWeek {
@@ -77,6 +79,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     openPause,
     comebackWeeks = openPause ? COMEBACK_RATIOS.length : 0,
     lastTestDate = null,
+    maxWeeklyIncreasePct,
   } = input
   const startDate = planStartDate(today, openPause)
   /** Sans date de reprise, on raisonne quand même depuis aujourd'hui pour les phases. */
@@ -91,6 +94,8 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     peakWeeklyVolumeM,
     comebackWeeks,
     lastTestDate,
+    weeklyProgression:
+      maxWeeklyIncreasePct === undefined ? undefined : 1 + maxWeeklyIncreasePct / 100,
   })
 
   // Jour de course : aucune séance. Lendemain d'une course A : repos (§ 5).

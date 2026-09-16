@@ -1,8 +1,23 @@
 <script setup lang="ts">
+import { PROFILE_LABELS } from '~~/server/domain/athlete/profile'
+
 const route = useRoute()
 const ui = useUiStore()
 const proposals = usePropositionsStore()
 const plan = usePlanStore()
+
+const { data: athlete } = await useFetch('/api/athlete')
+
+const profileLabel = computed(() =>
+  athlete.value?.profile ? (PROFILE_LABELS[athlete.value.profile] ?? null) : null,
+)
+
+/** Identité de la barre : âge et profil, quand ils sont renseignés. */
+const identity = computed(() =>
+  [athlete.value?.age ? `${athlete.value.age} ans` : null, profileLabel.value]
+    .filter(Boolean)
+    .join(' · '),
+)
 
 const title = computed(() => navItemFor(route.path)?.label ?? 'Cockpit')
 
@@ -51,6 +66,22 @@ const context = computed(() => {
         >
           {{ proposals.pendingCount }}
         </span>
+      </button>
+
+      <button
+        type="button"
+        class="flex items-center gap-2 rounded-md py-1 pr-1 pl-2 hover:bg-surface-inset"
+        @click="navigateTo('/profil')"
+      >
+        <span class="flex min-w-0 flex-col items-end gap-px">
+          <span class="text-[13px] font-semibold">{{ athlete?.firstName ?? 'Profil' }}</span>
+          <span v-if="identity" class="mono text-[10.5px] text-text-muted">{{ identity }}</span>
+        </span>
+        <img
+          :src="athlete?.avatar ?? avatarDataUrl(athlete?.firstName)"
+          alt=""
+          class="size-7 rounded-full"
+        />
       </button>
     </div>
   </header>

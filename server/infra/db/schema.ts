@@ -12,6 +12,7 @@ import {
   unique,
 } from 'drizzle-orm/pg-core'
 import type { AthleteConstraints } from '../../domain/athlete/constraints'
+import { AthleteProfile } from '../../domain/athlete/profile'
 import { FitnessOrigin } from '../../domain/fitness/fitness-point'
 import { Sensation, type Pain } from '../../domain/load/feedback'
 import { PauseType, type PauseAllowances } from '../../domain/pause/pause'
@@ -32,6 +33,7 @@ import {
 import { Sport } from '../../domain/shared/sport'
 
 export {
+  AthleteProfile,
   FitnessOrigin,
   LookupStatus,
   UnplannedStatus,
@@ -53,6 +55,7 @@ export {
 export type { AthleteConstraints, LookupField, Pain, PauseAllowances, RaceIncident, UnplannedEvent }
 
 export const sportEnum = pgEnum('sport', enumValues(Sport))
+export const athleteProfileEnum = pgEnum('athlete_profile', enumValues(AthleteProfile))
 export const racePriorityEnum = pgEnum('race_priority', enumValues(RacePriority))
 export const objectiveModeEnum = pgEnum('objective_mode', enumValues(ObjectiveMode))
 export const raceStatusEnum = pgEnum('race_status', enumValues(RaceStatus))
@@ -78,6 +81,13 @@ function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], .
  */
 export const athlete = pgTable('athlete', {
   id: integer('id').primaryKey().default(1),
+  /** Prénom : il porte l'identité de la barre du haut et les initiales de l'avatar. */
+  firstName: text('first_name'),
+  birthDate: date('birth_date'),
+  /** Niveau déclaré : il pré-remplit les volumes et borne la montée (§ 9, P5.7). */
+  profile: athleteProfileEnum('profile'),
+  /** Photo en data URL, 160 × 160 webp ; nulle tant qu'il n'y en a pas. */
+  avatar: text('avatar'),
   weightKg: real('weight_kg'),
   maxHr: integer('max_hr'),
   /** Jours de la semaine disponibles, 1 = lundi … 7 = dimanche. */

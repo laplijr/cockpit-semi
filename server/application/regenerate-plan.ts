@@ -3,6 +3,7 @@ import {
   DEFAULT_PEAK_VOLUME_M,
   DEFAULT_START_VOLUME_M,
 } from '../domain/athlete/constraints'
+import { STANDARD_INCREASE_PCT } from '../domain/athlete/profile'
 import type { GeneratedPlan } from '../domain/plan/generate'
 import { addDays } from '../domain/plan/calendar'
 import { generatePlan } from '../domain/plan/generate'
@@ -64,6 +65,7 @@ export async function regeneratePlan(
       : undefined,
     comebackWeeks: openPause || resumedRecently ? COMEBACK_RATIOS.length : 0,
     lastTestDate,
+    maxWeeklyIncreasePct: athlete?.maxWeeklyIncreasePct ?? STANDARD_INCREASE_PCT,
   })
 
   const planVersionId = await gateway.savePlan(plan, trigger, {

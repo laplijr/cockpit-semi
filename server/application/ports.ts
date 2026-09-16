@@ -11,6 +11,8 @@ export interface AthleteSnapshot {
   constraints: AthleteConstraints
   startWeeklyVolumeM: number
   peakWeeklyVolumeM: number
+  /** Montée hebdomadaire maximale, en pourcentage ; déduite du profil (§ 5). */
+  maxWeeklyIncreasePct: number
   onboarded: boolean
 }
 

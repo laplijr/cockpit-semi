@@ -6,6 +6,7 @@ import { phaseAtWeek } from './periodization'
 import { PhaseType } from './phases'
 
 export const BLOCK_WEEKS = 4
+/** Montée par défaut, quand le profil ne dit rien : +10 %/semaine (§ 5). */
 export const WEEKLY_PROGRESSION = 1.1
 export const LIGHT_WEEK_FACTOR = 0.7
 export const LONG_RUN_MAX_SHARE = 0.3
@@ -91,6 +92,8 @@ export interface WeekPlanInput {
   comebackWeeks?: number
   /** Date du dernier test 20′ : l'intervalle de six semaines repart de là. */
   lastTestDate?: IsoDate | null
+  /** Montée maximale d'une semaine à la suivante, lue dans le profil (§ 5). */
+  weeklyProgression?: number
 }
 
 function phaseFactor(phase: PlanPhase, weekInPhase: number): number | undefined {
@@ -118,6 +121,7 @@ export function buildWeeks({
   peakWeeklyVolumeM,
   comebackWeeks = COMEBACK_RATIOS.length,
   lastTestDate = null,
+  weeklyProgression = WEEKLY_PROGRESSION,
 }: WeekPlanInput): PlanWeek[] {
   const lastWeek = phases.reduce((max, phase) => Math.max(max, phase.endWeek), 0)
   const firstMonday = startOfWeek(startDate)
@@ -160,7 +164,7 @@ export function buildWeeks({
       light = positionInBlock === BLOCK_WEEKS - 1
       const ramped = Math.min(
         peakWeeklyVolumeM,
-        blockBase * WEEKLY_PROGRESSION ** Math.min(positionInBlock, BLOCK_WEEKS - 2),
+        blockBase * weeklyProgression ** Math.min(positionInBlock, BLOCK_WEEKS - 2),
       )
       targetRunM = light ? ramped * LIGHT_WEEK_FACTOR : ramped
       if (light) blockBase = ramped
