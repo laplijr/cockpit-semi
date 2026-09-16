@@ -20,6 +20,13 @@ const ICONS = {
   week: [rect(3, 5, 18, 16, 2), path('M3 10h18M8 3v4M16 3v4')],
   props: [path('M9 6h11M9 12h11M9 18h11'), path('M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2')],
   flag: [path('M5 21V4'), path('M5 4h12l-2 4 2 4H5')],
+  run: [
+    circle(16.5, 4.5, 2),
+    path('M13 21l1.5-6-4-3 1.5-4.5'),
+    path('M12 7.5 8 10'),
+    path('M14.5 12l4 1 .5 4.5'),
+    path('M13.5 8.5 18 10'),
+  ],
   muscu: [path('M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12')],
   velo: [circle(6, 16, 3.5), circle(18, 16, 3.5), path('M6 16l4-8h5l3 8M10 8l4 8')],
   nutri: [path('M12 3c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11z')],

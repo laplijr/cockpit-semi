@@ -23,9 +23,13 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: 'Planifier',
+    title: 'Objectifs',
+    items: [{ label: 'Courses', to: '/courses', icon: 'flag', phase: 'P1' }],
+  },
+  {
+    title: 'Bibliothèques',
     items: [
-      { label: 'Courses', to: '/courses', icon: 'flag', phase: 'P1' },
+      { label: 'Course à pied', to: '/course-a-pied', icon: 'run', phase: 'P1' },
       { label: 'Muscu', to: '/muscu', icon: 'muscu', phase: 'P4' },
       { label: 'Vélo', to: '/velo', icon: 'velo', phase: 'P4' },
       { label: 'Nutrition', to: '/nutrition', icon: 'nutri', phase: 'P6' },
@@ -34,7 +38,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Comprendre',
     items: [
-      { label: 'Historique', to: '/historique', icon: 'hist', phase: 'P7' },
+      { label: 'Progression', to: '/progression', icon: 'hist', phase: 'P3' },
       { label: 'Apprentissage', to: '/apprentissage', icon: 'learn', phase: 'P6' },
     ],
   },

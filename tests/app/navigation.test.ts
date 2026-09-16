@@ -2,12 +2,28 @@ import { describe, expect, it } from 'vitest'
 import { NAV_GROUPS, navItemFor } from '~/utils/navigation'
 
 describe('carte de navigation', () => {
-  it('expose les quatre groupes du cockpit dans l’ordre de lecture', () => {
+  it('expose les cinq groupes du cockpit dans l’ordre de lecture', () => {
     expect(NAV_GROUPS.map((group) => group.title)).toEqual([
       'Piloter',
-      'Planifier',
+      'Objectifs',
+      'Bibliothèques',
       'Comprendre',
       'Réglages',
+    ])
+  })
+
+  it('ne met que Courses dans Objectifs : c’est la seule entrée qui pilote le plan', () => {
+    const objectifs = NAV_GROUPS.find((group) => group.title === 'Objectifs')
+    expect(objectifs?.items.map((item) => item.to)).toEqual(['/courses'])
+  })
+
+  it('regroupe les quatre bibliothèques', () => {
+    const libs = NAV_GROUPS.find((group) => group.title === 'Bibliothèques')
+    expect(libs?.items.map((item) => item.to)).toEqual([
+      '/course-a-pied',
+      '/muscu',
+      '/velo',
+      '/nutrition',
     ])
   })
 
@@ -17,10 +33,12 @@ describe('carte de navigation', () => {
   })
 
   it('retrouve l’entrée correspondant à une route connue', () => {
-    expect(navItemFor('/semaine')?.label).toBe('Semaine')
+    expect(navItemFor('/progression')?.label).toBe('Progression')
+    expect(navItemFor('/course-a-pied')?.label).toBe('Course à pied')
   })
 
   it('ne retourne rien pour une route hors navigation', () => {
+    expect(navItemFor('/historique')).toBeUndefined()
     expect(navItemFor('/login')).toBeUndefined()
   })
 })
