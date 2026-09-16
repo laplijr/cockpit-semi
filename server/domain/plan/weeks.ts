@@ -70,6 +70,10 @@ export interface PlanWeek {
   test: boolean
   /** Nombre de courses à poser cette semaine (§ 5). */
   runs: number
+  /** Minutes de vélo posées sur la semaine, renseignées à la génération. */
+  targetCyclingMin: number
+  /** Nombre de séances de muscu posées sur la semaine. */
+  targetStrengthCount: number
   /** Vrai quand le volume visé a dû être réduit faute de séances pour le porter. */
   volumeCapped: boolean
   /** Restriction de la reprise : quand elle existe, seuls ces types sont plaçables. */
@@ -189,6 +193,8 @@ export function buildWeeks({
       phaseProgress,
       test,
       runs: comebackRatio !== undefined ? RUNS_DURING_COMEBACK : RUNS_PER_PHASE[phase.type],
+      targetCyclingMin: 0,
+      targetStrengthCount: 0,
       volumeCapped: false,
       allowedCodes: comebackRatio !== undefined ? COMEBACK_ALLOWED[index - 1] : undefined,
     })

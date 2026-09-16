@@ -14,7 +14,12 @@ const SENSATIONS = [
 ]
 
 /** Durée prévue, déduite de la distance et de l'allure de la prescription. */
+const isStrength = computed(() => props.session.sport === 'muscu')
+const isRunning = computed(() => props.session.sport === 'course')
+const strengthSets = ref<{ save: () => Promise<void> } | null>(null)
+
 const plannedMinutes = computed(() => {
+  if (props.session.prescription.durationMin) return props.session.prescription.durationMin
   const steps = props.session.prescription.steps
   const seconds = steps.reduce((total, step) => {
     const repeats = step.repeats ?? 1
@@ -34,7 +39,7 @@ const form = reactive({
   painZone: '',
   painIntensity: 0,
   durationMin: plannedMinutes.value,
-  distanceM: props.session.prescription.totalDistanceM,
+  distanceM: props.session.prescription.totalDistanceM || null,
   notes: '',
 })
 
@@ -54,6 +59,8 @@ async function save() {
   saving.value = true
   error.value = ''
   try {
+    if (isStrength.value) await strengthSets.value?.save()
+
     if (isTest.value && testDistanceM.value) {
       await $fetch('/api/tests', {
         method: 'POST',
@@ -87,8 +94,10 @@ async function save() {
     <div class="tile bg-surface-inset">
       <span class="label text-[10.5px]">Prévu</span>
       <span class="mono text-[13px] text-text-dim">
-        {{ formatDistance(session.prescription.totalDistanceM) }} · {{ plannedMinutes }} min · RPE
-        {{ session.prescription.expectedRpe }}
+        <template v-if="isRunning">
+          {{ formatDistance(session.prescription.totalDistanceM) }} ·
+        </template>
+        {{ plannedMinutes }} min · RPE {{ session.prescription.expectedRpe }}
       </span>
     </div>
 
@@ -101,16 +110,18 @@ async function save() {
       </p>
     </div>
 
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid gap-3" :class="isRunning ? 'grid-cols-2' : 'grid-cols-1'">
       <label class="flex flex-col gap-[6px]">
         <span class="label text-[10.5px]">Durée réelle (min)</span>
         <input v-model.number="form.durationMin" type="number" class="input mono" />
       </label>
-      <label class="flex flex-col gap-[6px]">
+      <label v-if="isRunning" class="flex flex-col gap-[6px]">
         <span class="label text-[10.5px]">Distance réelle (m)</span>
         <input v-model.number="form.distanceM" type="number" class="input mono" />
       </label>
     </div>
+
+    <FeedbackStrengthSets v-if="isStrength" ref="strengthSets" :session="session" :rpe="form.rpe" />
 
     <div class="flex flex-col gap-[6px]">
       <span class="label text-[10.5px]">Effort perçu — RPE {{ form.rpe }}</span>

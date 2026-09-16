@@ -1,0 +1,107 @@
+<script setup lang="ts">
+import type { PlanSession } from '~/stores/plan'
+
+const props = defineProps<{ session: PlanSession; rpe: number }>()
+
+interface ExerciseState {
+  exerciseId: string
+  targetReps: number
+  lastLoadKg: number | null
+  suggestedLoadKg: number | null
+}
+
+const { data } = useFetch<{ exercises: ExerciseState[] }>(
+  `/api/sessions/${props.session.id}/strength`,
+)
+
+const labels = new Map(
+  props.session.prescription.steps
+    .filter((step) => step.exerciseId)
+    .map((step) => [step.exerciseId!, step.label]),
+)
+
+const exercises = computed(() =>
+  (data.value?.exercises ?? []).map((exercise) => ({
+    ...exercise,
+    label: labels.get(exercise.exerciseId) ?? exercise.exerciseId,
+    sets:
+      props.session.prescription.steps.find((step) => step.exerciseId === exercise.exerciseId)
+        ?.repeats ?? 1,
+  })),
+)
+
+interface SetRow {
+  exerciseId: string
+  index: number
+  reps: number
+  loadKg: number
+}
+
+/** Séries pré-remplies par le format prescrit et la charge proposée. */
+const rows = ref<SetRow[]>([])
+
+watch(
+  exercises,
+  (list) => {
+    rows.value = list.flatMap((exercise) =>
+      Array.from({ length: exercise.sets }, (_, index) => ({
+        exerciseId: exercise.exerciseId,
+        index: index + 1,
+        reps: exercise.targetReps,
+        loadKg: exercise.suggestedLoadKg ?? 0,
+      })),
+    )
+  },
+  { immediate: true },
+)
+
+function setsOf(exerciseId: string) {
+  return rows.value.filter((row) => row.exerciseId === exerciseId)
+}
+
+async function save() {
+  if (rows.value.length === 0) return
+  await $fetch(`/api/sessions/${props.session.id}/strength`, {
+    method: 'PUT',
+    body: { sets: rows.value.map((row) => ({ ...row, rpe: props.rpe })) },
+  })
+}
+
+defineExpose({ save })
+</script>
+
+<template>
+  <div class="flex flex-col gap-3">
+    <span class="label text-[10.5px]">Séries réalisées</span>
+
+    <div v-for="exercise in exercises" :key="exercise.exerciseId" class="flex flex-col gap-2">
+      <span class="flex items-baseline gap-2">
+        <span class="text-[13px]">{{ exercise.label }}</span>
+        <span class="mono text-[11.5px] text-text-muted">
+          {{ exercise.sets }} × {{ exercise.targetReps }}
+        </span>
+        <span v-if="exercise.lastLoadKg !== null" class="mono ml-auto text-[12px]">
+          <span class="text-text-muted line-through">{{ formatLoad(exercise.lastLoadKg) }}</span>
+          <span class="mx-1 text-text-muted">→</span>
+          <span class="text-accent">{{ formatLoad(exercise.suggestedLoadKg) }}</span>
+        </span>
+      </span>
+
+      <div
+        v-for="row in setsOf(exercise.exerciseId)"
+        :key="row.index"
+        class="grid grid-cols-[20px_1fr_1fr] items-center gap-2"
+      >
+        <span class="mono text-[11.5px] text-text-muted">{{ row.index }}</span>
+        <label class="flex items-center gap-2">
+          <span class="label text-[10px]">Rép.</span>
+          <input v-model.number="row.reps" type="number" min="0" class="input mono" />
+        </label>
+        <label class="flex items-center gap-2">
+          <span class="label text-[10px]">Kg</span>
+          <input v-model.number="row.loadKg" type="number" min="0" step="0.5" class="input mono" />
+        </label>
+      </div>
+    </div>
+  </div>
+</template>

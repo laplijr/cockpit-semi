@@ -56,7 +56,11 @@ export async function regeneratePlan(
     peakWeeklyVolumeM,
     vdot,
     openPause: openPause
-      ? { startDate: openPause.startDate, estimatedEndDate: openPause.estimatedEndDate }
+      ? {
+          startDate: openPause.startDate,
+          estimatedEndDate: openPause.estimatedEndDate,
+          allowances: openPause.allowances,
+        }
       : undefined,
     comebackWeeks: openPause || resumedRecently ? COMEBACK_RATIOS.length : 0,
     lastTestDate,

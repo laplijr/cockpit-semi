@@ -45,7 +45,12 @@ withDefaults(
         </span>
       </span>
       <span class="mono pl-[19px] text-[11px] text-text-muted">
-        {{ formatDistance(session.prescription.totalDistanceM) }}
+        <!-- Une séance sans kilométrage se lit en durée : vélo et muscu. -->
+        {{
+          session.prescription.totalDistanceM > 0
+            ? formatDistance(session.prescription.totalDistanceM)
+            : formatMinutes(session.prescription.durationMin)
+        }}
         <template v-if="session.status === 'faite'"> · faite</template>
       </span>
     </div>

@@ -5,6 +5,13 @@ const props = defineProps<{ session: PlanSession; muted?: boolean; actionable?: 
 const ui = useUiStore()
 
 const sport = computed(() => sportStyle(props.session.sport))
+
+/** Une séance sans kilométrage se lit en durée : vélo et muscu. */
+const volume = computed(() =>
+  props.session.prescription.totalDistanceM > 0
+    ? formatDistance(props.session.prescription.totalDistanceM)
+    : formatMinutes(props.session.prescription.durationMin),
+)
 </script>
 
 <template>
@@ -24,8 +31,7 @@ const sport = computed(() => sportStyle(props.session.sport))
         <span v-if="session.key" class="pill bg-accent/15 text-[10px] text-accent">clé</span>
       </span>
       <span class="mono text-[11.5px] text-text-muted">
-        {{ SPORT_LABELS[session.sport] ?? session.sport }} ·
-        {{ formatDistance(session.prescription.totalDistanceM) }}
+        {{ SPORT_LABELS[session.sport] ?? session.sport }} · {{ volume }}
         <template v-for="step in session.prescription.steps" :key="step.label">
           <template v-if="step.paceSecPerKm && step.label !== 'Retour au calme'">
             · {{ step.repeats ? `${step.repeats} × ` : '' }}{{ formatPace(step.paceSecPerKm) }}/km

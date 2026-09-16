@@ -1,5 +1,8 @@
 import { PhaseType } from '../plan/phases'
 import { TrainingZone, halfMarathonPace, paceFor, paceRangeFor } from '../fitness/vdot'
+import type { Prescription, PrescriptionStep } from '../shared/prescription'
+
+export type { Prescription, PrescriptionStep }
 
 export enum RunSessionCode {
   Endurance = 'EF',
@@ -186,27 +189,6 @@ export function fitsInWeek(
   const measured =
     quotaBasisFor(code) === QuotaBasis.Total ? result.totalDistanceM : result.qualityDistanceM
   return respectsQuota(code, measured, weeklyVolumeM)
-}
-
-export interface PrescriptionStep {
-  label: string
-  repeats?: number
-  distanceM?: number
-  durationS?: number
-  paceSecPerKm?: number
-  recoveryS?: number
-  /** Portion soumise au quota d'intensité (§ 8). */
-  intense?: boolean
-}
-
-export interface Prescription {
-  code: RunSessionCode
-  label: string
-  totalDistanceM: number
-  /** Distance de la portion intense, celle que le quota borne. */
-  qualityDistanceM: number
-  expectedRpe: number
-  steps: PrescriptionStep[]
 }
 
 export interface PrescriptionContext {

@@ -278,6 +278,34 @@ export const feedback = pgTable('feedback', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+/**
+ * Séries réalisées d'une séance de musculation. C'est d'elles que se déduit la
+ * charge proposée à la séance suivante (§ 9, P4).
+ */
+export const strengthSet = pgTable(
+  'strength_set',
+  {
+    id: serial('id').primaryKey(),
+    sessionId: integer('session_id')
+      .notNull()
+      .references(() => session.id, { onDelete: 'cascade' }),
+    /** Identifiant de l'exercice dans la bibliothèque muscu. */
+    exerciseId: text('exercise_id').notNull(),
+    /** Rang de la série dans l'exercice, à partir de 1. */
+    index: integer('index').notNull(),
+    reps: integer('reps').notNull(),
+    loadKg: real('load_kg').notNull(),
+    rpe: integer('rpe').notNull(),
+  },
+  (table) => [
+    unique('strength_set_session_exercise_index').on(
+      table.sessionId,
+      table.exerciseId,
+      table.index,
+    ),
+  ],
+)
+
 /** Cache recalculable de la charge quotidienne, en unités arbitraires (§ 5). */
 export const loadDaily = pgTable('load_daily', {
   date: date('date').primaryKey(),
@@ -335,3 +363,5 @@ export type Feedback = typeof feedback.$inferSelect
 export type NewFeedback = typeof feedback.$inferInsert
 export type LoadDaily = typeof loadDaily.$inferSelect
 export type NewLoadDaily = typeof loadDaily.$inferInsert
+export type StrengthSet = typeof strengthSet.$inferSelect
+export type NewStrengthSet = typeof strengthSet.$inferInsert

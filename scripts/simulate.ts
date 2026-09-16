@@ -50,7 +50,12 @@ interface PlannedRow {
   date: string
   code: string
   key: boolean
-  prescription: { totalDistanceM: number; expectedRpe: number; steps: { paceSecPerKm?: number }[] }
+  prescription: {
+    totalDistanceM: number
+    expectedRpe: number
+    durationMin?: number
+    steps: { paceSecPerKm?: number }[]
+  }
 }
 
 async function plannedOn(db: Database, date: string): Promise<PlannedRow[]> {
@@ -69,10 +74,20 @@ async function plannedOn(db: Database, date: string): Promise<PlannedRow[]> {
   }))
 }
 
-/** Durée prévue d'une séance, déduite de sa distance et de son allure. */
+/**
+ * Durée prévue d'une séance : celle que porte la prescription pour le vélo et
+ * la muscu, sinon celle que donnent la distance et l'allure de la course.
+ */
 function plannedMinutes(row: PlannedRow): number {
+  if (row.prescription.durationMin) return row.prescription.durationMin
   const pace = row.prescription.steps.find((step) => step.paceSecPerKm)?.paceSecPerKm ?? 420
   return Math.max(15, Math.round(((row.prescription.totalDistanceM / 1000) * pace) / 60))
+}
+
+/** Une séance sans kilométrage n'en déclare pas : le réalisé reste en durée. */
+function actualDistanceM(row: PlannedRow, spread: number): number | null {
+  if (row.prescription.totalDistanceM === 0) return null
+  return Math.round(row.prescription.totalDistanceM * spread)
 }
 
 async function currentVdot(db: Database): Promise<number> {
@@ -114,7 +129,12 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
     await expireStaleProposals(db, date)
     const dayIndex = Math.round((Date.parse(date) - Date.parse(scenario.resumeDate)) / 86_400_000)
 
-    for (const row of await plannedOn(db, date)) {
+    /**
+     * Un test régénère le plan et remplace les séances encore prévues : on
+     * relit la journée après chaque séance plutôt que de garder des identifiants
+     * périmés. Une séance close sort de `plannedOn`, la boucle finit donc.
+     */
+    for (let row = (await plannedOn(db, date))[0]; row; row = (await plannedOn(db, date))[0]) {
       if (row.code === 'test') {
         const target = progress.lastVdot + scenario.vdotGainPerTest
         const distanceM = testDistanceForVdot(target)
@@ -162,7 +182,7 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
         sleepHours: Math.round(between(random, 6.5, 8) * 2) / 2,
         pain: residualPain(dayIndex),
         durationMin: Math.round(plannedMinutes(row) * spread),
-        distanceM: Math.round(row.prescription.totalDistanceM * spread),
+        distanceM: actualDistanceM(row, spread),
         notes: null,
       })
       progress.sessionsDone += 1

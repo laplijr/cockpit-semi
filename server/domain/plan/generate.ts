@@ -2,8 +2,11 @@ import type { AthleteConstraints } from '../athlete/constraints'
 import type { IsoDate } from './calendar'
 import { addDays, startOfWeek } from './calendar'
 import { RacePriority } from '../races/race'
+import type { PauseAllowances } from '../pause/pause'
 import type { PlanPhase, PlannedRace } from './periodization'
-import { SHORT_RACE_MAX_M, buildPhases } from './periodization'
+import { SHORT_RACE_MAX_M, buildPhases, phaseAtWeek } from './periodization'
+import type { PlannedSupportSession } from './week-support'
+import { buildWeekSupport } from './week-support'
 import type { PlannedSession } from './week-template'
 import { buildWeekTemplate } from './week-template'
 import type { PlanWeek } from './weeks'
@@ -12,6 +15,8 @@ import { COMEBACK_RATIOS, buildWeeks } from './weeks'
 export interface OpenPause {
   startDate: IsoDate
   estimatedEndDate: IsoDate | null
+  /** Une blessure basse gèle la muscu jambes pendant la pause (§ 5). */
+  allowances?: PauseAllowances
 }
 
 export interface GeneratePlanInput {
@@ -37,6 +42,8 @@ export interface GeneratePlanInput {
 
 export interface GeneratedWeek extends PlanWeek {
   sessions: PlannedSession[]
+  /** Séances de vélo et de muscu posées sur les jours laissés libres (§ 5). */
+  support: PlannedSupportSession[]
 }
 
 export interface GeneratedPlan {
@@ -100,7 +107,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     phases,
     weeks: weeks.map((week) => {
       // Sans date de reprise, le plan ne porte que ses phases et ses volumes.
-      if (startDate === null) return { ...week, sessions: [] }
+      if (startDate === null) return { ...week, sessions: [], support: [] }
 
       const template = buildWeekTemplate({
         week,
@@ -110,10 +117,23 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
         shortCycle: shortCycleRaces.has(week.raceId),
       })
 
+      const phase = phaseAtWeek(phases, week.index)
+      const support = buildWeekSupport({
+        week,
+        constraints,
+        runs: template.sessions,
+        weekInPhase: phase ? week.index - phase.startWeek + 1 : week.index,
+        nextRaceADate: nextRaceAOnOrAfter(upcoming, week.startDate),
+        allowances: openPause?.allowances,
+      })
+
       return {
         ...week,
         volumeCapped: template.volumeCapped,
+        targetCyclingMin: support.targetCyclingMin,
+        targetStrengthCount: support.targetStrengthCount,
         sessions: template.sessions.filter((session) => session.date >= startDate),
+        support: support.sessions.filter((session) => session.date >= startDate),
       }
     }),
   }
@@ -131,4 +151,14 @@ export function sessionsOn(plan: GeneratedPlan, date: IsoDate): PlannedSession[]
 export function nextSessionAfter(plan: GeneratedPlan, date: IsoDate): PlannedSession | undefined {
   const tomorrow = addDays(date, 1)
   return plan.weeks.flatMap((week) => week.sessions).find((session) => session.date >= tomorrow)
+}
+
+/** Prochaine course A à partir d'une date : la muscu s'arrête sept jours avant. */
+function nextRaceAOnOrAfter(races: PlannedRace[], from: IsoDate): IsoDate | null {
+  return (
+    races
+      .filter((item) => item.priority === RacePriority.A && item.date >= from)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .at(0)?.date ?? null
+  )
 }

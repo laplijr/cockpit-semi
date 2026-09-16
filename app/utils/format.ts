@@ -80,6 +80,45 @@ export const SESSION_LABELS: Record<string, string> = {
   cotes: 'Côtes',
   progressif: 'Progressif',
   test: 'Test 20′',
+  Z2: 'Endurance Z2',
+  SL_velo: 'Sortie longue vélo',
+  force_cadence: 'Force basse cadence',
+  sweet_spot: 'Sweet spot',
+  legs: 'Legs',
+  push: 'Push',
+  pull: 'Pull',
+  mobilite: 'Mobilité',
+}
+
+export const STRENGTH_PHASE_LABELS: Record<string, string> = {
+  adaptation: 'Adaptation',
+  force: 'Force',
+  force_puissance: 'Force-puissance',
+  entretien: 'Entretien',
+  legere: 'Légère',
+  mobilite: 'Mobilité',
+  arret: 'Arrêt',
+}
+
+export const BENEFIT_LABELS: Record<string, string> = {
+  course: 'Course',
+  velo: 'Vélo',
+  prevention: 'Prévention',
+}
+
+export function formatMinutes(minutes: number | null | undefined): string {
+  if (minutes === null || minutes === undefined) return '—'
+  const total = Math.round(minutes)
+  if (total < 60) return `${total}′`
+  const rest = total % 60
+  return rest === 0
+    ? `${total / 60} h`
+    : `${Math.floor(total / 60)} h ${String(rest).padStart(2, '0')}`
+}
+
+export function formatLoad(kilograms: number | null | undefined): string {
+  if (kilograms === null || kilograms === undefined) return '—'
+  return `${kilograms.toFixed(1).replace('.0', '').replace('.', ',')} kg`
 }
 
 export const PRIORITY_LABELS: Record<string, string> = { A: 'A', B: 'B', C: 'C' }

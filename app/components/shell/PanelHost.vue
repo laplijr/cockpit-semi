@@ -61,7 +61,7 @@ async function onSaved() {
       :subtitle="`${SESSION_LABELS[session.code] ?? session.code} · ${formatDate(session.date)}`"
       @close="ui.closePanel()"
     >
-      <FeedbackFeedbackForm
+      <FeedbackForm
         :session="session"
         :watch-zones="plan.pause?.watchZones ?? plan.lastWatchZones"
         @saved="onSaved"

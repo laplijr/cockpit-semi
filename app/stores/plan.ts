@@ -10,6 +10,8 @@ export interface PlanSession {
     label: string
     totalDistanceM: number
     expectedRpe: number
+    /** Renseignée quand les étapes ne donnent pas la durée : muscu, vélo. */
+    durationMin?: number
     steps: {
       label: string
       repeats?: number
@@ -17,6 +19,12 @@ export interface PlanSession {
       durationS?: number
       paceSecPerKm?: number
       recoveryS?: number
+      exerciseId?: string
+      reps?: number
+      isometric?: boolean
+      intensity?: string
+      loadKg?: number
+      note?: string
     }[]
   }
 }
@@ -29,6 +37,8 @@ export interface PlanWeekRow {
   phaseType: string
   raceId: number | null
   targetRunM: number
+  targetCyclingMin: number
+  targetStrengthCount: number
   longRunMaxM: number
   light: boolean
   comebackRatio: number | null

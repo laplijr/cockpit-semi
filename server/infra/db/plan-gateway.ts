@@ -122,22 +122,34 @@ export function createPlanGateway(db: Database): PlanGateway {
             phaseProgress: generated.phaseProgress,
             test: generated.test,
             runs: generated.runs,
+            targetCyclingMin: generated.targetCyclingMin,
+            targetStrengthCount: generated.targetStrengthCount,
             volumeCapped: generated.volumeCapped,
           })
           .returning({ id: week.id })
 
-        if (generated.sessions.length === 0) continue
-
-        await db.insert(session).values(
-          generated.sessions.map((item) => ({
+        const rows = [
+          ...generated.sessions.map((item) => ({
             weekId: stored!.id,
             date: item.date,
             sport: Sport.Running,
-            code: item.code,
+            code: item.code as string,
             prescription: item.prescription as unknown as Record<string, unknown>,
             key: item.key,
           })),
-        )
+          ...generated.support.map((item) => ({
+            weekId: stored!.id,
+            date: item.date,
+            sport: item.sport,
+            code: item.code as string,
+            prescription: item.prescription as unknown as Record<string, unknown>,
+            key: false,
+          })),
+        ]
+
+        if (rows.length === 0) continue
+
+        await db.insert(session).values(rows)
       }
 
       // Une version périmée ne garde que son historique : ses séances encore

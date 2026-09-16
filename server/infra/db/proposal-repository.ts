@@ -3,7 +3,7 @@ import { addDays } from '../../domain/plan/calendar'
 import { SessionStatus } from '../../domain/plan/session'
 import { PauseType } from '../../domain/pause/pause'
 import { applyToPrescription, isSessionEffect } from '../../domain/rules/apply'
-import { toCyclingPrescription } from '../../domain/rules/convert'
+import { toCyclingPrescription } from '../../domain/cycling/convert'
 import { ProposalStatus, type ProposalTrigger } from '../../domain/rules/proposal-status'
 import {
   ProposalEffect,
