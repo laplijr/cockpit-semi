@@ -1,0 +1,28 @@
+{
+  "name": {
+    "value": "Medio Maratón de Madrid",
+    "status": "sur",
+    "sources": ["https://www.rocknrollmadrid.com/"]
+  },
+  "date": {
+    "value": "2027-04-04",
+    "status": "a_confirmer",
+    "sources": ["https://www.rocknrollmadrid.com/"]
+  },
+  "distanceM": {
+    "value": "21097.5",
+    "status": "sur",
+    "sources": ["https://www.rocknrollmadrid.com/"]
+  },
+  "location": {
+    "value": "Madrid, Espagne",
+    "status": "sur",
+    "sources": ["https://www.rocknrollmadrid.com/"]
+  },
+  "elevationGainM": { "value": "180", "status": "estime", "sources": [] },
+  "registration": {
+    "value": "a_venir",
+    "status": "a_confirmer",
+    "sources": ["https://www.rocknrollmadrid.com/"]
+  }
+}

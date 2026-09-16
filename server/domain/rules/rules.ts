@@ -13,6 +13,10 @@ export enum RuleId {
   R6 = 'R6',
   R7 = 'R7',
   R8 = 'R8',
+  /** Imprévu : une indisponibilité déclarée en texte libre touche une séance (§ 6). */
+  I1 = 'I1',
+  /** Calendrier : la date annoncée d'une course a changé depuis la recherche (§ 6). */
+  C1 = 'C1',
 }
 
 export enum ProposalEffect {
@@ -26,10 +30,13 @@ export enum ProposalEffect {
   RescheduleKeySession = 'seance_replacee',
   RestoreProgression = 'progression_retablie',
   ConvertToCycling = 'conversion_velo',
+  MoveSession = 'seance_deplacee',
+  CancelSession = 'seance_retiree',
+  MoveRace = 'course_redatee',
 }
 
 export interface ProposalTarget {
-  kind: 'session' | 'week' | 'plan'
+  kind: 'session' | 'week' | 'plan' | 'race'
   id: number | null
 }
 
@@ -41,6 +48,8 @@ export interface Proposal {
   before: string
   after: string
   explanation: string
+  /** Ce que le texte d'une proposition ne peut pas porter : une date de destination. */
+  payload?: Record<string, unknown>
 }
 
 export const SLEEP_DEBT_HOURS = 6

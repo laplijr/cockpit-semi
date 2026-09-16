@@ -16,7 +16,7 @@ import {
 import type { RunSessionCode, Prescription } from '../../domain/running/session-types'
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
-import { feedback, pause, proposal, session, week } from './schema'
+import { feedback, pause, proposal, race, session, week } from './schema'
 
 /** Fenêtre de séances passées examinée par les règles. */
 const LOOKBACK_DAYS = 10
@@ -136,6 +136,7 @@ export async function evaluateAndStore(
       before: item.before,
       after: item.after,
       explanation: item.explanation,
+      payload: item.payload ?? null,
     })),
   )
 
@@ -163,6 +164,21 @@ export async function acceptProposal(db: Database, id: number, today: string) {
     await updateSessionPrescription(db, row.targetId, toCyclingPrescription, Sport.Cycling)
   }
 
+  if (effect === ProposalEffect.MoveSession && row.targetId !== null) {
+    await moveSession(db, row.targetId, row.payload)
+  }
+
+  if (effect === ProposalEffect.CancelSession && row.targetId !== null) {
+    await db
+      .update(session)
+      .set({ status: SessionStatus.Skipped })
+      .where(eq(session.id, row.targetId))
+  }
+
+  if (effect === ProposalEffect.MoveRace && row.targetId !== null) {
+    await moveRace(db, row.targetId, row.payload)
+  }
+
   if (effect === ProposalEffect.FreezeProgression) await freezeProgression(db, today)
   if (effect === ProposalEffect.RestoreProgression) await restoreProgression(db, today)
   if (effect === ProposalEffect.ProposePause || effect === ProposalEffect.ForcePause) {
@@ -175,6 +191,32 @@ export async function acceptProposal(db: Database, id: number, today: string) {
     .where(eq(proposal.id, id))
 
   return row
+}
+
+/**
+ * Redater une course change le calendrier : la régénération du plan revient à
+ * l'appelant, qui la déclenche après l'acceptation.
+ */
+async function moveRace(db: Database, raceId: number, payload: Record<string, unknown> | null) {
+  const date = payload?.date
+  if (typeof date !== 'string') return
+
+  await db.update(race).set({ date }).where(eq(race.id, raceId))
+}
+
+/** Déplacer une séance ne change que sa date : la prescription reste la sienne. */
+async function moveSession(
+  db: Database,
+  sessionId: number,
+  payload: Record<string, unknown> | null,
+) {
+  const date = payload?.date
+  if (typeof date !== 'string') return
+
+  await db
+    .update(session)
+    .set({ date, status: SessionStatus.Modified })
+    .where(eq(session.id, sessionId))
 }
 
 async function updateSessionPrescription(

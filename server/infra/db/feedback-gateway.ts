@@ -5,6 +5,7 @@ import type {
   FeedbackInput,
 } from '../../application/record-feedback'
 import type { FitnessGateway } from '../../application/record-test'
+import type { PauseWriter } from '../../application/open-pause'
 import type { PauseGateway } from '../../application/resume-pause'
 import type { IsoDate } from '../../domain/plan/calendar'
 import { SessionStatus } from '../../domain/plan/session'
@@ -76,7 +77,7 @@ export function createFitnessGateway(db: Database): FitnessGateway {
   }
 }
 
-export function createPauseGateway(db: Database): PauseGateway {
+export function createPauseGateway(db: Database): PauseGateway & PauseWriter {
   return {
     async closeOpenPauses(date: IsoDate): Promise<number> {
       const closed = await db
@@ -85,6 +86,23 @@ export function createPauseGateway(db: Database): PauseGateway {
         .where(isNull(pause.endDate))
         .returning({ id: pause.id })
       return closed.length
+    },
+
+    async createPause(input): Promise<number> {
+      const [row] = await db
+        .insert(pause)
+        .values({
+          type: input.type,
+          zone: input.zone,
+          painLevel: input.painLevel,
+          startDate: input.startDate,
+          estimatedEndDate: input.estimatedEndDate,
+          allowances: input.allowances,
+          watchZones: input.watchZones,
+          notes: input.notes,
+        })
+        .returning({ id: pause.id })
+      return row!.id
     },
   }
 }

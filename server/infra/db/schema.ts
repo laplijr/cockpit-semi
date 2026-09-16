@@ -16,6 +16,9 @@ import { FitnessOrigin } from '../../domain/fitness/fitness-point'
 import { Sensation, type Pain } from '../../domain/load/feedback'
 import { PauseType, type PauseAllowances } from '../../domain/pause/pause'
 import { ProposalStatus, ProposalTrigger } from '../../domain/rules/proposal-status'
+import type { UnplannedEvent } from '../../domain/unplanned/events'
+import { UnplannedStatus } from '../../domain/unplanned/events'
+import { LookupStatus, type LookupField } from '../../domain/races/lookup'
 import { PhaseType } from '../../domain/plan/phases'
 import { PlanTrigger, SessionOrigin, SessionStatus } from '../../domain/plan/session'
 import {
@@ -30,6 +33,8 @@ import { Sport } from '../../domain/shared/sport'
 
 export {
   FitnessOrigin,
+  LookupStatus,
+  UnplannedStatus,
   ProposalStatus,
   ProposalTrigger,
   Sensation,
@@ -45,7 +50,7 @@ export {
   SegmentMode,
   Sport,
 }
-export type { AthleteConstraints, Pain, PauseAllowances, RaceIncident }
+export type { AthleteConstraints, LookupField, Pain, PauseAllowances, RaceIncident, UnplannedEvent }
 
 export const sportEnum = pgEnum('sport', enumValues(Sport))
 export const racePriorityEnum = pgEnum('race_priority', enumValues(RacePriority))
@@ -61,6 +66,7 @@ export const sessionOriginEnum = pgEnum('session_origin', enumValues(SessionOrig
 export const pauseTypeEnum = pgEnum('pause_type', enumValues(PauseType))
 export const proposalStatusEnum = pgEnum('proposal_status', enumValues(ProposalStatus))
 export const proposalTriggerEnum = pgEnum('proposal_trigger', enumValues(ProposalTrigger))
+export const unplannedStatusEnum = pgEnum('unplanned_status', enumValues(UnplannedStatus))
 
 /** Conserve les types littéraux de l'énumération pour que Drizzle les propage. */
 function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], ...T[keyof T][]] {
@@ -260,6 +266,8 @@ export const activity = pgTable('activity', {
   maxHr: integer('max_hr'),
   averageWatts: real('average_watts'),
   elevationGainM: real('elevation_gain_m'),
+  /** Effort perçu, quand il est connu : saisi pour un imprévu, déduit de la FC sinon. */
+  rpe: integer('rpe'),
   sessionId: integer('session_id').references(() => session.id, { onDelete: 'set null' }),
   importedAt: timestamp('imported_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -330,9 +338,37 @@ export const proposal = pgTable('proposal', {
   before: text('before').notNull(),
   after: text('after').notNull(),
   explanation: text('explanation').notNull(),
+  /** Ce que le texte d'une proposition ne peut pas porter : une date de destination. */
+  payload: jsonb('payload').$type<Record<string, unknown>>(),
   status: proposalStatusEnum('status').notNull().default(ProposalStatus.Proposed),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   decidedAt: timestamp('decided_at', { withTimezone: true }),
+})
+
+/**
+ * Texte libre de l'Imprévu et son interprétation par le modèle (§ 6). Rien
+ * n'est appliqué tant que l'athlète n'a pas confirmé l'interprétation.
+ */
+export const unplannedEvent = pgTable('unplanned_event', {
+  id: serial('id').primaryKey(),
+  rawText: text('raw_text').notNull(),
+  events: jsonb('events').$type<UnplannedEvent[]>().notNull().default([]),
+  status: unplannedStatusEnum('status').notNull().default(UnplannedStatus.ToConfirm),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+})
+
+/**
+ * Résultat brut de la recherche automatique d'une course, champ par champ,
+ * avec son statut et ses sources (§ 6). Revérifié par le cron jusqu'à
+ * l'ouverture des inscriptions.
+ */
+export const raceLookup = pgTable('race_lookup', {
+  id: serial('id').primaryKey(),
+  raceId: integer('race_id').references(() => race.id, { onDelete: 'cascade' }),
+  query: text('query').notNull(),
+  fields: jsonb('fields').$type<Record<string, LookupField>>().notNull().default({}),
+  checkedAt: timestamp('checked_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export type Athlete = typeof athlete.$inferSelect
@@ -365,3 +401,7 @@ export type LoadDaily = typeof loadDaily.$inferSelect
 export type NewLoadDaily = typeof loadDaily.$inferInsert
 export type StrengthSet = typeof strengthSet.$inferSelect
 export type NewStrengthSet = typeof strengthSet.$inferInsert
+export type UnplannedEventRow = typeof unplannedEvent.$inferSelect
+export type NewUnplannedEventRow = typeof unplannedEvent.$inferInsert
+export type RaceLookup = typeof raceLookup.$inferSelect
+export type NewRaceLookup = typeof raceLookup.$inferInsert

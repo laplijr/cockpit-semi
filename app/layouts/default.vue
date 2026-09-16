@@ -31,6 +31,5 @@ onBeforeUnmount(() => {
       </main>
     </div>
     <ShellPanelHost />
-    <ShellModalHost />
   </div>
 </template>

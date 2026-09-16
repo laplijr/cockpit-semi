@@ -1,0 +1,8 @@
+{
+  "name": { "value": null, "status": "estime", "sources": [] },
+  "date": { "value": null, "status": "estime", "sources": [] },
+  "distanceM": { "value": null, "status": "estime", "sources": [] },
+  "location": { "value": null, "status": "estime", "sources": [] },
+  "elevationGainM": { "value": null, "status": "estime", "sources": [] },
+  "registration": { "value": null, "status": "estime", "sources": [] }
+}

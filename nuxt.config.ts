@@ -11,6 +11,8 @@ export default defineNuxtConfig({
     databaseUrl: '',
     /** Protège la route de cron ; Vercel l'envoie en en-tête Authorization. */
     cronSecret: '',
+    /** Clé de l'API Claude, pour l'Imprévu et la recherche de course (§ 6). */
+    anthropicApiKey: '',
   },
   app: {
     head: {

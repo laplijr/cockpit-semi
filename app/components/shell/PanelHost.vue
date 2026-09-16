@@ -4,18 +4,6 @@ const plan = usePlanStore()
 const proposals = usePropositionsStore()
 
 const STUBS = {
-  imprevu: {
-    title: 'Imprévu',
-    subtitle: 'texte libre → événements structurés',
-    phase: 'P5',
-    body: 'Tu décris ce qui s’est passé (« 1 h de squash ce midi, pas dispo vendredi »). Le LLM en extrait des activités et des indisponibilités, le moteur déterministe en tire des propositions.',
-  },
-  pause: {
-    title: 'Pause / blessure',
-    subtitle: 'gel du plan et reprise progressive',
-    phase: 'P5',
-    body: 'Déclarer une blessure, une maladie ou un voyage gèle les semaines couvertes, conserve les activités autorisées et régénère un plan de reprise 60 → 80 → 100 %.',
-  },
   propositions: {
     title: 'Propositions',
     subtitle: 'règles R1 – R8',
@@ -49,6 +37,12 @@ async function refuseOne(id: number) {
 
 async function onSaved() {
   await plan.load()
+  ui.closePanel()
+}
+
+/** Un imprévu confirmé produit des propositions : la cloche doit les voir tout de suite. */
+async function onUnplannedConfirmed() {
+  await Promise.all([plan.load(), proposals.load()])
   ui.closePanel()
 }
 </script>
@@ -101,6 +95,24 @@ async function onSaved() {
           Refuser
         </button>
       </div>
+    </ShellSidePanel>
+
+    <ShellSidePanel
+      v-else-if="ui.panel === 'imprevu'"
+      title="Imprévu"
+      subtitle="texte libre → événements structurés"
+      @close="ui.closePanel()"
+    >
+      <UnplannedForm @confirmed="onUnplannedConfirmed" />
+    </ShellSidePanel>
+
+    <ShellSidePanel
+      v-else-if="ui.panel === 'pause'"
+      title="Pause / blessure"
+      subtitle="gel du plan et reprise progressive"
+      @close="ui.closePanel()"
+    >
+      <PauseForm @declared="onSaved" />
     </ShellSidePanel>
 
     <ShellSidePanel

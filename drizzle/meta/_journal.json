@@ -78,6 +78,20 @@
       "when": 1789592329104,
       "tag": "0010_lively_speedball",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789593294832,
+      "tag": "0011_volatile_killmonger",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789594278591,
+      "tag": "0012_motionless_husk",
+      "breakpoints": true
     }
   ]
 }

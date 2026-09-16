@@ -1,0 +1,11 @@
+{
+  "events": [
+    {
+      "kind": "unavailability",
+      "from": "2026-12-05",
+      "to": "2026-12-01",
+      "scope": "course",
+      "label": "déplacement professionnel"
+    }
+  ]
+}

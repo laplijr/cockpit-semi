@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { LookupFields } from './RaceSearch.vue'
+
+const props = defineProps<{ lookupId?: number | null; prefill?: LookupFields | null }>()
 const emit = defineEmits<{ created: [] }>()
 
 const DISTANCES = [
@@ -20,6 +23,24 @@ const form = reactive({
 
 const saving = ref(false)
 const error = ref('')
+
+/** Un champ trouvé pré-remplit le formulaire ; il reste modifiable (§ 6). */
+watch(
+  () => props.prefill,
+  (fields) => {
+    if (!fields) return
+    const name = fields.name?.value
+    const date = fields.date?.value
+    const distanceM = Number(fields.distanceM?.value)
+    const elevation = Number(fields.elevationGainM?.value)
+
+    if (name) form.name = name
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) form.date = date
+    if (Number.isFinite(distanceM) && distanceM > 0) form.distanceM = distanceM
+    if (Number.isFinite(elevation)) form.elevationGainM = Math.round(elevation)
+  },
+  { immediate: true },
+)
 
 /** « 1:38:00 » ou « 98:00 » → secondes. */
 function parseObjective(text: string): number | null {
@@ -46,6 +67,7 @@ async function save() {
         objectiveMode: form.objectiveMode,
         objectifS: form.objectiveMode === 'temps' ? parseObjective(form.objectiveText) : null,
         elevationGainM: form.elevationGainM,
+        lookupId: props.lookupId ?? null,
       },
     })
     emit('created')
@@ -59,7 +81,7 @@ async function save() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-3">
       <label class="flex flex-col gap-[6px]">
         <span class="label text-[10.5px]">Nom</span>
         <input v-model="form.name" type="text" class="input" placeholder="Semi de Paris" />
@@ -95,7 +117,8 @@ async function save() {
         <span class="label text-[10.5px]">Chrono visé (h:mm:ss)</span>
         <input v-model="form.objectiveText" type="text" class="input mono" placeholder="1:38:00" />
       </label>
-      <label v-else class="flex flex-col gap-[6px]">
+      <span v-else />
+      <label class="flex flex-col gap-[6px]">
         <span class="label text-[10.5px]">D+ (m)</span>
         <input v-model.number="form.elevationGainM" type="number" class="input mono" />
       </label>
@@ -111,7 +134,7 @@ async function save() {
         Ajouter et régénérer le plan
       </button>
       <span class="text-[13px] text-text-muted">
-        La recherche automatique de course arrive en P5.
+        Chaque valeur reste modifiable avant l'enregistrement.
       </span>
     </div>
   </div>

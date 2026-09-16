@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "kind": "activity",
+      "sport": "autre",
+      "date": "2026-11-23",
+      "durationMin": 60,
+      "rpeEstimate": 6,
+      "intensityProfile": "modere",
+      "label": "1 h de squash"
+    },
+    {
+      "kind": "unavailability",
+      "from": "2026-11-27",
+      "to": "2026-11-27",
+      "scope": "tout",
+      "label": "pas disponible vendredi"
+    }
+  ]
+}

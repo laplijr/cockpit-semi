@@ -5,6 +5,9 @@ import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
 import { activity, feedback, loadDaily, session } from './schema'
 
+/** Effort perçu retenu pour une activité sans RPE connu (§ 7, point 4). */
+export const DEFAULT_ACTIVITY_RPE = 5
+
 /** Toutes les entrées de charge d'une journée : séances faites et activités importées. */
 async function entriesFor(db: Database, date: IsoDate): Promise<LoadEntry[]> {
   const [done, imported] = await Promise.all([
@@ -21,6 +24,7 @@ async function entriesFor(db: Database, date: IsoDate): Promise<LoadEntry[]> {
       .select({
         sport: activity.sport,
         durationS: activity.durationS,
+        rpe: activity.rpe,
         sessionId: activity.sessionId,
       })
       .from(activity)
@@ -34,7 +38,12 @@ async function entriesFor(db: Database, date: IsoDate): Promise<LoadEntry[]> {
   // Une activité rattachée est déjà comptée par sa séance : on ne la compte pas deux fois.
   const fromActivities = imported
     .filter((row) => row.sessionId === null)
-    .map((row) => ({ date, sport: row.sport, rpe: 5, durationMin: row.durationS / 60 }))
+    .map((row) => ({
+      date,
+      sport: row.sport,
+      rpe: row.rpe ?? DEFAULT_ACTIVITY_RPE,
+      durationMin: row.durationS / 60,
+    }))
 
   return [...fromSessions, ...fromActivities]
 }

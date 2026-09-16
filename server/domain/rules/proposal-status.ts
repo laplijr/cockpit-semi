@@ -10,4 +10,6 @@ export enum ProposalTrigger {
   Feedback = 'ressenti',
   DailyCron = 'cron_quotidien',
   Regeneration = 'regeneration',
+  Unplanned = 'imprevu',
+  RaceLookup = 'reverification_course',
 }

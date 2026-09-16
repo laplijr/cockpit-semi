@@ -6,7 +6,7 @@ const { data: races, refresh } = await useFetch('/api/races')
 const upcoming = computed(() => (races.value ?? []).filter((race) => race.status === 'planifiee'))
 const past = computed(() => (races.value ?? []).filter((race) => race.status !== 'planifiee'))
 
-await plan.load()
+await plan.ensureLoaded()
 
 async function onCreated() {
   ui.closeModal()
@@ -121,10 +121,10 @@ async function remove(id: number) {
       <ShellAppModal
         v-if="ui.modal === 'nouvelle-course'"
         title="Nouvelle course"
-        :width="720"
+        :width="1040"
         @close="ui.closeModal()"
       >
-        <RacesNewRaceForm @created="onCreated" />
+        <RacesNewRaceWindow @created="onCreated" />
       </ShellAppModal>
     </Teleport>
   </div>
