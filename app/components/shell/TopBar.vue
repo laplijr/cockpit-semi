@@ -2,24 +2,31 @@
 const route = useRoute()
 const ui = useUiStore()
 const proposals = usePropositionsStore()
+const plan = usePlanStore()
 
 const title = computed(() => navItemFor(route.path)?.label ?? 'Cockpit')
 
-const today = computed(() =>
-  new Intl.DateTimeFormat('fr-FR', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date()),
-)
+/**
+ * Le store est chargé par les pages, après le rendu de la barre : la ligne reste
+ * vide côté serveur, d'où le `ClientOnly` qui évite une divergence d'hydratation.
+ */
+const context = computed(() => {
+  if (!plan.today) return ''
+  const date = formatDate(plan.today)
+  if (!plan.plan) return `${date} · aucun plan actif`
+  const week = plan.currentWeek
+  if (!week) return date
+  return `${date} · semaine ${week.index} · ${PHASE_LABELS[week.phaseType] ?? week.phaseType}`
+})
 </script>
 
 <template>
   <header class="flex h-(--spacing-topbar) items-center gap-4 border-b border-line-soft px-6">
     <div class="flex min-w-[260px] flex-col gap-px">
       <span class="text-sm font-semibold">{{ title }}</span>
-      <span class="mono text-[11.5px] text-text-muted">{{ today }} · aucun plan actif</span>
+      <ClientOnly>
+        <span v-if="context" class="mono text-[11.5px] text-text-muted">{{ context }}</span>
+      </ClientOnly>
     </div>
 
     <button
