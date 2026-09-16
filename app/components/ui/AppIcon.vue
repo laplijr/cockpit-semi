@@ -43,6 +43,7 @@ const ICONS = {
     path('M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'),
   ],
   check: [path('M20 6 9 17l-5-5')],
+  trash: [path('M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13'), path('M10 11v6M14 11v6')],
   close: [path('M18 6 6 18M6 6l12 12')],
   strava: [path('M8 3l6 12h-4l-2-4-2 4H2z'), path('M14 15l3 6 3-6h-2l-1 2-1-2z')],
 } satisfies Record<string, Shape[]>

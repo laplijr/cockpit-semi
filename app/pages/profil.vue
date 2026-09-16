@@ -63,6 +63,17 @@ function applyProfile(profile: AthleteProfile) {
   form.runsPerWeek = defaults.runsPerWeek
 }
 
+/** Le `select` rend une chaîne : « non renseigné » vaut nul, pas une chaîne vide. */
+function onProfileChange(event: Event) {
+  const value = (event.target as HTMLSelectElement).value
+  if (!value) {
+    form.profile = null
+    replaced.value = null
+    return
+  }
+  applyProfile(value as AthleteProfile)
+}
+
 async function onPhoto(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
@@ -134,20 +145,25 @@ async function logout() {
       <span class="label">Identité</span>
 
       <div class="flex items-start gap-4">
-        <img :src="avatarSrc" alt="" class="size-16 rounded-full" />
+        <!-- La corbeille se découvre au survol comme au clavier : jamais une
+             commande réservée à la souris. -->
+        <div class="group relative size-16">
+          <img :src="avatarSrc" alt="" class="size-16 rounded-full" />
+          <button
+            v-if="form.avatar"
+            type="button"
+            aria-label="Supprimer la photo"
+            class="absolute right-0 bottom-0 grid size-6 place-items-center rounded-full border border-line bg-surface text-text-dim opacity-0 group-hover:opacity-100 hover:text-text focus-visible:opacity-100"
+            @click="form.avatar = null"
+          >
+            <UiAppIcon name="trash" :size="13" />
+          </button>
+        </div>
         <div class="flex flex-col gap-2">
           <label class="btn btn-ghost">
             <input type="file" accept="image/*" class="hidden" @change="onPhoto" />
             {{ form.avatar ? 'Remplacer la photo' : 'Ajouter une photo' }}
           </label>
-          <button
-            v-if="form.avatar"
-            type="button"
-            class="text-left text-[12px] text-text-muted hover:text-text"
-            @click="form.avatar = null"
-          >
-            Revenir aux initiales
-          </button>
           <span v-if="photoError" class="text-[12px] text-warn">{{ photoError }}</span>
         </div>
       </div>
@@ -181,36 +197,27 @@ async function logout() {
         </div>
       </div>
 
-      <div class="flex flex-col gap-2 border-t border-line-soft pt-3">
+      <label class="flex flex-col gap-[6px] border-t border-line-soft pt-3">
         <span class="label text-[10.5px]">Profil physique</span>
-        <p class="text-[13px] text-text-muted">
-          Il pré-remplit le volume, le pic et le nombre de courses, et borne la montée hebdomadaire.
-          Tout reste modifiable ensuite.
-        </p>
-        <div class="flex flex-col gap-1">
-          <button
-            v-for="item in PROFILES_BY_LOAD"
-            :key="item"
-            type="button"
-            class="flex items-baseline gap-3 rounded-md border px-3 py-2 text-left"
-            :class="
-              form.profile === item
-                ? 'border-accent/45 bg-surface-raised'
-                : 'border-line-soft hover:bg-surface-inset'
-            "
-            @click="applyProfile(item)"
-          >
-            <span class="text-[13px] font-semibold">{{ PROFILE_LABELS[item] }}</span>
-            <span class="text-[12px] text-text-muted">{{ PROFILE_DESCRIPTIONS[item] }}</span>
-            <span class="mono ml-auto text-[11.5px] text-text-muted">
-              {{ Math.round(defaultsFor(item).startWeeklyVolumeM / 1000) }}–{{
-                Math.round(defaultsFor(item).peakWeeklyVolumeM / 1000)
-              }}
-              km · +{{ defaultsFor(item).maxWeeklyIncreasePct }} %/sem
-            </span>
-          </button>
-        </div>
-      </div>
+        <select class="input" :value="form.profile ?? ''" @change="onProfileChange">
+          <option value="">Au choix, non renseigné</option>
+          <option v-for="item in PROFILES_BY_LOAD" :key="item" :value="item">
+            {{ PROFILE_LABELS[item] }}
+          </option>
+        </select>
+        <!-- Une seule ligne : les cinq descriptions ne se lisent qu'au profil choisi. -->
+        <span v-if="form.profile" class="text-[12px] text-text-muted">
+          {{ PROFILE_DESCRIPTIONS[form.profile] }} Pré-remplit
+          {{ Math.round(defaultsFor(form.profile).startWeeklyVolumeM / 1000) }} à
+          {{ Math.round(defaultsFor(form.profile).peakWeeklyVolumeM / 1000) }} km et
+          {{ defaultsFor(form.profile).runsPerWeek }} courses par semaine, montée bornée à
+          {{ defaultsFor(form.profile).maxWeeklyIncreasePct }} % par semaine.
+        </span>
+        <span v-else class="text-[12px] text-text-muted">
+          Le profil pré-remplit le volume, le pic et le nombre de courses, et borne la montée
+          hebdomadaire. Tout reste modifiable ensuite.
+        </span>
+      </label>
     </div>
 
     <div class="tile">

@@ -47,11 +47,17 @@ async function onResume() {
       <CockpitReadinessDial />
     </section>
 
-    <section class="grid grid-cols-[1.6fr_1fr] gap-4">
+    <!-- `items-start` : la tuile cesse de s'étirer à la hauteur de « À décider ». -->
+    <section class="grid grid-cols-[1.6fr_1fr] items-start gap-4">
       <div class="tile">
         <div class="flex items-baseline gap-3">
           <span class="label">Aujourd'hui</span>
           <span class="mono text-[11.5px] text-text-muted">{{ formatLongDate(plan.today) }}</span>
+          <span v-if="plan.currentWeek" class="mono ml-auto text-[11.5px] text-text-muted">
+            semaine {{ plan.currentWeek.index }} ·
+            {{ PHASE_LABELS[plan.currentWeek.phaseType] ?? plan.currentWeek.phaseType }} ·
+            {{ formatDistance(plan.currentWeek.targetRunM) }} visés
+          </span>
         </div>
 
         <template v-if="plan.awaitingResumption">

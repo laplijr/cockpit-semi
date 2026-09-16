@@ -50,6 +50,14 @@ const ui = useUiStore()
         >
           {{ SESSION_LABELS[session.code] ?? session.code }}
         </span>
+        <!-- La pastille suit l'icône : la troncature du nom ne doit jamais l'emporter. -->
+        <span
+          v-if="session.key"
+          class="pill ml-auto shrink-0 bg-accent/15 px-[5px] text-[10px] text-accent"
+          :title="compact ? 'Séance clé' : undefined"
+        >
+          {{ compact ? 'C' : 'clé' }}
+        </span>
       </span>
       <span class="mono pl-[19px] text-[11px] text-text-muted">
         <!-- Une séance sans kilométrage se lit en durée : vélo et muscu. -->
