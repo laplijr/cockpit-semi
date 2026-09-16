@@ -176,15 +176,52 @@ const title = computed(
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Projection</span>
           <span class="mono text-[20px]">{{ formatDuration(raceA.projectionS) }}</span>
-          <span v-if="raceA.projectionIsFloor" class="text-[12px] text-text-muted">
-            calculée sur le plancher
+          <span class="mono text-[12px] text-text-muted">
+            {{ formatDuration(raceA.projectionLowS) }} – {{ formatDuration(raceA.projectionHighS) }}
           </span>
         </div>
       </div>
 
+      <div class="grid grid-cols-3 gap-4">
+        <div class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Confiance</span>
+          <span class="mono text-[20px]">
+            {{ raceA.confidencePct === null ? '—' : `${raceA.confidencePct} %` }}
+          </span>
+          <span class="text-[12px] text-text-muted">
+            <template v-if="raceA.confidencePct === null">
+              Sans objectif ni référence à battre, il n'y a rien à estimer.
+            </template>
+            <template v-else-if="raceA.objectiveMode === 'performance_max'">
+              probabilité de faire mieux que ta dernière référence
+            </template>
+            <template v-else>probabilité de tenir le chrono visé</template>
+          </span>
+        </div>
+        <div class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Dénivelé attendu</span>
+          <span class="mono text-[20px]">
+            {{ raceA.elevationGainM === null ? '—' : `${raceA.elevationGainM} m` }}
+          </span>
+          <span class="text-[12px] text-text-muted">une demi-seconde par mètre</span>
+        </div>
+        <div class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Température attendue</span>
+          <span class="mono text-[20px]">
+            {{ raceA.expectedTempC === null ? '—' : `${raceA.expectedTempC} °C` }}
+          </span>
+          <span class="text-[12px] text-text-muted">1,5 % par degré au-dessus de 18</span>
+        </div>
+      </div>
+
       <p class="text-[13px] text-text-muted">
-        La projection est l'équivalence de ton VDOT courant sur la distance. Elle sera revue à
-        chaque test 20′ et après chaque course représentative.
+        La projection part de ton VDOT du jour, y ajoute le gain attendu d'ici la course — 0,4 VDOT
+        par tranche de huit semaines d'entraînement, rien pour les semaines en pause — puis corrige
+        du dénivelé et de la chaleur. L'intervalle vient de la variabilité de tes tests ; la
+        confiance en découle.
+        <template v-if="plan.nextTestWeek">
+          Prochain test en semaine {{ plan.nextTestWeek.index }}.
+        </template>
       </p>
     </template>
   </div>

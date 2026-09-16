@@ -8,8 +8,11 @@ interface RaceRow {
   objectiveMode: string
   objectifS: number | null
   projectionS: number | null
+  projectionLowS: number | null
+  projectionHighS: number | null
   projectionIsFloor: boolean | null
   gapS: number | null
+  confidencePct: number | null
   objectiveToSet: boolean
 }
 
@@ -38,13 +41,19 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
 
     <span class="display text-[44px] leading-none font-bold text-accent">J−{{ countdown }}</span>
 
-    <span class="mono text-[11.5px] text-text-muted">
-      <template v-if="race.objectiveToSet">objectif à fixer</template>
-      <template v-else-if="race.objectiveMode === 'performance_max'">
-        performance maximale
-      </template>
-      <template v-else>objectif {{ formatDuration(race.objectifS) }}</template>
-    </span>
+    <!-- Quatre informations : J−, objectif, projection, confiance (§ 8). -->
+    <div class="flex items-baseline gap-4">
+      <span class="mono text-[11.5px] text-text-muted">
+        <template v-if="race.objectiveToSet">objectif à fixer</template>
+        <template v-else-if="race.objectiveMode === 'performance_max'">perf. max</template>
+        <template v-else>objectif {{ formatDuration(race.objectifS) }}</template>
+      </span>
+      <span class="mono text-[11.5px]">{{ formatDuration(race.projectionS) }}</span>
+      <span v-if="race.confidencePct !== null" class="pill ml-auto">
+        {{ race.confidencePct }} %
+      </span>
+      <span v-else-if="race.projectionIsFloor" class="pill pill-warn ml-auto">plancher</span>
+    </div>
   </div>
 
   <div v-else class="tile border-dashed">

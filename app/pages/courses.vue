@@ -36,6 +36,7 @@ async function onCreated() {
                 'Objectif',
                 'Projection',
                 'Écart',
+                'Confiance',
               ]"
               :key="head"
               class="label pb-2 text-[10px] font-semibold"
@@ -81,6 +82,9 @@ async function onCreated() {
             <td class="mono py-[10px]">{{ formatDuration(race.projectionS) }}</td>
             <td class="mono py-[10px]" :class="(race.gapS ?? 0) > 0 ? 'text-warn' : 'text-ok'">
               {{ formatSignedDuration(race.gapS) }}
+            </td>
+            <td class="mono py-[10px] text-text-dim">
+              {{ race.confidencePct === null ? '—' : `${race.confidencePct} %` }}
             </td>
           </tr>
           <tr v-if="upcoming.length === 0">
