@@ -12,11 +12,6 @@ async function onCreated() {
   ui.closeModal()
   await Promise.all([refresh(), plan.load()])
 }
-
-async function remove(id: number) {
-  await $fetch(`/api/races/${id}`, { method: 'DELETE' })
-  await Promise.all([refresh(), plan.load()])
-}
 </script>
 
 <template>
@@ -41,7 +36,6 @@ async function remove(id: number) {
                 'Objectif',
                 'Projection',
                 'Écart',
-                '',
               ]"
               :key="head"
               class="label pb-2 text-[10px] font-semibold"
@@ -70,7 +64,15 @@ async function remove(id: number) {
               </span>
             </td>
             <td class="mono py-[10px]">
-              <span v-if="race.objectiveToSet" class="text-text-muted">à fixer</span>
+              <!-- « À fixer » n'est pas un état, c'est une action qui attend (§ 9, P5.10). -->
+              <button
+                v-if="race.objectiveToSet"
+                type="button"
+                class="text-accent underline decoration-dotted underline-offset-2"
+                @click.stop="ui.openModal('course', race.id)"
+              >
+                à fixer
+              </button>
               <span v-else-if="race.objectiveMode === 'performance_max'" class="text-text-dim">
                 perf. max
               </span>
@@ -79,15 +81,6 @@ async function remove(id: number) {
             <td class="mono py-[10px]">{{ formatDuration(race.projectionS) }}</td>
             <td class="mono py-[10px]" :class="(race.gapS ?? 0) > 0 ? 'text-warn' : 'text-ok'">
               {{ formatSignedDuration(race.gapS) }}
-            </td>
-            <td class="py-[10px] text-right">
-              <button
-                type="button"
-                class="text-text-muted hover:text-text"
-                @click.stop="remove(race.id)"
-              >
-                <UiAppIcon name="close" :size="15" />
-              </button>
             </td>
           </tr>
           <tr v-if="upcoming.length === 0">

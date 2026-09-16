@@ -15,6 +15,7 @@ export enum SessionOrigin {
 export enum PlanTrigger {
   Onboarding = 'onboarding',
   RaceAdded = 'course_ajoutee',
+  RaceEdited = 'course_modifiee',
   Pause = 'pause',
   Resume = 'reprise',
   ProposalAccepted = 'recalcul_accepte',

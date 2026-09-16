@@ -1,0 +1,1 @@
+ALTER TYPE "public"."plan_trigger" ADD VALUE 'course_modifiee' BEFORE 'pause';

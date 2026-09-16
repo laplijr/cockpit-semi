@@ -32,3 +32,25 @@ export interface RaceIncident {
   type: string
   note: string
 }
+
+/** Ce qui, dans une course, pilote le rétro-planning (§ 5, Périodisation). */
+export interface PlanningFields {
+  date: string
+  distanceM: number
+  priority: RacePriority
+  objectiveMode: ObjectiveMode
+}
+
+/**
+ * Une modification ne régénère le plan que si elle touche la périodisation.
+ * Fixer un chrono, corriger un dénivelé ou une note change l'affichage, pas
+ * le plan : régénérer pour ça jetterait des séances déjà faites (§ 9, P5.10).
+ */
+export function racePlansChanged(before: PlanningFields, after: PlanningFields): boolean {
+  return (
+    before.date !== after.date ||
+    before.distanceM !== after.distanceM ||
+    before.priority !== after.priority ||
+    before.objectiveMode !== after.objectiveMode
+  )
+}

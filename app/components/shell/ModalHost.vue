@@ -27,6 +27,13 @@ async function onSessionSaved() {
   ui.closeModal()
 }
 
+/** Une course modifiée peut avoir régénéré le plan : tout se recharge. */
+async function onRaceChanged() {
+  await refreshNuxtData()
+  await plan.load()
+  ui.closeModal()
+}
+
 async function onDecided() {
   await proposals.load()
   ui.closeModal()
@@ -52,6 +59,7 @@ async function onDecided() {
       <DialogsRaceDialog
         v-else-if="ui.modal === 'course' && ui.modalTargetId"
         :race-id="ui.modalTargetId"
+        @changed="onRaceChanged"
       />
 
       <DialogsExerciseDialog
