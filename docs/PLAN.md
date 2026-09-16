@@ -64,7 +64,18 @@ P2 — Réalisé, retour de séance et charge
 - [x] UI Connexions : indiquer qu'aucune connexion externe n'est active, pourquoi, et ce que ça change.
 - [x] Fini : tests verts, parcours « séance du jour → marquée faite → ressenti saisi → charge à jour » vérifié, commit « P2 — réalisé, retour de séance, charge ».
 
-P3 → P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
+P3 — Recalcul, forme du jour et progression
+- [x] `server/domain/rules` : R1 à R8 du § 5, chacune avec id, condition, effet et explication ; sortie = propositions typées, jamais d'application directe. Tests : chaque règle a un cas « déclenche » et un cas « ne déclenche pas » (§ 10).
+- [x] `server/domain/readiness` : score 0–100 (sommeil 35 %, RPE vs prévu sur 3 séances 30 %, sensations 20 %, ratio de charge 15 %), seuils Prêt ≥ 65 / Vigilance 40–64 / Repos < 40, suggestion par templates. Tests des trois états et du score sans données.
+- [ ] Schéma : `proposal` (déclencheur, règle, cible, avant, après, explication, statut, décidé le). Migration.
+- [ ] `application` : évaluation des règles après chaque ressenti et à la régénération ; acceptation d'une proposition l'applique et régénère le plan ; refus l'archive. Les refus et acceptations sont le signal d'apprentissage (§ 1.3).
+- [ ] Cockpit : cadran forme du jour (état, causes, suggestion pour demain) et zone « À décider » avec une case par ligne, la règle affichée, l'ancienne valeur barrée et « Appliquer n ».
+- [ ] Panneau détail d'une proposition + cloche de la barre du haut avec le nombre en attente ; page Propositions avec l'historique des décisions.
+- [ ] Page Progression v1 : courbe VDOT avec courses et tests, projection avec intervalle, volume et charge par semaine, adhérence, journal des séances clés filtrable. Lecture seule.
+- [ ] Cron quotidien Vercel : forme du jour pré-calculée, rappel de ressenti manquant, expiration des propositions. Précision ± 59 min assumée, la forme se recalcule à la demande à l'ouverture.
+- [ ] Fini : lint, typecheck, tests, build verts ; parcours « ressenti dur → proposition → acceptée → plan ajusté » vérifié ; commit « P3 — recalcul, forme du jour, progression ».
+
+P4 → P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
 
 ## 0. Données réelles de départ (à seeder en P1)
 
