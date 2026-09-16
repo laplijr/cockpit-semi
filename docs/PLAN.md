@@ -37,7 +37,7 @@ P1 — Courses, forme, plan
 - [x] UI Semaine : bloc de 4 semaines, une ligne par semaine, cellules par jour (lecture seule en P1).
 - [x] UI Course à pied : bibliothèque des 9 séances avec allures du VDOT courant.
 - [x] UI Cockpit v1 : cadran course A, cadran VDOT (plancher affiché comme tel), panneau « Aujourd'hui » avec la séance prévue ou l'état de pause (jour n, activités autorisées, bouton « Marquer la reprise »), bande semaine, frise cap. Les autres cadrans restent en stub jusqu'à P2/P3.
-- [ ] Fini : tests domaine verts, parcours « onboarding → courses → plan généré → cockpit affiche la séance du jour » vérifié, commit « P1 — courses, forme, plan ».
+- [x] Fini : tests domaine verts, parcours « onboarding → courses → plan généré → cockpit affiche la séance du jour » vérifié, commit « P1 — courses, forme, plan ».
 
 P2 → P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
 
