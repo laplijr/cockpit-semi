@@ -7,7 +7,7 @@ import {
   STRENGTH_STOP_DAYS_BEFORE_RACE,
   buildWeekSupport,
 } from '~~/server/domain/plan/week-support'
-import { buildWeekTemplate } from '~~/server/domain/plan/week-template'
+import { buildWeekTemplate, dayBefore, dayGap } from '~~/server/domain/plan/week-template'
 import { buildWeeks, type PlanWeek } from '~~/server/domain/plan/weeks'
 import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
 import { RunSessionCode } from '~~/server/domain/running/session-types'
@@ -76,12 +76,61 @@ describe('placement du vélo (§ 5)', () => {
     expect(development).toHaveLength(1)
   })
 
-  it('privilégie le lendemain d’une séance clé', () => {
+  it('privilégie le lendemain d’une séance clé, dimanche compris', () => {
     const { runs, sessions } = support(weekIn(PhaseType.Development))
     const keyDays = new Set(runs.filter((run) => run.key).map((run) => run.weekday))
     const ride = sessions.find((item) => item.sport === Sport.Cycling)!
 
-    expect(keyDays.has(ride.weekday - 1)).toBe(true)
+    expect(keyDays.has(dayBefore(ride.weekday))).toBe(true)
+  })
+
+  it('prend le lundi qui suit la sortie longue du dimanche', () => {
+    const { runs, sessions } = support(weekIn(PhaseType.Specific))
+    const longRun = runs.find((run) => run.code === RunSessionCode.LongRun)!
+    expect(longRun.weekday).toBe(7)
+
+    const rides = sessions.filter((item) => item.sport === Sport.Cycling)
+    expect(rides.map((item) => item.weekday)).toContain(1)
+  })
+
+  it('n’ajoute pas d’intensité vélo dans une semaine allégée', () => {
+    const light = longBase.find(
+      (week) => week.phaseType === PhaseType.Base && week.light && !week.comebackRatio,
+    )!
+    const codes = support(light).sessions.map((item) => item.code)
+    expect(codes).not.toContain(CycleSessionCode.LowCadenceForce)
+  })
+
+  it('pose une force basse cadence en base, à 48 h au moins du Legs (§ 5)', () => {
+    const forces = []
+    for (const week of weeks.filter((item) => item.phaseType === PhaseType.Base)) {
+      const { sessions } = support(week)
+      const legs = sessions.find((item) => item.code === StrengthSessionCode.Legs)
+      for (const ride of sessions.filter(
+        (item) => item.code === CycleSessionCode.LowCadenceForce,
+      )) {
+        forces.push(ride)
+        if (legs) expect(dayGap(legs.weekday, ride.weekday)).toBeGreaterThanOrEqual(2)
+      }
+    }
+
+    expect(forces.length).toBeGreaterThan(0)
+  })
+
+  it('n’en pose jamais deux dans la même semaine', () => {
+    for (const week of weeks) {
+      const forces = support(week).sessions.filter(
+        (item) => item.code === CycleSessionCode.LowCadenceForce,
+      )
+      expect(forces.length).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('ne planifie jamais de sweet spot : douleur seulement (§ 5, R8)', () => {
+    for (const week of weeks) {
+      const codes = support(week).sessions.map((item) => item.code)
+      expect(codes).not.toContain(CycleSessionCode.SweetSpot)
+    }
   })
 
   it('passe une des deux sorties de base en sortie longue la semaine allégée', () => {

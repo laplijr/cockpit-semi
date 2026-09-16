@@ -110,13 +110,32 @@ describe('placement', () => {
     expect(freeDays.length).toBeGreaterThanOrEqual(1)
   })
 
+  /** La semaine boucle : la veille du lundi est le dimanche, pas le jour 0. */
+  const dayBefore = (day: number) => (day === 1 ? 7 : day - 1)
+
   it('évite de poser une endurance au lendemain d’une séance dure', () => {
     const used = new Map(sessions.map((item) => [item.weekday, item.key]))
     for (const [day, isKey] of used) {
-      if (isKey || !used.get(day - 1)) continue
+      if (isKey || !used.get(dayBefore(day))) continue
       // Un lendemain de séance dure n'est occupé que si aucun autre jour ne restait.
       const free = CONSTRAINTS.availableDays.filter((candidate) => !used.has(candidate))
-      expect(free.every((candidate) => used.get(candidate - 1) === true)).toBe(true)
+      expect(free.every((candidate) => used.get(dayBefore(candidate)) === true)).toBe(true)
+    }
+  })
+
+  it('laisse le lendemain de la sortie longue du dimanche libre sur tout le cycle', () => {
+    for (const week of weeks) {
+      const placed = template(week).sessions
+      const longRun = placed.find((item) => item.code === RunSessionCode.LongRun)
+      if (longRun?.weekday !== 7) continue
+
+      const monday = placed.find((item) => item.weekday === 1)
+      if (!monday) continue
+
+      // Le lundi n'est occupé que si plus aucun jour n'était libre.
+      const used = new Set(placed.map((item) => item.weekday))
+      const free = CONSTRAINTS.availableDays.filter((day) => !used.has(day))
+      expect(free).toHaveLength(0)
     }
   })
 

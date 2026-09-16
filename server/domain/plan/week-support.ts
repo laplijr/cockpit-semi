@@ -9,6 +9,7 @@ import { strengthPhaseFor } from '../strength/phases'
 import { StrengthSessionCode, strengthPrescription } from '../strength/session-types'
 import type { IsoDate } from './calendar'
 import { addDays } from './calendar'
+import { dayBefore, dayGap } from './week-template'
 import { PhaseType } from './phases'
 import type { PlannedSession } from './week-template'
 import type { PlanWeek } from './weeks'
@@ -235,11 +236,18 @@ function placeCycling({
   const wanted = CYCLING_PER_PHASE[week.phaseType]
   if (wanted === 0) return []
 
-  const free = available
-    .filter((weekday) => !runDays.has(weekday) && !taken.has(weekday))
-    .sort((a, b) => Number(keyDays.has(b - 1)) - Number(keyDays.has(a - 1)) || a - b)
-    .slice(0, wanted)
+  /** La semaine boucle : le lundi est bien le lendemain du dimanche (§ 5). */
+  const followsKey = (weekday: number) => keyDays.has(dayBefore(weekday))
 
+  const candidates = available
+    .filter((weekday) => !runDays.has(weekday) && !taken.has(weekday))
+    .sort((a, b) => Number(followsKey(b)) - Number(followsKey(a)) || a - b)
+
+  const legsDay = strength.find((item) => item.code === StrengthSessionCode.Legs)?.weekday
+  const farFromLegs = (weekday: number) =>
+    legsDay === undefined || dayGap(legsDay, weekday) >= FORCE_DAYS_FROM_LEGS
+
+  const free = reserveForceDay(candidates, wanted, week, farFromLegs)
   if (free.length === 0) return []
 
   const otherUnits =
@@ -247,8 +255,13 @@ function placeCycling({
     sumUnits(strength.map((session) => session.prescription))
 
   const sessions: PlannedSupportSession[] = []
+  let forcePlaced = false
   for (const [index, weekday] of free.entries()) {
-    const code = cyclingCodeFor(week, index, free.length)
+    const code = cyclingCodeFor(week, index, free.length, {
+      farFromLegs: farFromLegs(weekday),
+      forcePlaced,
+    })
+    if (code === CycleSessionCode.LowCadenceForce) forcePlaced = true
     const duration = durationFor(code, week, otherUnits, free.length)
     /** Sous la durée minimale du type, la séance n'a plus de sens : on la retire. */
     if (duration !== undefined && duration < cycleSessionType(code).minDurationMin) continue
@@ -265,20 +278,70 @@ function placeCycling({
   return sessions
 }
 
+/** Écart minimal entre une force basse cadence et le Legs : elle charge le même tendon. */
+export const FORCE_DAYS_FROM_LEGS = 2
+
+/**
+ * Jours retenus pour le vélo. En base, si aucun des jours préférés n'est à
+ * 48 h du Legs, le dernier laisse sa place à un jour qui l'est : sans ça la
+ * force basse cadence resterait une séance de bibliothèque que le plan ne pose
+ * jamais, le Legs tombant presque toujours entre les deux jours libres (§ 5).
+ */
+function reserveForceDay(
+  candidates: number[],
+  wanted: number,
+  week: PlanWeek,
+  farFromLegs: (weekday: number) => boolean,
+): number[] {
+  const chosen = candidates.slice(0, wanted)
+  if (!takesForce(week) || chosen.length === 0 || chosen.some(farFromLegs)) return chosen
+
+  const swap = candidates.find((weekday) => !chosen.includes(weekday) && farFromLegs(weekday))
+  if (swap === undefined) return chosen
+
+  return [...chosen.slice(0, -1), swap].sort((a, b) => a - b)
+}
+
+interface CyclingCodeContext {
+  /** Vrai quand la sortie est à 48 h au moins du Legs de la semaine. */
+  farFromLegs: boolean
+  /** Une seule force basse cadence par semaine. */
+  forcePlaced: boolean
+}
+
 /**
  * Sortie longue vélo dans la semaine allégée d'une base ou d'un développement
  * qui porte deux sorties : elle remplace alors l'une des deux, sans ajouter de
  * charge à une semaine qui allège. Force basse cadence en relance pour le
- * dénivelé de Madrid, Z2 partout ailleurs (§ 5).
+ * dénivelé de Madrid, et en base dès qu'une sortie tombe à 48 h du Legs — sinon
+ * la bibliothèque annoncerait une séance que le plan ne pose jamais. Z2 pour
+ * tout le reste ; le sweet spot ne vient que par conversion sur douleur (§ 5, R8).
  */
-function cyclingCodeFor(week: PlanWeek, index: number, rides: number): CycleSessionCode {
+function cyclingCodeFor(
+  week: PlanWeek,
+  index: number,
+  rides: number,
+  { farFromLegs, forcePlaced }: CyclingCodeContext,
+): CycleSessionCode {
   if (week.phaseType === PhaseType.Rebuild) return CycleSessionCode.LowCadenceForce
 
   const longRideWeek =
     week.light &&
     rides > 1 &&
     (week.phaseType === PhaseType.Base || week.phaseType === PhaseType.Development)
-  return longRideWeek && index === 0 ? CycleSessionCode.LongRide : CycleSessionCode.EnduranceZ2
+
+  if (longRideWeek && index === 0) return CycleSessionCode.LongRide
+  if (takesForce(week) && !forcePlaced && farFromLegs) return CycleSessionCode.LowCadenceForce
+  return CycleSessionCode.EnduranceZ2
+}
+
+/**
+ * Une semaine de base porte la force basse cadence, sauf la semaine allégée :
+ * alléger et ajouter de l'intensité sur le vélo se contrediraient (§ 5).
+ */
+function takesForce(week: PlanWeek): boolean {
+  if (week.light) return false
+  return week.phaseType === PhaseType.Base || week.phaseType === PhaseType.ShortBase
 }
 
 /**

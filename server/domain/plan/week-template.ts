@@ -1,5 +1,5 @@
 import type { AthleteConstraints } from '../athlete/constraints'
-import { MAX_RUNS_PER_WEEK, MIN_RUNS_PER_WEEK, MONDAY } from '../athlete/constraints'
+import { MAX_RUNS_PER_WEEK, MIN_RUNS_PER_WEEK, MONDAY, SUNDAY } from '../athlete/constraints'
 import { TrainingZone, paceFor } from '../fitness/vdot'
 import type { Prescription, PrescriptionContext } from '../running/session-types'
 import {
@@ -85,12 +85,24 @@ export function runsFor(week: PlanWeek, constraints: AthleteConstraints, days: n
   return Math.min(bounded, days)
 }
 
+export const DAYS_PER_WEEK = 7
+
+/**
+ * Écart entre deux jours de la semaine, qui boucle : le lundi est à un jour du
+ * dimanche, pas à six. Sans ce bouclage, un lundi n'est jamais vu comme le
+ * lendemain d'une sortie longue du dimanche (§ 5).
+ */
+export function dayGap(from: number, to: number): number {
+  const straight = Math.abs(from - to)
+  return Math.min(straight, DAYS_PER_WEEK - straight)
+}
+
 /** Choisit des jours espacés d'au moins un jour de repos. */
 function spread(candidates: number[], count: number): number[] {
   const chosen: number[] = []
   for (const day of candidates) {
     if (chosen.length >= count) break
-    if (chosen.some((taken) => Math.abs(taken - day) < 2)) continue
+    if (chosen.some((taken) => dayGap(taken, day) < 2)) continue
     chosen.push(day)
   }
 
@@ -102,20 +114,35 @@ function spread(candidates: number[], count: number): number[] {
   return chosen.sort((a, b) => a - b)
 }
 
+/** Veille d'un jour de la semaine, en bouclant : la veille du lundi est le dimanche. */
+export const dayBefore = (day: number) => (day === MONDAY ? SUNDAY : day - 1)
+
 /**
  * Jours d'endurance : parmi les jours libres, ceux les plus éloignés des jours
  * durs, pour garder un jour vide après la sortie longue et après chaque clé.
  */
-function easyDaysFor(free: number[], hard: number[], count: number): number[] {
+function easyDaysFor(
+  free: number[],
+  hard: number[],
+  count: number,
+  longRunDay: number | undefined,
+): number[] {
   const distance = (day: number) =>
-    hard.length === 0 ? 7 : Math.min(...hard.map((taken) => Math.abs(taken - day)))
+    hard.length === 0 ? DAYS_PER_WEEK : Math.min(...hard.map((taken) => dayGap(taken, day)))
 
-  // Le lendemain d'un jour dur est le pire choix : c'est là que la récupération
-  // compte. La veille, elle, ne coûte rien.
-  const dayAfterHard = (day: number) => (hard.includes(day - 1) ? 1 : 0)
+  /**
+   * Le lendemain d'un jour dur est un mauvais choix ; le lendemain de la sortie
+   * longue est le pire, c'est la séance la plus coûteuse de la semaine. Ce jour
+   * revient au vélo, pas à une endurance au plafond (§ 5).
+   */
+  const cost = (day: number) => {
+    const previous = dayBefore(day)
+    if (previous === longRunDay) return 2
+    return hard.includes(previous) ? 1 : 0
+  }
 
   return [...free]
-    .sort((a, b) => dayAfterHard(a) - dayAfterHard(b) || distance(b) - distance(a) || a - b)
+    .sort((a, b) => cost(a) - cost(b) || distance(b) - distance(a) || a - b)
     .slice(0, count)
     .sort((a, b) => a - b)
 }
@@ -178,7 +205,8 @@ export function buildWeekTemplate({
   const hardDays = [...assignments.keys()]
   const free = available.filter((day) => !assignments.has(day))
   const easySlots = Math.max(0, runs - assignments.size)
-  for (const day of easyDaysFor(free, hardDays, easySlots)) {
+  const placedLongRun = wantsLongRun ? longRunDay : undefined
+  for (const day of easyDaysFor(free, hardDays, easySlots, placedLongRun)) {
     assignments.set(day, RunSessionCode.Endurance)
   }
 
