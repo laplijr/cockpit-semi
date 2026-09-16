@@ -107,6 +107,11 @@ export const usePlanStore = defineStore('plan', () => {
     }
   }
 
+  /** La coque a besoin du plan sur toutes les pages, sans refaire la requête de la page. */
+  async function ensureLoaded() {
+    if (!payload.value) await load()
+  }
+
   async function markResumption() {
     await request('/api/pause/resume', { method: 'POST' })
     await load()
@@ -153,6 +158,7 @@ export const usePlanStore = defineStore('plan', () => {
     payload,
     pending,
     load,
+    ensureLoaded,
     markResumption,
     today,
     plan,

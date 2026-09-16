@@ -36,6 +36,13 @@ const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', {
   month: 'short',
 })
 
+const DATE_WITH_YEAR_FORMAT = new Intl.DateTimeFormat('fr-FR', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+})
+
 const LONG_DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', {
   weekday: 'long',
   day: 'numeric',
@@ -45,6 +52,10 @@ const LONG_DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', {
 
 export function formatDate(iso: string): string {
   return DATE_FORMAT.format(new Date(`${iso}T12:00:00Z`))
+}
+
+export function formatDateWithYear(iso: string): string {
+  return DATE_WITH_YEAR_FORMAT.format(new Date(`${iso}T12:00:00Z`))
 }
 
 export function formatLongDate(iso: string): string {

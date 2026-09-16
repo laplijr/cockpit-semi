@@ -6,13 +6,9 @@ const plan = usePlanStore()
 
 const title = computed(() => navItemFor(route.path)?.label ?? 'Cockpit')
 
-/**
- * Le store est chargé par les pages, après le rendu de la barre : la ligne reste
- * vide côté serveur, d'où le `ClientOnly` qui évite une divergence d'hydratation.
- */
+/** Le plan est chargé par la coque (`app/layouts/default.vue`) avant ce rendu. */
 const context = computed(() => {
-  if (!plan.today) return ''
-  const date = formatDate(plan.today)
+  const date = formatDateWithYear(plan.today)
   if (!plan.plan) return `${date} · aucun plan actif`
   const week = plan.currentWeek
   if (!week) return date
@@ -24,9 +20,7 @@ const context = computed(() => {
   <header class="flex h-(--spacing-topbar) items-center gap-4 border-b border-line-soft px-6">
     <div class="flex min-w-[260px] flex-col gap-px">
       <span class="text-sm font-semibold">{{ title }}</span>
-      <ClientOnly>
-        <span v-if="context" class="mono text-[11.5px] text-text-muted">{{ context }}</span>
-      </ClientOnly>
+      <span class="mono text-[11.5px] text-text-muted">{{ context }}</span>
     </div>
 
     <button

@@ -4,7 +4,7 @@ const { data: races, refresh: refreshRaces } = await useFetch('/api/races')
 
 const proposals = usePropositionsStore()
 
-await Promise.all([plan.load(), proposals.load()])
+await Promise.all([plan.ensureLoaded(), proposals.load()])
 
 const raceA = computed(() =>
   (races.value ?? [])

@@ -1,5 +1,12 @@
 <script setup lang="ts">
 const ui = useUiStore()
+const plan = usePlanStore()
+
+/**
+ * La barre du haut affiche la date et la semaine sur toutes les pages, pas
+ * seulement celles qui chargent le plan pour leur propre contenu.
+ */
+await plan.ensureLoaded()
 
 useShellShortcuts()
 

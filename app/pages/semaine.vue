@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const plan = usePlanStore()
-await plan.load()
+await plan.ensureLoaded()
 
 const BLOCK_SIZE = 4
 const offset = ref(0)
