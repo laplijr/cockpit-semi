@@ -64,6 +64,13 @@
       "when": 1789588788811,
       "tag": "0008_perpetual_johnny_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789591085100,
+      "tag": "0009_petite_betty_ross",
+      "breakpoints": true
     }
   ]
 }

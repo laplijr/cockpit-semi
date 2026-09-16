@@ -98,20 +98,24 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     startDate,
     provisional: Boolean(openPause),
     phases,
-    weeks: weeks.map((week) => ({
-      ...week,
+    weeks: weeks.map((week) => {
       // Sans date de reprise, le plan ne porte que ses phases et ses volumes.
-      sessions:
-        startDate === null
-          ? []
-          : buildWeekTemplate({
-              week,
-              constraints,
-              vdot,
-              blockedDates,
-              shortCycle: shortCycleRaces.has(week.raceId),
-            }).filter((session) => session.date >= startDate),
-    })),
+      if (startDate === null) return { ...week, sessions: [] }
+
+      const template = buildWeekTemplate({
+        week,
+        constraints,
+        vdot,
+        blockedDates,
+        shortCycle: shortCycleRaces.has(week.raceId),
+      })
+
+      return {
+        ...week,
+        volumeCapped: template.volumeCapped,
+        sessions: template.sessions.filter((session) => session.date >= startDate),
+      }
+    }),
   }
 }
 

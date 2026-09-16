@@ -204,6 +204,10 @@ export const week = pgTable(
     phaseProgress: real('phase_progress').notNull().default(0),
     /** La séance clé du milieu de semaine est un test 20′. */
     test: boolean('test').notNull().default(false),
+    /** Nombre de courses posées cette semaine (§ 5). */
+    runs: integer('runs').notNull().default(4),
+    /** Le volume visé a dû être réduit faute de séances pour le porter. */
+    volumeCapped: boolean('volume_capped').notNull().default(false),
   },
   (table) => [unique('week_plan_index').on(table.planVersionId, table.index)],
 )

@@ -16,6 +16,7 @@ const bodySchema = z.object({
     availableDays: z.array(weekdaySchema),
     longRunDay: weekdaySchema.optional(),
     easyDays: z.array(weekdaySchema).optional(),
+    runsPerWeek: z.number().int().min(2).max(6).optional(),
     notes: z.array(z.string()).optional(),
   }),
 })

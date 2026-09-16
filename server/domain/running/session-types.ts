@@ -217,6 +217,10 @@ export interface PrescriptionContext {
   targetDistanceM?: number
   /** Position dans la phase, de 0 (début) à 1 (fin) : pilote la progression. */
   phaseProgress?: number
+  /** Ajoute 6 × 100 m en fin d'endurance : les lignes droites ne sont plus une séance (§ 5). */
+  withStrides?: boolean
+  /** Termine la sortie longue par un tiers à allure semi, en phase spécifique (§ 5). */
+  withHalfPaceFinish?: boolean
 }
 
 const WARMUP_M = 2000
@@ -239,6 +243,10 @@ const VMA_PROGRESSION = [
   { repeats: 5, distanceM: 1000 },
 ] as const
 
+/** Dose minimale d'une répétition : en dessous, la séance n'a plus de sens. */
+export const MIN_THRESHOLD_REP_S = 4 * 60
+export const MIN_VMA_REP_M = 400
+
 export const HILL_MIN_REPEATS = 6
 export const HILL_MAX_REPEATS = 10
 
@@ -246,9 +254,21 @@ function clamp01(value: number | undefined): number {
   return Math.min(1, Math.max(0, value ?? 0))
 }
 
-/** Palier de progression correspondant à la position dans la phase. */
-function stageIndex(phaseProgress: number | undefined, stages: number): number {
-  return Math.min(stages - 1, Math.floor(clamp01(phaseProgress) * stages))
+/**
+ * Palier de progression correspondant à la position dans la phase, borné par
+ * le quota d'intensité : un quota est un plafond, pas un veto. Sur une petite
+ * semaine on court le plus gros palier qui tient, pas rien du tout.
+ */
+function stageIndex(
+  phaseProgress: number | undefined,
+  volumes: readonly number[],
+  budgetM: number,
+): number {
+  const wanted = Math.min(volumes.length - 1, Math.floor(clamp01(phaseProgress) * volumes.length))
+  for (let index = wanted; index > 0; index--) {
+    if (volumes[index]! <= budgetM) return index
+  }
+  return 0
 }
 
 /** Nombre de répétitions tenant dans le quota, borné par le format de la séance. */
@@ -289,7 +309,14 @@ export function prescription(code: RunSessionCode, context: PrescriptionContext)
 
 function buildSteps(
   code: RunSessionCode,
-  { vdot, weeklyVolumeM, targetDistanceM, phaseProgress }: PrescriptionContext,
+  {
+    vdot,
+    weeklyVolumeM,
+    targetDistanceM,
+    phaseProgress,
+    withStrides,
+    withHalfPaceFinish,
+  }: PrescriptionContext,
 ): PrescriptionStep[] {
   const easy = easyPace(vdot)
   /** Distance visée pour cette séance : celle demandée, sinon une part du volume. */
@@ -307,8 +334,22 @@ function buildSteps(
   }
 
   switch (code) {
-    case RunSessionCode.Endurance:
-      return [{ label: 'Endurance', distanceM: target(0.15), paceSecPerKm: easy }]
+    case RunSessionCode.Endurance: {
+      const steps: PrescriptionStep[] = [
+        { label: 'Endurance', distanceM: target(0.15), paceSecPerKm: easy },
+      ]
+      if (withStrides) {
+        steps.push({
+          label: 'Lignes droites',
+          intense: true,
+          repeats: 6,
+          distanceM: 100,
+          paceSecPerKm: paceFor(vdot, TrainingZone.Repetition),
+          recoveryS: 60,
+        })
+      }
+      return steps
+    }
 
     case RunSessionCode.Strides:
       return [
@@ -327,20 +368,46 @@ function buildSteps(
         },
       ]
 
-    case RunSessionCode.LongRun:
-      return [{ label: 'Sortie longue', distanceM: target(0.3), paceSecPerKm: easy }]
+    case RunSessionCode.LongRun: {
+      const total = target(0.3)
+      if (!withHalfPaceFinish) {
+        return [{ label: 'Sortie longue', distanceM: total, paceSecPerKm: easy }]
+      }
+
+      // Le dernier tiers passe à allure semi, borné par le quota de qualité.
+      const finish = Math.min(Math.round(total / 3), Math.round(weeklyVolumeM * 0.2))
+      return [
+        { label: 'Sortie longue', distanceM: total - finish, paceSecPerKm: easy },
+        {
+          label: 'Fin à allure semi',
+          intense: true,
+          distanceM: finish,
+          paceSecPerKm: halfMarathonPace(vdot),
+        },
+      ]
+    }
 
     case RunSessionCode.Threshold: {
       const thresholdPace = paceFor(vdot, TrainingZone.Threshold)
-      const stage = THRESHOLD_PROGRESSION[stageIndex(phaseProgress, THRESHOLD_PROGRESSION.length)]!
+      const budget = weeklyVolumeM * 0.1
+      const volumes = THRESHOLD_PROGRESSION.map(
+        (item) => (item.repeats * item.durationS * 1000) / thresholdPace,
+      )
+      const stage = THRESHOLD_PROGRESSION[stageIndex(phaseProgress, volumes, budget)]!
+      // La dose se réduit pour tenir dans le quota plutôt que de disparaître :
+      // une petite semaine mérite un petit seuil, pas aucun.
+      const durationS = Math.max(
+        MIN_THRESHOLD_REP_S,
+        Math.min(stage.durationS, Math.floor((budget * thresholdPace) / (stage.repeats * 1000))),
+      )
       return [
         warmup,
         {
           label: 'Seuil',
           intense: true,
           repeats: stage.repeats,
-          durationS: stage.durationS,
-          distanceM: Math.round((stage.durationS * 1000) / thresholdPace),
+          durationS,
+          distanceM: Math.round((durationS * 1000) / thresholdPace),
           paceSecPerKm: thresholdPace,
           recoveryS: stage.repeats > 1 ? 120 : undefined,
         },
@@ -350,14 +417,20 @@ function buildSteps(
 
     case RunSessionCode.Vma: {
       const intervalPace = paceFor(vdot, TrainingZone.Interval)
-      const stage = VMA_PROGRESSION[stageIndex(phaseProgress, VMA_PROGRESSION.length)]!
+      const budget = weeklyVolumeM * 0.08
+      const volumes = VMA_PROGRESSION.map((item) => item.repeats * item.distanceM)
+      const stage = VMA_PROGRESSION[stageIndex(phaseProgress, volumes, budget)]!
+      const distanceM = Math.max(
+        MIN_VMA_REP_M,
+        Math.min(stage.distanceM, Math.floor(budget / stage.repeats / 100) * 100),
+      )
       return [
         warmup,
         {
           label: 'Fractions',
           intense: true,
           repeats: stage.repeats,
-          distanceM: stage.distanceM,
+          distanceM,
           paceSecPerKm: intervalPace,
           recoveryS: 150,
         },

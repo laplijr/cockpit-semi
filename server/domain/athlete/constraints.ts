@@ -8,6 +8,11 @@ export interface AthleteConstraints {
   longRunDay?: number
   /** Jours qui restent faciles quoi qu'il arrive (« lundi facile », § 5). */
   easyDays?: number[]
+  /**
+   * Nombre de courses par semaine, 2 à 6. Les jours disponibles disent où
+   * courir, pas combien : sans valeur, le défaut de la phase s'applique (§ 5).
+   */
+  runsPerWeek?: number
   notes?: string[]
 }
 
@@ -16,3 +21,6 @@ export const DEFAULT_CONSTRAINTS: AthleteConstraints = { availableDays: [] }
 /** Volumes par défaut, à ajuster dans Profil au fil de l'historique saisi (§ 5). */
 export const DEFAULT_START_VOLUME_M = 20_000
 export const DEFAULT_PEAK_VOLUME_M = 45_000
+
+export const MIN_RUNS_PER_WEEK = 2
+export const MAX_RUNS_PER_WEEK = 6

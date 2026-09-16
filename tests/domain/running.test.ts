@@ -112,8 +112,9 @@ describe('prescription', () => {
 })
 
 describe('progression des séances clés dans la phase (§ 5)', () => {
-  const at = (code: RunSessionCode, phaseProgress: number) =>
-    prescription(code, { vdot: 40, weeklyVolumeM: 55_000, phaseProgress })
+  // Volume assez large pour que la progression tienne dans les quotas.
+  const at = (code: RunSessionCode, phaseProgress: number, weeklyVolumeM = 70_000) =>
+    prescription(code, { vdot: 40, weeklyVolumeM, phaseProgress })
 
   it('fait croître strictement le volume de qualité de la VMA', () => {
     const volumes = [0, 0.5, 1].map((progress) => at(RunSessionCode.Vma, progress).qualityDistanceM)
@@ -149,9 +150,20 @@ describe('progression des séances clés dans la phase (§ 5)', () => {
 
   it('atteint au moins 4 km de qualité au seuil sur une semaine à 55 km', () => {
     const peak = Math.max(
-      ...[0, 0.5, 1].map((progress) => at(RunSessionCode.Threshold, progress).qualityDistanceM),
+      ...[0, 0.5, 1].map(
+        (progress) => at(RunSessionCode.Threshold, progress, 55_000).qualityDistanceM,
+      ),
     )
     expect(peak).toBeGreaterThanOrEqual(4000)
+  })
+
+  it('rabat le palier sur le plus gros qui tienne dans le quota, plutôt que de rien prescrire', () => {
+    // Le quota est un plafond, pas un veto (§ 1.4) : sur une petite semaine on
+    // court 4 × 800 même en fin de phase, au lieu de supprimer la séance.
+    const small = at(RunSessionCode.Vma, 1, 45_000)
+    const fractions = small.steps.find((step) => step.label === 'Fractions')!
+    expect(fractions.repeats).toBe(4)
+    expect(small.qualityDistanceM).toBeLessThanOrEqual(45_000 * 0.08)
   })
 
   it('fait croître le nombre de côtes de 6 à 10', () => {

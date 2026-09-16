@@ -18,6 +18,7 @@ const form = reactive({
   availableDays: [...(athlete.value?.constraints?.availableDays ?? [])],
   longRunDay: athlete.value?.constraints?.longRunDay ?? 7,
   easyDays: [...(athlete.value?.constraints?.easyDays ?? [1])],
+  runsPerWeek: athlete.value?.constraints?.runsPerWeek ?? null,
   startWeeklyVolumeM: athlete.value?.startWeeklyVolumeM ?? 20000,
   peakWeeklyVolumeM: athlete.value?.peakWeeklyVolumeM ?? 45000,
 })
@@ -48,6 +49,7 @@ async function save() {
           availableDays: [...form.availableDays].sort((a, b) => a - b),
           longRunDay: form.longRunDay,
           easyDays: [...form.easyDays].sort((a, b) => a - b),
+          ...(form.runsPerWeek ? { runsPerWeek: form.runsPerWeek } : {}),
         },
       },
     })
@@ -117,7 +119,10 @@ async function logout() {
 
     <div class="tile">
       <span class="label">Jours d'entraînement</span>
-      <p class="text-[13px] text-text-muted">Coche les jours où tu peux courir.</p>
+      <p class="text-[13px] text-text-muted">
+        Coche les jours où tu peux courir. Les jours disponibles disent
+        <em>où</em> courir, pas <em>combien</em> de fois.
+      </p>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="day in WEEKDAYS"
@@ -140,6 +145,18 @@ async function logout() {
             </option>
           </select>
         </label>
+        <label class="flex flex-col gap-[6px]">
+          <span class="label text-[10.5px]">Courses par semaine</span>
+          <select v-model.number="form.runsPerWeek" class="input">
+            <option :value="null">Au choix du plan selon la phase</option>
+            <option v-for="count in [2, 3, 4, 5, 6]" :key="count" :value="count">
+              {{ count }} courses
+            </option>
+          </select>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 border-t border-line-soft pt-3">
         <div class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">Jours qui restent faciles</span>
           <div class="flex flex-wrap gap-2">

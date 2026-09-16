@@ -13,6 +13,22 @@ export const LONG_RUN_MAX_SHARE = 0.3
 /** Montée de charge d'une reprise surveillée après pause (§ 0). */
 export const COMEBACK_RATIOS = [0.6, 0.8, 1] as const
 
+/** Nombre de courses par semaine selon la phase, à défaut de valeur dans le profil (§ 5). */
+export const RUNS_PER_PHASE: Record<PhaseType, number> = {
+  [PhaseType.Base]: 4,
+  [PhaseType.ShortBase]: 4,
+  [PhaseType.Development]: 4,
+  [PhaseType.Specific]: 4,
+  [PhaseType.Speed]: 4,
+  [PhaseType.Rebuild]: 3,
+  [PhaseType.Taper]: 3,
+  [PhaseType.Recovery]: 2,
+  [PhaseType.Transition]: 2,
+}
+
+/** Pendant la reprise surveillée, trois courses quelle que soit la phase. */
+export const RUNS_DURING_COMEBACK = 3
+
 /** Un test 20′ en semaine 4 de reprise, puis toutes les six semaines (§ 5). */
 export const TEST_INTERVAL_WEEKS = 6
 
@@ -52,6 +68,10 @@ export interface PlanWeek {
   phaseProgress: number
   /** La séance clé du milieu de semaine devient un test 20′. */
   test: boolean
+  /** Nombre de courses à poser cette semaine (§ 5). */
+  runs: number
+  /** Vrai quand le volume visé a dû être réduit faute de séances pour le porter. */
+  volumeCapped: boolean
   /** Restriction de la reprise : quand elle existe, seuls ces types sont plaçables. */
   allowedCodes?: RunSessionCode[]
 }
@@ -168,6 +188,8 @@ export function buildWeeks({
       comebackRatio,
       phaseProgress,
       test,
+      runs: comebackRatio !== undefined ? RUNS_DURING_COMEBACK : RUNS_PER_PHASE[phase.type],
+      volumeCapped: false,
       allowedCodes: comebackRatio !== undefined ? COMEBACK_ALLOWED[index - 1] : undefined,
     })
   }

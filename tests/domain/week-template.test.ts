@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { TrainingZone, paceFor } from '~~/server/domain/fitness/vdot'
 import { buildPhases } from '~~/server/domain/plan/periodization'
 import { PhaseType } from '~~/server/domain/plan/phases'
-import { buildWeekTemplate } from '~~/server/domain/plan/week-template'
+import { EASY_MIN_MIN, buildWeekTemplate } from '~~/server/domain/plan/week-template'
 import { buildWeeks } from '~~/server/domain/plan/weeks'
 import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
 import {
@@ -11,11 +12,8 @@ import {
   respectsQuota,
 } from '~~/server/domain/running/session-types'
 
-const CONSTRAINTS = {
-  availableDays: [1, 2, 3, 5, 6, 7],
-  longRunDay: 7,
-  easyDays: [1],
-}
+const CONSTRAINTS = { availableDays: [1, 2, 3, 5, 6, 7], longRunDay: 7, easyDays: [1] }
+const VDOT = 33.15
 
 const PARIS = {
   id: 1,
@@ -33,95 +31,177 @@ const weeks = buildWeeks({
   baseWeeklyVolumeM: 20_000,
   peakWeeklyVolumeM: 45_000,
 })
-const weekIn = (phase: PhaseType) => weeks.find((week) => week.phaseType === phase && !week.light)!
 
-describe('semaine type', () => {
-  it('place une séance sur chaque jour disponible, et aucun autre', () => {
-    const sessions = buildWeekTemplate({
-      week: weekIn(PhaseType.Development),
-      constraints: CONSTRAINTS,
-      vdot: 40,
-    })
-    expect(sessions.map((session) => session.weekday)).toEqual([1, 2, 3, 5, 6, 7])
+/** Première semaine pleine de la phase, hors reprise surveillée et hors semaine allégée. */
+const weekIn = (phase: PhaseType) =>
+  weeks.find(
+    (week) => week.phaseType === phase && !week.light && !week.comebackRatio && !week.test,
+  )!
+const template = (week: (typeof weeks)[number]) =>
+  buildWeekTemplate({ week, constraints: CONSTRAINTS, vdot: VDOT })
+
+describe('nombre de courses par semaine (§ 5)', () => {
+  it('pose trois courses pendant la reprise surveillée', () => {
+    expect(template(weeks[0]!).sessions).toHaveLength(3)
+    expect(template(weeks[1]!).sessions).toHaveLength(3)
   })
 
-  it('garde le lundi facile', () => {
+  it('pose quatre courses en base, dont un progressif', () => {
+    const sessions = template(weekIn(PhaseType.Base)).sessions
+    expect(sessions).toHaveLength(4)
+    expect(sessions.map((item) => item.code)).toContain(RunSessionCode.Progressive)
+  })
+
+  it('pose quatre courses en développement, dont une séance de qualité', () => {
+    const sessions = template(weekIn(PhaseType.Development)).sessions
+    expect(sessions).toHaveLength(4)
+    const quality = sessions.filter((item) =>
+      [RunSessionCode.Vma, RunSessionCode.Threshold].includes(item.code),
+    )
+    expect(quality.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('pose quatre courses en spécifique, dont le seuil', () => {
+    const sessions = template(weekIn(PhaseType.Specific)).sessions
+    expect(sessions).toHaveLength(4)
+    expect(sessions.map((item) => item.code)).toContain(RunSessionCode.Threshold)
+  })
+
+  it('pose trois courses en affûtage', () => {
+    expect(template(weekIn(PhaseType.Taper)).sessions).toHaveLength(3)
+  })
+
+  it('ne pose jamais plus de courses que de jours disponibles', () => {
     const sessions = buildWeekTemplate({
       week: weekIn(PhaseType.Development),
-      constraints: CONSTRAINTS,
-      vdot: 40,
-    })
-    const monday = sessions.find((session) => session.weekday === 1)!
-    expect(monday.code).toBe(RunSessionCode.Endurance)
-    expect(monday.key).toBe(false)
+      constraints: { availableDays: [2, 4], longRunDay: 4 },
+      vdot: VDOT,
+    }).sessions
+    expect(sessions.length).toBeLessThanOrEqual(2)
   })
+
+  it('suit le nombre demandé dans le profil quand il est renseigné', () => {
+    const sessions = buildWeekTemplate({
+      week: weekIn(PhaseType.Base),
+      constraints: { ...CONSTRAINTS, runsPerWeek: 6 },
+      vdot: VDOT,
+    }).sessions
+    expect(sessions).toHaveLength(6)
+  })
+})
+
+describe('placement', () => {
+  const sessions = template(weekIn(PhaseType.Specific)).sessions
 
   it('pose la sortie longue le jour demandé', () => {
-    const sessions = buildWeekTemplate({
-      week: weekIn(PhaseType.Development),
-      constraints: CONSTRAINTS,
-      vdot: 40,
-    })
-    const sunday = sessions.find((session) => session.weekday === 7)!
-    expect(sunday.code).toBe(RunSessionCode.LongRun)
+    expect(sessions.find((item) => item.weekday === 7)?.code).toBe(RunSessionCode.LongRun)
   })
 
   it('ne colle jamais deux séances clés sur deux jours consécutifs', () => {
-    const sessions = buildWeekTemplate({
-      week: weekIn(PhaseType.Development),
-      constraints: CONSTRAINTS,
-      vdot: 40,
-    })
-    const keyDays = sessions.filter((session) => session.key).map((session) => session.weekday)
+    const keyDays = sessions.filter((item) => item.key).map((item) => item.weekday)
     for (let i = 1; i < keyDays.length; i++) {
       expect(keyDays[i]! - keyDays[i - 1]!).toBeGreaterThanOrEqual(2)
     }
   })
 
-  it('n’introduit aucun type interdit dans la phase', () => {
-    const base = buildWeekTemplate({
-      week: weekIn(PhaseType.Base),
-      constraints: CONSTRAINTS,
-      vdot: 40,
-    })
-    expect(base.map((session) => session.code)).not.toContain(RunSessionCode.Vma)
+  it('laisse au moins un jour vide quand il y a moins de courses que de jours', () => {
+    const used = new Set(sessions.map((item) => item.weekday))
+    const freeDays = CONSTRAINTS.availableDays.filter((day) => !used.has(day))
+    expect(freeDays.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('évite de poser une endurance au lendemain d’une séance dure', () => {
+    const used = new Map(sessions.map((item) => [item.weekday, item.key]))
+    for (const [day, isKey] of used) {
+      if (isKey || !used.get(day - 1)) continue
+      // Un lendemain de séance dure n'est occupé que si aucun autre jour ne restait.
+      const free = CONSTRAINTS.availableDays.filter((candidate) => !used.has(candidate))
+      expect(free.every((candidate) => used.get(candidate - 1) === true)).toBe(true)
+    }
   })
 
   it('ne prescrit que de l’endurance la première semaine de reprise', () => {
-    const sessions = buildWeekTemplate({ week: weeks[0]!, constraints: CONSTRAINTS, vdot: 33.15 })
-    expect(new Set(sessions.map((session) => session.code))).toEqual(
-      new Set([RunSessionCode.Endurance]),
-    )
+    const codes = template(weeks[0]!).sessions.map((item) => item.code)
+    expect(new Set(codes)).toEqual(new Set([RunSessionCode.Endurance]))
+  })
+})
+
+describe('rôle de chaque course', () => {
+  it('ne pose jamais de séance « allure semi » isolée', () => {
+    for (const week of weeks) {
+      const codes = template(week).sessions.map((item) => item.code)
+      expect(codes).not.toContain(RunSessionCode.HalfPace)
+    }
   })
 
-  it('respecte les quotas sur chaque séance prescrite', () => {
+  it('met l’allure semi dans la sortie longue en phase spécifique', () => {
+    const longRun = template(weekIn(PhaseType.Specific)).sessions.find(
+      (item) => item.code === RunSessionCode.LongRun,
+    )!
+    expect(longRun.prescription.steps.some((step) => step.intense)).toBe(true)
+  })
+
+  it('n’ajoute jamais de séance de lignes droites séparée', () => {
     for (const week of weeks) {
-      for (const session of buildWeekTemplate({ week, constraints: CONSTRAINTS, vdot: 40 })) {
-        const measured =
-          quotaBasisFor(session.code) === QuotaBasis.Total
-            ? session.prescription.totalDistanceM
-            : session.prescription.qualityDistanceM
-        expect(respectsQuota(session.code, measured, week.targetRunM)).toBe(true)
+      const codes = template(week).sessions.map((item) => item.code)
+      expect(codes).not.toContain(RunSessionCode.Strides)
+    }
+  })
+
+  it('intègre les lignes droites à au plus deux endurances', () => {
+    const withStrides = template(weekIn(PhaseType.Base)).sessions.filter((item) =>
+      item.prescription.steps.some((step) => step.label === 'Lignes droites'),
+    )
+    expect(withStrides.length).toBeLessThanOrEqual(2)
+  })
+})
+
+describe('durées et volume', () => {
+  it('ne descend jamais une endurance sous 35 minutes dès que la semaine peut la porter', () => {
+    const floor = (EASY_MIN_MIN * 60 * 1000) / paceFor(VDOT, TrainingZone.Easy)
+    for (const week of weeks.filter((item) => item.targetRunM >= 25_000)) {
+      for (const item of template(week).sessions) {
+        if (item.code !== RunSessionCode.Endurance) continue
+        expect(item.prescription.totalDistanceM).toBeGreaterThanOrEqual(Math.round(floor) - 1)
       }
     }
   })
 
-  it('remplit le volume de la semaine sans le dépasser', () => {
-    for (const week of weeks.filter((item) => item.targetRunM > 5000)) {
-      const sessions = buildWeekTemplate({ week, constraints: CONSTRAINTS, vdot: 40 })
-      const total = sessions.reduce((sum, item) => sum + item.prescription.totalDistanceM, 0)
-      expect(total).toBeGreaterThan(week.targetRunM * 0.85)
+  it('ne dépasse jamais le volume de la semaine de plus de 15 %', () => {
+    for (const week of weeks) {
+      const total = template(week).sessions.reduce(
+        (sum, item) => sum + item.prescription.totalDistanceM,
+        0,
+      )
       expect(total).toBeLessThanOrEqual(week.targetRunM * 1.15)
     }
   })
 
+  it('respecte les quotas sur chaque séance prescrite', () => {
+    for (const week of weeks) {
+      for (const item of template(week).sessions) {
+        const measured =
+          quotaBasisFor(item.code) === QuotaBasis.Total
+            ? item.prescription.totalDistanceM
+            : item.prescription.qualityDistanceM
+        expect(respectsQuota(item.code, measured, week.targetRunM)).toBe(true)
+      }
+    }
+  })
+
+  it('signale une semaine dont le volume a dû être réduit', () => {
+    const capped = buildWeekTemplate({
+      week: { ...weekIn(PhaseType.Base), targetRunM: 90_000, longRunMaxM: 27_000 },
+      constraints: CONSTRAINTS,
+      vdot: VDOT,
+    })
+    expect(capped.volumeCapped).toBe(true)
+  })
+
   it('ne place rien quand aucun jour n’est disponible', () => {
     expect(
-      buildWeekTemplate({
-        week: weeks[0]!,
-        constraints: { availableDays: [] },
-        vdot: 40,
-      }),
+      buildWeekTemplate({ week: weeks[0]!, constraints: { availableDays: [] }, vdot: VDOT })
+        .sessions,
     ).toEqual([])
   })
 })

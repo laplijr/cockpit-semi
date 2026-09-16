@@ -121,6 +121,8 @@ export function createPlanGateway(db: Database): PlanGateway {
             comebackRatio: generated.comebackRatio ?? null,
             phaseProgress: generated.phaseProgress,
             test: generated.test,
+            runs: generated.runs,
+            volumeCapped: generated.volumeCapped,
           })
           .returning({ id: week.id })
 
