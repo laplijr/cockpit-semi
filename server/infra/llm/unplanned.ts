@@ -57,8 +57,10 @@ const OUTPUT_SCHEMA = {
               kind: { type: 'string', enum: [UnplannedKind.Activity] },
               sport: { type: 'string', enum: Object.values(Sport) },
               date: { type: 'string', description: 'AAAA-MM-JJ' },
-              durationMin: { type: 'number' },
-              rpeEstimate: { type: 'integer', minimum: 1, maximum: 10 },
+              durationMin: { type: 'number', description: 'Durée en minutes' },
+              /** Les bornes se disent dans la description : le schéma de sortie
+               * n'accepte ni `minimum` ni `maximum`. Zod les vérifie au retour. */
+              rpeEstimate: { type: 'integer', description: 'Effort perçu, de 1 à 10' },
               intensityProfile: { type: 'string', enum: Object.values(IntensityProfile) },
               label: { type: 'string', description: 'Ce que l’athlète a écrit, en clair' },
             },

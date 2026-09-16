@@ -71,8 +71,9 @@ export function createRaceSearcher(): RaceSearcher {
           max_tokens: 8000,
           system: SYSTEM,
           thinking: { type: 'adaptive' },
+          /** Lire quelques pages et recopier six champs ne demande pas de réflexion longue. */
           tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: MAX_WEB_SEARCHES }],
-          output_config: { format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
+          output_config: { effort: 'low', format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
           messages: [{ role: 'user', content: `Course recherchée : ${query}` }],
         }),
       )

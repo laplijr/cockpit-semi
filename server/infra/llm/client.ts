@@ -1,7 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-/** Modèle par défaut du § 2. Le volume est de quelques appels par semaine. */
-export const LLM_MODEL = 'claude-opus-5'
+/**
+ * Modèles par usage (§ 2). Ni traduire un texte libre en événements, ni lire
+ * une page d'organisateur ne demandent le modèle le plus capable : Sonnet 5
+ * les fait en quelques secondes là où Opus 5 en effort haut mettait deux
+ * minutes sur la recherche de course. Les deux gardent l'outil web récent et
+ * la sortie JSON stricte, que Haiku 4.5 ne sait pas prendre.
+ */
+export const LLM_MODEL = 'claude-sonnet-5'
 
 let client: Anthropic | undefined
 
@@ -51,6 +57,8 @@ export async function callLlm<T>(call: () => Promise<T>): Promise<T> {
       throw createError({ statusCode: 503, statusMessage: 'Modèle injoignable.' })
     }
     if (error instanceof Anthropic.APIError) {
+      /** Le détail n'a pas sa place à l'écran, mais il doit rester lisible côté serveur. */
+      console.error('Appel au modèle refusé', error.status, error.message)
       throw createError({ statusCode: 502, statusMessage: `Erreur du modèle (${error.status}).` })
     }
     throw error

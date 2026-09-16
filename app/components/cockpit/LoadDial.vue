@@ -1,11 +1,21 @@
 <script setup lang="ts">
 const { data } = await useFetch('/api/load')
 
-const sports = [
+const SPORTS = [
   { key: 'course', label: 'Course' },
   { key: 'velo', label: 'Vélo' },
   { key: 'muscu', label: 'Muscu' },
+  { key: 'autre', label: 'Autre' },
 ] as const
+
+/**
+ * « Autre » ne s'affiche que lorsqu'un imprévu en a produit : le cadran ne
+ * porte pas une colonne vide toute l'année, mais la charge affichée ne peut
+ * pas être inférieure à celle que compte le ratio (§ 8).
+ */
+const sports = computed(() =>
+  SPORTS.filter((sport) => sport.key !== 'autre' || (data.value?.weekBySport.autre ?? 0) > 0),
+)
 
 const missingDays = computed(() => Math.max(0, 28 - (data.value?.historyDays ?? 0)))
 </script>

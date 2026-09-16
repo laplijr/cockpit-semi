@@ -82,6 +82,9 @@ async function search() {
     <p class="text-[12px] text-text-muted">
       Seul le nom tapé quitte le serveur. Chaque valeur trouvée reste modifiable à droite.
     </p>
+    <p v-if="pending" class="text-[12px] text-text-muted">
+      La recherche lit plusieurs sources : compte jusqu'à deux minutes.
+    </p>
 
     <div v-if="fields" class="flex flex-col gap-2 border-t border-line-soft pt-3">
       <div
