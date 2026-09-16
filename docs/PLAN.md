@@ -30,13 +30,13 @@ P1 — Courses, forme, plan
 - [x] `server/domain/fitness` : VDOT depuis (distance, temps), allures E/M/T/I, projection sur une distance, plancher depuis une course non représentative (§ 5). Tests sur la table Daniels : VDOT 44 → semi 1:42:17 ± 5 s, VDOT 45,4 → ≈ 1:39:35, 1:38:00 → 4:39/km.
 - [x] `server/domain/running` : les 9 types de séances de la bibliothèque (§ 8) avec structure par défaut, quota, phases autorisées, RPE attendu ; fonction `prescription(type, vdot, semaine)`. Tests des quotas (I ≤ 8 %, T ≤ 10 %, SL ≤ 30 %).
 - [x] `server/domain/plan` : rétro-planning des phases depuis la course A, mini-cycle B, cycle 5 km, blocs 4 semaines avec semaine allégée, génération de la semaine type depuis les contraintes de `athlete`, pause en cours → reprise 60/80/100 %. Tests : Paris A + Madrid B + 5 km A → 3 cycles sans collision ; semaine 4 allégée à −30 % ; SL ≤ 30 %.
-- [ ] `server/application` + `server/api` : CRUD courses, résultat de course avec segments, génération et lecture du plan actif (`plan_version`, `phase`, `week`, `session` en base).
-- [ ] Seed § 0 (script `pnpm db:seed`) : athlete, semi du 13 sept. (2:26:00, 21,5 km, 3 segments, non représentatif), Paris (A, mars 2027, objectif à fixer), Madrid (B, avril 2027), 5 km Île d'Arz (A, 8 août 2027, performance_max), pause active « ongle de pied cassé » ouverte le 16 sept. (course interdite, muscu haut du corps ok, vélo et muscu jambes si indolore), puis reprise surveillée de 3 semaines avec zone « genou droit, face postérieure » à surveiller.
-- [ ] UI Courses : table (nom, date, distance, priorité, objectif ou « à fixer », projection, écart, statut) + frise de périodisation ; fenêtre Nouvelle course en saisie manuelle (la recherche automatique attend P5).
-- [ ] UI Profil : onboarding `athlete` (poids, FCmax, jours, contraintes) + déclaration de la blessure en cours.
-- [ ] UI Semaine : bloc de 4 semaines, une ligne par semaine, cellules par jour (lecture seule en P1).
-- [ ] UI Course à pied : bibliothèque des 9 séances avec allures du VDOT courant.
-- [ ] UI Cockpit v1 : cadran course A, cadran VDOT (plancher affiché comme tel), panneau « Aujourd'hui » avec la séance prévue ou l'état de pause (jour n, activités autorisées, bouton « Marquer la reprise »), bande semaine, frise cap. Les autres cadrans restent en stub jusqu'à P2/P3.
+- [x] `server/application` + `server/api` : CRUD courses, résultat de course avec segments, génération et lecture du plan actif (`plan_version`, `phase`, `week`, `session` en base).
+- [x] Seed § 0 (script `pnpm db:seed`) : athlete, semi du 13 sept. (2:26:00, 21,5 km, 3 segments, non représentatif), Paris (A, mars 2027, objectif à fixer), Madrid (B, avril 2027), 5 km Île d'Arz (A, 8 août 2027, performance_max), pause active « ongle de pied cassé » ouverte le 16 sept. (course interdite, muscu haut du corps ok, vélo et muscu jambes si indolore), puis reprise surveillée de 3 semaines avec zone « genou droit, face postérieure » à surveiller.
+- [x] UI Courses : table (nom, date, distance, priorité, objectif ou « à fixer », projection, écart, statut) + frise de périodisation ; fenêtre Nouvelle course en saisie manuelle (la recherche automatique attend P5).
+- [x] UI Profil : onboarding `athlete` (poids, FCmax, jours, contraintes) + déclaration de la blessure en cours.
+- [x] UI Semaine : bloc de 4 semaines, une ligne par semaine, cellules par jour (lecture seule en P1).
+- [x] UI Course à pied : bibliothèque des 9 séances avec allures du VDOT courant.
+- [x] UI Cockpit v1 : cadran course A, cadran VDOT (plancher affiché comme tel), panneau « Aujourd'hui » avec la séance prévue ou l'état de pause (jour n, activités autorisées, bouton « Marquer la reprise »), bande semaine, frise cap. Les autres cadrans restent en stub jusqu'à P2/P3.
 - [ ] Fini : tests domaine verts, parcours « onboarding → courses → plan généré → cockpit affiche la séance du jour » vérifié, commit « P1 — courses, forme, plan ».
 
 P2 → P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.

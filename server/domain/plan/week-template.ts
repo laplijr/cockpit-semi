@@ -12,6 +12,9 @@ import { addDays } from './calendar'
 import { PhaseType } from './phases'
 import type { PlanWeek } from './weeks'
 
+/** Nombre maximal de séances d'éducatifs dans une semaine. */
+export const MAX_STRIDES_PER_WEEK = 2
+
 /** Séances clés appelées par chaque phase, dans l'ordre de priorité. */
 const KEY_SESSIONS: Record<PhaseType, RunSessionCode[]> = {
   [PhaseType.Base]: [RunSessionCode.LongRun, RunSessionCode.Progressive],
@@ -97,15 +100,20 @@ export function buildWeekTemplate({
   }
   hardDays.forEach((day, index) => assignments.set(day, otherKeys[index]!))
 
-  const filler = allowed(RunSessionCode.Strides) ? RunSessionCode.Strides : RunSessionCode.Endurance
+  // Les éducatifs ponctuent la semaine, ils ne la remplissent pas.
+  let stridesLeft = allowed(RunSessionCode.Strides) ? MAX_STRIDES_PER_WEEK : 0
 
-  const codes = available.map((weekday) => ({
-    weekday,
-    code:
-      assignments.get(weekday) ??
-      (easyDays.has(weekday) || !allowed(filler) ? RunSessionCode.Endurance : filler),
-    key: assignments.has(weekday),
-  }))
+  const codes = available.map((weekday) => {
+    const assigned = assignments.get(weekday)
+    if (assigned) return { weekday, code: assigned, key: true }
+
+    if (!easyDays.has(weekday) && stridesLeft > 0) {
+      stridesLeft -= 1
+      return { weekday, code: RunSessionCode.Strides, key: false }
+    }
+
+    return { weekday, code: RunSessionCode.Endurance, key: false }
+  })
 
   // Les séances clés prennent leur part réglée par les quotas ; le reste du
   // volume de la semaine se répartit également sur les séances faciles.

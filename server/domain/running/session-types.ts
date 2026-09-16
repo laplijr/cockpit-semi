@@ -342,7 +342,7 @@ function buildSteps(
         {
           label: 'Allure semi',
           intense: true,
-          distanceM: Math.round(weeklyVolumeM * 0.2) - WARMUP_M - COOLDOWN_M,
+          distanceM: Math.max(2000, Math.round(weeklyVolumeM * 0.2) - WARMUP_M - COOLDOWN_M),
           paceSecPerKm: paceFor(vdot, TrainingZone.Marathon),
         },
         cooldown,
