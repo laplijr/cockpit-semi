@@ -4,6 +4,7 @@ import {
   TrainingZone,
   paceFor,
   paceRangeFor,
+  halfMarathonPace,
   raceTimeForVdot,
   vdotFromRace,
 } from '~~/server/domain/fitness/vdot'
@@ -86,5 +87,61 @@ describe('allures d’entraînement', () => {
   it('renvoie une fourchette dont la borne lente est plus lente que la rapide', () => {
     const easy = paceRangeFor(45.4, TrainingZone.Easy)
     expect(easy.slowSecPerKm).toBeGreaterThan(easy.fastSecPerKm)
+  })
+})
+
+describe('table Daniels autour du plancher (§ 5)', () => {
+  const cases = [
+    {
+      vdot: 30,
+      fiveK: '30:41',
+      half: '2:21:17',
+      easy: '7:39',
+      threshold: '6:24',
+      interval: '5:54',
+    },
+    {
+      vdot: 35,
+      fiveK: '26:59',
+      half: '2:04:13',
+      easy: '6:48',
+      threshold: '5:40',
+      interval: '5:13',
+    },
+  ]
+
+  const toSeconds = (text: string) =>
+    text.split(':').reduce((total, part) => total * 60 + Number(part), 0)
+
+  for (const expected of cases) {
+    it(`reproduit la ligne VDOT ${expected.vdot} à 2 s près`, () => {
+      const within = (actual: number, target: string) =>
+        expect(Math.abs(actual - toSeconds(target))).toBeLessThanOrEqual(2)
+
+      within(raceTimeForVdot(expected.vdot, RACE_DISTANCES_M.fiveK), expected.fiveK)
+      within(raceTimeForVdot(expected.vdot, RACE_DISTANCES_M.halfMarathon), expected.half)
+      within(paceFor(expected.vdot, TrainingZone.Easy), expected.easy)
+      within(paceFor(expected.vdot, TrainingZone.Threshold), expected.threshold)
+      within(paceFor(expected.vdot, TrainingZone.Interval), expected.interval)
+    })
+  }
+})
+
+describe('allure semi', () => {
+  it('dérive de la projection, pas de la zone marathon', () => {
+    expect(halfMarathonPace(45.4)).toBeCloseTo(
+      raceTimeForVdot(45.4, RACE_DISTANCES_M.halfMarathon) / 21.0975,
+      6,
+    )
+  })
+
+  it('vaut environ 6:10/km au plancher VDOT 33, à 2 s près', () => {
+    expect(Math.abs(halfMarathonPace(33) - (6 * 60 + 10))).toBeLessThanOrEqual(2)
+  })
+
+  it('se situe entre l’allure marathon et le seuil', () => {
+    const half = halfMarathonPace(33)
+    expect(half).toBeLessThan(paceFor(33, TrainingZone.Marathon))
+    expect(half).toBeGreaterThan(paceFor(33, TrainingZone.Threshold))
   })
 })

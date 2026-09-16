@@ -6,7 +6,11 @@ import type {
   PlanGateway,
   PlanParameters,
 } from '../../application/ports'
-import { DEFAULT_CONSTRAINTS } from '../../domain/athlete/constraints'
+import {
+  DEFAULT_CONSTRAINTS,
+  DEFAULT_PEAK_VOLUME_M,
+  DEFAULT_START_VOLUME_M,
+} from '../../domain/athlete/constraints'
 import type { GeneratedPlan } from '../../domain/plan/generate'
 import type { PlannedRace } from '../../domain/plan/periodization'
 import type { PlanTrigger } from '../../domain/plan/session'
@@ -20,7 +24,12 @@ export function createPlanGateway(db: Database): PlanGateway {
     async loadAthlete(): Promise<AthleteSnapshot | undefined> {
       const [row] = await db.select().from(athlete).limit(1)
       if (!row) return undefined
-      return { constraints: row.constraints ?? DEFAULT_CONSTRAINTS, onboarded: row.onboarded }
+      return {
+        constraints: row.constraints ?? DEFAULT_CONSTRAINTS,
+        startWeeklyVolumeM: row.startWeeklyVolumeM ?? DEFAULT_START_VOLUME_M,
+        peakWeeklyVolumeM: row.peakWeeklyVolumeM ?? DEFAULT_PEAK_VOLUME_M,
+        onboarded: row.onboarded,
+      }
     },
 
     async loadRaces(): Promise<PlannedRace[]> {
@@ -103,6 +112,8 @@ export function createPlanGateway(db: Database): PlanGateway {
             longRunMaxM: generated.longRunMaxM,
             light: generated.light,
             comebackRatio: generated.comebackRatio ?? null,
+            phaseProgress: generated.phaseProgress,
+            test: generated.test,
           })
           .returning({ id: week.id })
 

@@ -32,6 +32,8 @@ export interface PlanWeekRow {
   longRunMaxM: number
   light: boolean
   comebackRatio: number | null
+  phaseProgress: number
+  test: boolean
 }
 
 export interface PlanPhaseRow {
@@ -43,7 +45,12 @@ export interface PlanPhaseRow {
 }
 
 export interface ActivePlan {
-  version: { id: number; startDate: string; trigger: string; parameters: Record<string, unknown> }
+  version: {
+    id: number
+    startDate: string | null
+    trigger: string
+    parameters: Record<string, unknown>
+  }
   phases: PlanPhaseRow[]
   weeks: PlanWeekRow[]
   sessions: PlanSession[]
@@ -102,6 +109,11 @@ export const usePlanStore = defineStore('plan', () => {
   /** Zones à surveiller héritées de la dernière pause, même refermée (§ 0). */
   const lastWatchZones = computed(() => payload.value?.watchZones ?? [])
 
+  /** Pause ouverte sans date de reprise : le plan existe mais n'est pas daté (§ 5). */
+  const awaitingResumption = computed(
+    () => Boolean(pause.value) && plan.value?.version.startDate === null,
+  )
+
   const currentWeek = computed(() =>
     plan.value?.weeks.find((week) => week.startDate <= today.value && today.value <= week.endDate),
   )
@@ -115,6 +127,11 @@ export const usePlanStore = defineStore('plan', () => {
     }
     return map
   })
+
+  /** Prochaine semaine portant un test 20′, pour le cadran VDOT (§ 5). */
+  const nextTestWeek = computed(() =>
+    plan.value?.weeks.find((week) => week.test && week.endDate >= today.value),
+  )
 
   const tomorrowSessions = computed(() => {
     if (!today.value) return []
@@ -134,6 +151,8 @@ export const usePlanStore = defineStore('plan', () => {
     lastWatchZones,
     tomorrowSessions,
     currentWeek,
+    awaitingResumption,
+    nextTestWeek,
     sessionsByWeek,
   }
 })

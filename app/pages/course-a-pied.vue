@@ -13,6 +13,34 @@ const { data } = await useFetch('/api/library/running')
           {{ formatDistance(data?.weeklyVolumeM ?? 0) }} cette semaine
         </span>
       </div>
+      <table class="w-full text-[13px]">
+        <thead>
+          <tr class="text-left">
+            <th
+              v-for="head in ['Zone', 'Allure', 'Plage']"
+              :key="head"
+              class="label pb-2 text-[10px]"
+            >
+              {{ head }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="zone in data?.zones ?? []" :key="zone.key" class="border-t border-line-soft">
+            <td class="py-[6px]">{{ zone.label }}</td>
+            <td class="mono py-[6px]">{{ formatPace(zone.paceSecPerKm) }}/km</td>
+            <td class="mono py-[6px] text-text-muted">
+              {{ formatPace(zone.range.fastSecPerKm) }} – {{ formatPace(zone.range.slowSecPerKm) }}
+            </td>
+          </tr>
+          <tr class="border-t border-line-soft">
+            <td class="py-[6px]">Allure semi</td>
+            <td class="mono py-[6px]">{{ formatPace(data?.halfPaceSecPerKm) }}/km</td>
+            <td class="mono py-[6px] text-text-muted">projection sur 21,1 km</td>
+          </tr>
+        </tbody>
+      </table>
+
       <p v-if="data?.vdotIsFloor" class="text-[13px] text-text-muted">
         Ces allures viennent d'une estimation basse. Elles seront revues à la hausse dès le premier
         test 20′.

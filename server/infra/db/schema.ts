@@ -76,6 +76,10 @@ export const athlete = pgTable('athlete', {
     .$type<AthleteConstraints>()
     .notNull()
     .default({ availableDays: [] }),
+  /** Volume de course de la première semaine pleine, en mètres (§ 5). */
+  startWeeklyVolumeM: integer('start_weekly_volume_m'),
+  /** Volume hebdomadaire maximal visé sur un cycle, en mètres (§ 5). */
+  peakWeeklyVolumeM: integer('peak_weekly_volume_m'),
   onboarded: boolean('onboarded').notNull().default(false),
   notes: text('notes'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -158,7 +162,8 @@ export const planVersion = pgTable('plan_version', {
   trigger: planTriggerEnum('trigger').notNull(),
   /** Paramètres de génération, rejouables : date de départ, volume de base, VDOT. */
   parameters: jsonb('parameters').$type<Record<string, unknown>>().notNull().default({}),
-  startDate: date('start_date').notNull(),
+  /** Nul tant qu'une pause ouverte n'a pas de date de reprise estimée (§ 5). */
+  startDate: date('start_date'),
 })
 
 export const phase = pgTable('phase', {
@@ -190,6 +195,10 @@ export const week = pgTable(
     longRunMaxM: integer('long_run_max_m').notNull(),
     light: boolean('light').notNull().default(false),
     comebackRatio: real('comeback_ratio'),
+    /** Position dans la phase, de 0 à 1 : pilote la progression des séances clés. */
+    phaseProgress: real('phase_progress').notNull().default(0),
+    /** La séance clé du milieu de semaine est un test 20′. */
+    test: boolean('test').notNull().default(false),
   },
   (table) => [unique('week_plan_index').on(table.planVersionId, table.index)],
 )

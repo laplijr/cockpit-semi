@@ -1,3 +1,6 @@
+import type { AthleteConstraints } from '../athlete/constraints'
+import { MONDAY } from '../athlete/constraints'
+import { TrainingZone, paceFor } from '../fitness/vdot'
 import type { Prescription, PrescriptionContext } from '../running/session-types'
 import {
   RunSessionCode,
@@ -5,26 +8,43 @@ import {
   isAllowedInPhase,
   prescription,
 } from '../running/session-types'
-import type { AthleteConstraints } from '../athlete/constraints'
-import { MONDAY } from '../athlete/constraints'
 import type { IsoDate } from './calendar'
 import { addDays } from './calendar'
 import { PhaseType } from './phases'
 import type { PlanWeek } from './weeks'
 
-/** Nombre maximal de séances d'éducatifs dans une semaine. */
+/** Nombre maximal de séances d'éducatifs dans une semaine (§ 5). */
 export const MAX_STRIDES_PER_WEEK = 2
 
-/** Séances clés appelées par chaque phase, dans l'ordre de priorité. */
-const KEY_SESSIONS: Record<PhaseType, RunSessionCode[]> = {
-  [PhaseType.Base]: [RunSessionCode.LongRun, RunSessionCode.Progressive],
-  [PhaseType.ShortBase]: [RunSessionCode.LongRun, RunSessionCode.Hills],
-  [PhaseType.Development]: [RunSessionCode.LongRun, RunSessionCode.Vma, RunSessionCode.Threshold],
-  [PhaseType.Specific]: [RunSessionCode.LongRun, RunSessionCode.Threshold, RunSessionCode.HalfPace],
-  [PhaseType.Speed]: [RunSessionCode.LongRun, RunSessionCode.Vma, RunSessionCode.Hills],
+/** Dans un cycle 5 km, la sortie longue est bornée en durée, pas en distance (§ 5). */
+export const SHORT_CYCLE_LONG_RUN_MAX_MIN = 75
+
+/**
+ * Nombre de séances clés par phase, sortie longue comprise (§ 5).
+ * Base et développement en portent deux, spécifique et vitesse trois.
+ */
+const KEY_COUNT: Record<PhaseType, number> = {
+  [PhaseType.Base]: 2,
+  [PhaseType.ShortBase]: 2,
+  [PhaseType.Development]: 2,
+  [PhaseType.Specific]: 3,
+  [PhaseType.Speed]: 3,
+  [PhaseType.Rebuild]: 2,
+  [PhaseType.Taper]: 1,
+  [PhaseType.Recovery]: 0,
+  [PhaseType.Transition]: 0,
+}
+
+/** Séances clés candidates par phase, hors sortie longue, par ordre de priorité. */
+const KEY_CANDIDATES: Record<PhaseType, RunSessionCode[]> = {
+  [PhaseType.Base]: [RunSessionCode.Progressive, RunSessionCode.Hills],
+  [PhaseType.ShortBase]: [RunSessionCode.Hills, RunSessionCode.Progressive],
+  [PhaseType.Development]: [RunSessionCode.Vma, RunSessionCode.Threshold],
+  [PhaseType.Specific]: [RunSessionCode.Threshold, RunSessionCode.HalfPace],
+  [PhaseType.Speed]: [RunSessionCode.Vma, RunSessionCode.Hills],
+  [PhaseType.Rebuild]: [RunSessionCode.Threshold],
   [PhaseType.Taper]: [RunSessionCode.Threshold],
   [PhaseType.Recovery]: [],
-  [PhaseType.Rebuild]: [RunSessionCode.LongRun, RunSessionCode.Threshold],
   [PhaseType.Transition]: [],
 }
 
@@ -40,6 +60,10 @@ export interface WeekTemplateInput {
   week: PlanWeek
   constraints: AthleteConstraints
   vdot: number
+  /** Jours sans séance : jour de course, lendemain d'une course A (§ 5). */
+  blockedDates?: IsoDate[]
+  /** Vrai dans un cycle 5 km : la sortie longue passe alors en durée. */
+  shortCycle?: boolean
 }
 
 function dayOfWeek(week: PlanWeek, weekday: number): IsoDate {
@@ -66,28 +90,47 @@ function spreadKeyDays(candidates: number[], count: number): number[] {
 /**
  * Semaine type : place les séances clés de la phase sur les jours disponibles,
  * puis comble le reste en endurance. Le lundi reste facile, la sortie longue
- * garde son jour, et la reprise limite les types autorisés.
+ * garde son jour, la reprise limite les types autorisés et les jours de course
+ * ne portent rien.
  */
 export function buildWeekTemplate({
   week,
   constraints,
   vdot,
+  blockedDates = [],
+  shortCycle = false,
 }: WeekTemplateInput): PlannedSession[] {
-  const available = [...constraints.availableDays].sort((a, b) => a - b)
+  const blocked = new Set(blockedDates)
+  const available = [...constraints.availableDays]
+    .sort((a, b) => a - b)
+    .filter((weekday) => !blocked.has(dayOfWeek(week, weekday)))
+
   if (available.length === 0) return []
 
   const easyDays = new Set(constraints.easyDays ?? [MONDAY])
   const longRunDay = constraints.longRunDay ?? available.at(-1)!
-  const context: PrescriptionContext = { vdot, weeklyVolumeM: week.targetRunM }
+  const context: PrescriptionContext = {
+    vdot,
+    weeklyVolumeM: week.targetRunM,
+    phaseProgress: week.phaseProgress,
+  }
 
   const allowed = (code: RunSessionCode) =>
     isAllowedInPhase(code, week.phaseType) &&
     (week.allowedCodes === undefined || week.allowedCodes.includes(code)) &&
-    fitsInWeek(code, vdot, week.targetRunM)
+    fitsInWeek(code, vdot, week.targetRunM, week.phaseProgress)
 
-  const keyCodes = KEY_SESSIONS[week.phaseType].filter(allowed)
-  const wantsLongRun = keyCodes.includes(RunSessionCode.LongRun)
-  const otherKeys = keyCodes.filter((code) => code !== RunSessionCode.LongRun)
+  const keyBudget = KEY_COUNT[week.phaseType]
+  const wantsLongRun = keyBudget > 0 && allowed(RunSessionCode.LongRun)
+  const otherKeyBudget = Math.max(0, keyBudget - (wantsLongRun ? 1 : 0))
+
+  const otherKeys = KEY_CANDIDATES[week.phaseType].filter(allowed).slice(0, otherKeyBudget)
+
+  // Le test 20′ prend la place de la séance clé du milieu de semaine (§ 5).
+  if (week.test && otherKeyBudget > 0) {
+    if (otherKeys.length > 0) otherKeys[0] = RunSessionCode.Test
+    else otherKeys.push(RunSessionCode.Test)
+  }
 
   const hardCandidates = available.filter(
     (day) => !easyDays.has(day) && (!wantsLongRun || day !== longRunDay),
@@ -120,7 +163,10 @@ export function buildWeekTemplate({
   const keyPrescriptions = new Map(
     codes
       .filter((entry) => entry.key)
-      .map((entry) => [entry.weekday, prescription(entry.code, context)] as const),
+      .map(
+        (entry) =>
+          [entry.weekday, prescribeKey(entry.code, context, shortCycle, vdot, week)] as const,
+      ),
   )
   const keyVolume = [...keyPrescriptions.values()].reduce(
     (total, item) => total + item.totalDistanceM,
@@ -138,4 +184,21 @@ export function buildWeekTemplate({
       keyPrescriptions.get(entry.weekday) ??
       prescription(entry.code, { ...context, targetDistanceM: Math.round(easyShare) }),
   }))
+}
+
+function prescribeKey(
+  code: RunSessionCode,
+  context: PrescriptionContext,
+  shortCycle: boolean,
+  vdot: number,
+  week: PlanWeek,
+): Prescription {
+  if (code !== RunSessionCode.LongRun || !shortCycle) return prescription(code, context)
+
+  // Cycle 5 km : la sortie longue est bornée à 75′ à l'allure E (§ 5).
+  const cap = (SHORT_CYCLE_LONG_RUN_MAX_MIN * 60 * 1000) / paceFor(vdot, TrainingZone.Easy)
+  return prescription(code, {
+    ...context,
+    targetDistanceM: Math.min(week.longRunMaxM, Math.round(cap)),
+  })
 }

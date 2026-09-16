@@ -38,6 +38,9 @@ const form = reactive({
   notes: '',
 })
 
+const isTest = computed(() => props.session.code === 'test')
+const testDistanceM = ref<number | null>(null)
+
 const saving = ref(false)
 const error = ref('')
 
@@ -51,6 +54,13 @@ async function save() {
   saving.value = true
   error.value = ''
   try {
+    if (isTest.value && testDistanceM.value) {
+      await $fetch('/api/tests', {
+        method: 'POST',
+        body: { date: props.session.date, distanceM: testDistanceM.value },
+      })
+    }
+
     await $fetch(`/api/sessions/${props.session.id}/feedback`, {
       method: 'PUT',
       body: {
@@ -80,6 +90,15 @@ async function save() {
         {{ formatDistance(session.prescription.totalDistanceM) }} · {{ plannedMinutes }} min · RPE
         {{ session.prescription.expectedRpe }}
       </span>
+    </div>
+
+    <div v-if="isTest" class="tile" style="border-color: rgba(242, 162, 58, 0.35)">
+      <span class="label text-[10.5px]">Distance couverte en 20 minutes (m)</span>
+      <input v-model.number="testDistanceM" type="number" class="input mono" placeholder="4000" />
+      <p class="text-[12px] text-text-muted">
+        Cette distance devient ton VDOT courant et régénère le plan. Laisse vide si le test n'a pas
+        été fait dans les conditions prévues.
+      </p>
     </div>
 
     <div class="grid grid-cols-2 gap-3">

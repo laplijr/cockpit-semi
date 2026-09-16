@@ -112,53 +112,49 @@ describe('périodisation des trois courses du § 0', () => {
 
 describe('semaines générées', () => {
   const phases = buildPhases(REPRISE, ALL_RACES)
-  const weeks = buildWeeks({ startDate: REPRISE, phases, baseWeeklyVolumeM: 25_000 })
+  const weeks = buildWeeks({
+    startDate: REPRISE,
+    phases,
+    baseWeeklyVolumeM: 20_000,
+    peakWeeklyVolumeM: 45_000,
+  })
 
   it('commence le lundi de la semaine de reprise', () => {
     expect(weeks[0]!.startDate).toBe('2026-10-05')
     expect(weeks[0]!.endDate).toBe('2026-10-11')
   })
 
-  it('applique la reprise surveillée 60 / 80 / 100 % sur trois semaines', () => {
+  it('applique la reprise 60 / 80 / 100 % à un volume de départ fixe', () => {
     expect(weeks.slice(0, 3).map((week) => week.comebackRatio)).toEqual([0.6, 0.8, 1])
+    expect(weeks.slice(0, 3).map((week) => week.targetRunM)).toEqual([12_000, 16_000, 20_000])
     expect(weeks[3]!.comebackRatio).toBeUndefined()
   })
 
-  it('n’autorise que l’endurance la première semaine et pas de VMA avant la semaine 3', () => {
-    expect(weeks[0]!.allowedCodes).toEqual(['EF'])
-    expect(weeks[1]!.allowedCodes).not.toContain('VMA')
-    expect(weeks[2]!.allowedCodes).not.toContain('VMA')
-    expect(weeks[3]!.allowedCodes).toBeUndefined()
+  it('gèle la progression de bloc pendant la reprise : aucune semaine allégée avant la 4e', () => {
+    expect(weeks.slice(0, 3).every((week) => !week.light)).toBe(true)
   })
 
-  it('allège la quatrième semaine de chaque bloc de 30 %', () => {
-    expect(weeks[3]!.light).toBe(true)
-    expect(weeks[7]!.light).toBe(true)
-    expect(weeks[4]!.light).toBe(false)
-
-    const rampTop = weeks[6]!.targetRunM
-    expect(weeks[7]!.targetRunM).toBeCloseTo(rampTop * 0.7, -2)
-  })
-
-  it('ne dépasse jamais +10 % d’une semaine à l’autre en montée', () => {
+  it('ne monte jamais de plus de 10 % d’une semaine à l’autre après la semaine 1', () => {
     for (let i = 1; i < weeks.length; i++) {
       const previous = weeks[i - 1]!
       const current = weeks[i]!
-      if (current.light || previous.light || current.comebackRatio || previous.comebackRatio)
-        continue
+      // La reprise suit ses propres ratios 60 / 80 / 100, pas la montée de bloc.
+      if (current.comebackRatio || previous.comebackRatio) continue
+      if (current.light || previous.light) continue
       if (current.phaseType !== previous.phaseType) continue
       expect(current.targetRunM).toBeLessThanOrEqual(previous.targetRunM * 1.1 + 1)
     }
   })
 
-  it('plafonne le volume : la progression de +10 % ne compose pas indéfiniment', () => {
-    const capped = buildWeeks({
-      startDate: REPRISE,
-      phases,
-      baseWeeklyVolumeM: 25_000,
-      peakWeeklyVolumeM: 55_000,
-    })
-    expect(Math.max(...capped.map((week) => week.targetRunM))).toBeLessThanOrEqual(55_000)
+  it('n’autorise que l’endurance la première semaine et pas de lignes droites avant la 3e', () => {
+    expect(weeks[0]!.allowedCodes).toEqual(['EF'])
+    expect(weeks[1]!.allowedCodes).not.toContain('droites')
+    expect(weeks[2]!.allowedCodes).toContain('droites')
+    expect(weeks[3]!.allowedCodes).toBeUndefined()
+  })
+
+  it('plafonne le volume au pic', () => {
+    expect(Math.max(...weeks.map((week) => week.targetRunM))).toBeLessThanOrEqual(45_000)
   })
 
   it('borne la sortie longue à 30 % du volume de la semaine', () => {
@@ -167,9 +163,39 @@ describe('semaines générées', () => {
     }
   })
 
-  it('réduit le volume en affûtage et en récupération', () => {
-    const taper = weeks.find((week) => week.phaseType === PhaseType.Taper)!
-    const specific = weeks.filter((week) => week.phaseType === PhaseType.Specific).at(-1)!
-    expect(taper.targetRunM).toBeLessThan(specific.targetRunM)
+  it('fait décroître l’affûtage de Paris, jamais croître', () => {
+    const taper = weeks.filter(
+      (week) => week.raceId === PARIS.id && week.phaseType === PhaseType.Taper,
+    )
+    expect(taper).toHaveLength(2)
+    expect(taper[1]!.targetRunM).toBeLessThan(taper[0]!.targetRunM)
+  })
+
+  it('sort l’affûtage, la récup et la relance du rythme de bloc', () => {
+    const outOfBlock = weeks.filter((week) =>
+      [PhaseType.Taper, PhaseType.Recovery, PhaseType.Rebuild].includes(week.phaseType),
+    )
+    expect(outOfBlock.every((week) => !week.light)).toBe(true)
+  })
+
+  it('place un test 20′ en semaine 4, puis pas avant six semaines', () => {
+    expect(weeks[3]!.test).toBe(true)
+    const testWeeks = weeks.filter((week) => week.test).map((week) => week.index)
+    for (let i = 1; i < testWeeks.length; i++) {
+      expect(testWeeks[i]! - testWeeks[i - 1]!).toBeGreaterThanOrEqual(6)
+    }
+  })
+
+  it('ne place jamais de test en affûtage ni en récupération', () => {
+    for (const week of weeks.filter((item) => item.test)) {
+      expect([PhaseType.Taper, PhaseType.Recovery]).not.toContain(week.phaseType)
+    }
+  })
+
+  it('donne à chaque semaine sa position dans la phase, de 0 à 1', () => {
+    for (const week of weeks) {
+      expect(week.phaseProgress).toBeGreaterThanOrEqual(0)
+      expect(week.phaseProgress).toBeLessThanOrEqual(1)
+    }
   })
 })

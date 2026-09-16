@@ -27,7 +27,12 @@ const PARIS = {
 }
 
 const phases = buildPhases('2026-10-05', [PARIS])
-const weeks = buildWeeks({ startDate: '2026-10-05', phases, baseWeeklyVolumeM: 25_000 })
+const weeks = buildWeeks({
+  startDate: '2026-10-05',
+  phases,
+  baseWeeklyVolumeM: 20_000,
+  peakWeeklyVolumeM: 45_000,
+})
 const weekIn = (phase: PhaseType) => weeks.find((week) => week.phaseType === phase && !week.light)!
 
 describe('semaine type', () => {

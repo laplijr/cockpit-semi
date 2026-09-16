@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { halfMarathonPace } from '~~/server/domain/fitness/vdot'
 import { PhaseType } from '~~/server/domain/plan/phases'
 import {
   QuotaBasis,
@@ -107,5 +108,67 @@ describe('prescription', () => {
     const steps = prescription(RunSessionCode.Progressive, context).steps
     expect(steps[1]!.paceSecPerKm!).toBeLessThan(steps[0]!.paceSecPerKm!)
     expect(steps[2]!.paceSecPerKm!).toBeLessThan(steps[1]!.paceSecPerKm!)
+  })
+})
+
+describe('progression des séances clés dans la phase (§ 5)', () => {
+  const at = (code: RunSessionCode, phaseProgress: number) =>
+    prescription(code, { vdot: 40, weeklyVolumeM: 55_000, phaseProgress })
+
+  it('fait croître strictement le volume de qualité de la VMA', () => {
+    const volumes = [0, 0.5, 1].map((progress) => at(RunSessionCode.Vma, progress).qualityDistanceM)
+    expect(volumes[1]!).toBeGreaterThan(volumes[0]!)
+    expect(volumes[2]!).toBeGreaterThan(volumes[1]!)
+  })
+
+  it('suit la séquence VMA 4×800 → 6×800 → 5×1000', () => {
+    const fractions = [0, 0.5, 1]
+      .map((progress) =>
+        at(RunSessionCode.Vma, progress).steps.find((s) => s.label === 'Fractions')!,
+      )
+      .map((step) => [step.repeats, step.distanceM])
+    expect(fractions).toEqual([
+      [4, 800],
+      [6, 800],
+      [5, 1000],
+    ])
+  })
+
+  it('suit la séquence seuil 2×8′ → 3×8′ → 20′ continu', () => {
+    const blocks = [0, 0.5, 1]
+      .map((progress) =>
+        at(RunSessionCode.Threshold, progress).steps.find((s) => s.label === 'Seuil')!,
+      )
+      .map((step) => [step.repeats, step.durationS])
+    expect(blocks).toEqual([
+      [2, 480],
+      [3, 480],
+      [1, 1200],
+    ])
+  })
+
+  it('atteint au moins 4 km de qualité au seuil sur une semaine à 55 km', () => {
+    const peak = Math.max(
+      ...[0, 0.5, 1].map((progress) => at(RunSessionCode.Threshold, progress).qualityDistanceM),
+    )
+    expect(peak).toBeGreaterThanOrEqual(4000)
+  })
+
+  it('fait croître le nombre de côtes de 6 à 10', () => {
+    const repeats = [0, 1].map(
+      (progress) => at(RunSessionCode.Hills, progress).steps.find((s) => s.intense)!.repeats,
+    )
+    expect(repeats).toEqual([6, 10])
+  })
+
+  it('prescrit les côtes à l’effort, sans allure', () => {
+    const hill = at(RunSessionCode.Hills, 0.5).steps.find((step) => step.intense)!
+    expect(hill.paceSecPerKm).toBeUndefined()
+    expect(hill.durationS).toBe(30)
+  })
+
+  it('tire l’allure semi de la projection et non de la zone marathon', () => {
+    const step = at(RunSessionCode.HalfPace, 0.5).steps.find((item) => item.intense)!
+    expect(step.paceSecPerKm).toBeCloseTo(halfMarathonPace(40), 6)
   })
 })

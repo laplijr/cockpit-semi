@@ -11,6 +11,8 @@ export interface Clock {
 
 export interface AthleteSnapshot {
   constraints: AthleteConstraints
+  startWeeklyVolumeM: number
+  peakWeeklyVolumeM: number
   onboarded: boolean
 }
 

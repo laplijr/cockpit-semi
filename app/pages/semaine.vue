@@ -52,7 +52,9 @@ function daysOf(week: { id: number; startDate: string }) {
       <div class="flex items-baseline gap-3">
         <span class="label">Semaine {{ week.index }}</span>
         <span class="mono text-[11.5px] text-text-muted">
-          {{ formatDate(week.startDate) }} – {{ formatDate(week.endDate) }} ·
+          <template v-if="!plan.awaitingResumption">
+            {{ formatDate(week.startDate) }} – {{ formatDate(week.endDate) }} ·
+          </template>
           {{ PHASE_LABELS[week.phaseType] ?? week.phaseType }} ·
           {{ formatDistance(week.targetRunM) }}
         </span>
@@ -85,7 +87,15 @@ function daysOf(week: { id: number; startDate: string }) {
       </div>
     </div>
 
-    <p v-if="block.length === 0" class="text-[13px] text-text-muted">
+    <div v-if="plan.awaitingResumption" class="tile border-dashed">
+      <span class="label">En attente de la reprise</span>
+      <p class="text-[13px] text-text-muted">
+        Les phases et les volumes sont calculés, mais les séances ne seront datées qu'une fois la
+        reprise marquée depuis le cockpit.
+      </p>
+    </div>
+
+    <p v-else-if="block.length === 0" class="text-[13px] text-text-muted">
       Aucun plan actif. Ajoute une course depuis Courses.
     </p>
   </div>

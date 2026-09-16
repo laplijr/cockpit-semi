@@ -55,6 +55,8 @@ async function seed() {
     id: 1,
     constraints: { availableDays: [1, 2, 3, 5, 6, 7], longRunDay: 7, easyDays: [1] },
     availableDays: [1, 2, 3, 5, 6, 7],
+    startWeeklyVolumeM: 20_000,
+    peakWeeklyVolumeM: 45_000,
     onboarded: false,
   })
 

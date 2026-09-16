@@ -18,4 +18,5 @@ export enum PlanTrigger {
   Pause = 'pause',
   Resume = 'reprise',
   ProposalAccepted = 'recalcul_accepte',
+  TestRecorded = 'test_enregistre',
 }

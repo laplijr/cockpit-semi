@@ -41,9 +41,7 @@ async function onResume() {
     <section class="grid grid-cols-4 gap-4">
       <CockpitRaceDial :race="raceA" :today="plan.today" />
       <CockpitVdotDial :vdot="vdot" :is-floor="vdotIsFloor" />
-      <UiPhaseStub phase="P2"
-        >Charge combinée : ratio 7 j / 21 j, avancement course, vélo, muscu.</UiPhaseStub
-      >
+      <CockpitLoadDial />
       <UiPhaseStub phase="P3">Forme du jour : état, causes, suggestion pour demain.</UiPhaseStub>
     </section>
 
@@ -54,10 +52,15 @@ async function onResume() {
           <span class="mono text-[11.5px] text-text-muted">{{ formatLongDate(plan.today) }}</span>
         </div>
 
-        <template v-if="plan.pause">
+        <template v-if="plan.awaitingResumption">
           <p class="text-[13px] text-text-dim">
-            Aucune séance de course tant que la pause est ouverte. Le plan ci-dessous est provisoire
-            et se recalera sur ta date de reprise.
+            Le plan est calculé — phases, volumes, cap — mais il n'est pas daté : les séances
+            apparaîtront quand tu marqueras la reprise.
+          </p>
+        </template>
+        <template v-else-if="plan.pause">
+          <p class="text-[13px] text-text-dim">
+            Aucune séance de course tant que la pause est ouverte.
           </p>
         </template>
         <template v-else-if="plan.todaySessions.length > 0">

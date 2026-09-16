@@ -18,6 +18,8 @@ const form = reactive({
   availableDays: [...(athlete.value?.constraints?.availableDays ?? [])],
   longRunDay: athlete.value?.constraints?.longRunDay ?? 7,
   easyDays: [...(athlete.value?.constraints?.easyDays ?? [1])],
+  startWeeklyVolumeM: athlete.value?.startWeeklyVolumeM ?? 20000,
+  peakWeeklyVolumeM: athlete.value?.peakWeeklyVolumeM ?? 45000,
 })
 
 const saving = ref(false)
@@ -40,6 +42,8 @@ async function save() {
       body: {
         weightKg: form.weightKg,
         maxHr: form.maxHr,
+        startWeeklyVolumeM: form.startWeeklyVolumeM,
+        peakWeeklyVolumeM: form.peakWeeklyVolumeM,
         constraints: {
           availableDays: [...form.availableDays].sort((a, b) => a - b),
           longRunDay: form.longRunDay,
@@ -80,6 +84,33 @@ async function logout() {
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">FC max (bpm)</span>
           <input v-model.number="form.maxHr" type="number" class="input mono" />
+        </label>
+      </div>
+    </div>
+
+    <div class="tile">
+      <span class="label">Volume de course</span>
+      <p class="text-[13px] text-text-muted">
+        Le plan part du volume de départ, monte de 10 % par semaine au maximum et plafonne au pic.
+      </p>
+      <div class="grid grid-cols-2 gap-4">
+        <label class="flex flex-col gap-[6px]">
+          <span class="label text-[10.5px]">Volume de départ (m / semaine)</span>
+          <input
+            v-model.number="form.startWeeklyVolumeM"
+            type="number"
+            step="1000"
+            class="input mono"
+          />
+        </label>
+        <label class="flex flex-col gap-[6px]">
+          <span class="label text-[10.5px]">Pic (m / semaine)</span>
+          <input
+            v-model.number="form.peakWeeklyVolumeM"
+            type="number"
+            step="1000"
+            class="input mono"
+          />
         </label>
       </div>
     </div>

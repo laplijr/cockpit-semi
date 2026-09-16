@@ -43,6 +43,20 @@
       "when": 1789586665000,
       "tag": "0005_mighty_cable",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789587955203,
+      "tag": "0006_magenta_edwin_jarvis",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789587998585,
+      "tag": "0007_icy_princess_powerful",
+      "breakpoints": true
     }
   ]
 }

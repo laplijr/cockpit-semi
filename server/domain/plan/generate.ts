@@ -1,8 +1,9 @@
 import type { AthleteConstraints } from '../athlete/constraints'
 import type { IsoDate } from './calendar'
 import { addDays, startOfWeek } from './calendar'
+import { RacePriority } from '../races/race'
 import type { PlanPhase, PlannedRace } from './periodization'
-import { buildPhases } from './periodization'
+import { SHORT_RACE_MAX_M, buildPhases } from './periodization'
 import type { PlannedSession } from './week-template'
 import { buildWeekTemplate } from './week-template'
 import type { PlanWeek } from './weeks'
@@ -20,7 +21,7 @@ export interface GeneratePlanInput {
   /** Volume de course de la première semaine pleine, en mètres. */
   baseWeeklyVolumeM: number
   /** Volume hebdomadaire maximal visé sur le cycle. */
-  peakWeeklyVolumeM?: number
+  peakWeeklyVolumeM: number
   vdot: number
   /** Pause en cours : le plan se cale alors sur la reprise, pas sur aujourd'hui. */
   openPause?: OpenPause
@@ -31,7 +32,8 @@ export interface GeneratedWeek extends PlanWeek {
 }
 
 export interface GeneratedPlan {
-  startDate: IsoDate
+  /** Nul tant qu'une pause ouverte n'a pas de date de reprise estimée (§ 5). */
+  startDate: IsoDate | null
   /** Vrai tant qu'une pause est ouverte : les dates bougeront à la reprise. */
   provisional: boolean
   phases: PlanPhase[]
@@ -39,28 +41,39 @@ export interface GeneratedPlan {
 }
 
 /**
- * Point de départ du plan. Une pause ouverte le repousse à la reprise estimée,
- * faute de quoi le plan daterait de séances impossibles à faire (§ 0).
+ * Point de départ du plan. Une pause ouverte sans date de reprise estimée ne
+ * permet aucune datation : le plan est alors généré en semaines non datées
+ * et les séances n'apparaissent qu'à la reprise (§ 5).
  */
-export function planStartDate(today: IsoDate, openPause?: OpenPause): IsoDate {
+export function planStartDate(today: IsoDate, openPause?: OpenPause): IsoDate | null {
   if (!openPause) return today
-  const resumption = openPause.estimatedEndDate ?? today
-  return resumption > today ? resumption : today
+  if (!openPause.estimatedEndDate) return null
+  return openPause.estimatedEndDate > today ? openPause.estimatedEndDate : today
 }
 
 export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
   const { today, constraints, races, baseWeeklyVolumeM, peakWeeklyVolumeM, vdot, openPause } = input
   const startDate = planStartDate(today, openPause)
-  const upcoming = races.filter((race) => race.date >= startDate)
-  const phases = buildPhases(startDate, upcoming)
+  /** Sans date de reprise, on raisonne quand même depuis aujourd'hui pour les phases. */
+  const anchor = startDate ?? today
+  const upcoming = races.filter((race) => race.date >= anchor)
+  const phases = buildPhases(anchor, upcoming)
 
   const weeks = buildWeeks({
-    startDate,
+    startDate: anchor,
     phases,
     baseWeeklyVolumeM,
     peakWeeklyVolumeM,
     comebackWeeks: openPause ? COMEBACK_RATIOS.length : 0,
   })
+
+  // Jour de course : aucune séance. Lendemain d'une course A : repos (§ 5).
+  const blockedDates = upcoming.flatMap((race) =>
+    race.priority === RacePriority.A ? [race.date, addDays(race.date, 1)] : [race.date],
+  )
+  const shortCycleRaces = new Set(
+    upcoming.filter((race) => race.distanceM <= SHORT_RACE_MAX_M).map((race) => race.id),
+  )
 
   return {
     startDate,
@@ -68,9 +81,17 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     phases,
     weeks: weeks.map((week) => ({
       ...week,
-      sessions: buildWeekTemplate({ week, constraints, vdot }).filter(
-        (session) => session.date >= startDate,
-      ),
+      // Sans date de reprise, le plan ne porte que ses phases et ses volumes.
+      sessions:
+        startDate === null
+          ? []
+          : buildWeekTemplate({
+              week,
+              constraints,
+              vdot,
+              blockedDates,
+              shortCycle: shortCycleRaces.has(week.raceId),
+            }).filter((session) => session.date >= startDate),
     })),
   }
 }

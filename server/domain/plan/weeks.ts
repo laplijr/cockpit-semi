@@ -9,20 +9,17 @@ export const BLOCK_WEEKS = 4
 export const WEEKLY_PROGRESSION = 1.1
 export const LIGHT_WEEK_FACTOR = 0.7
 export const LONG_RUN_MAX_SHARE = 0.3
-/**
- * Plafond de volume, exprimé en multiple du volume de départ. La progression
- * de +10 %/semaine du § 5 est un maximum, pas une obligation : sans plafond
- * elle compose et produit des semaines invraisemblables sur un plan long.
- */
-export const PEAK_VOLUME_MULTIPLE = 2.2
 
 /** Montée de charge d'une reprise surveillée après pause (§ 0). */
 export const COMEBACK_RATIOS = [0.6, 0.8, 1] as const
 
-/** Semaine 1 en endurance seule, VMA pas avant la semaine 3 (§ 0). */
+/** Un test 20′ en semaine 4 de reprise, puis toutes les six semaines (§ 5). */
+export const TEST_INTERVAL_WEEKS = 6
+
+/** Semaine 1 en endurance seule, pas de lignes droites avant la semaine 3 (§ 5). */
 const COMEBACK_ALLOWED: RunSessionCode[][] = [
   [RunSessionCode.Endurance],
-  [RunSessionCode.Endurance, RunSessionCode.Strides, RunSessionCode.LongRun],
+  [RunSessionCode.Endurance, RunSessionCode.LongRun],
   [
     RunSessionCode.Endurance,
     RunSessionCode.Strides,
@@ -32,12 +29,14 @@ const COMEBACK_ALLOWED: RunSessionCode[][] = [
   ],
 ]
 
-/** Les phases de décharge ne suivent pas la progression du bloc. */
-const PHASE_VOLUME_FACTOR: Partial<Record<PhaseType, number>> = {
-  [PhaseType.Taper]: 0.6,
-  [PhaseType.Recovery]: 0.5,
-  [PhaseType.Transition]: 0.5,
-}
+/**
+ * Facteurs de volume des phases hors rythme de bloc, appliqués au dernier
+ * volume plein (§ 5). L'affûtage décroît semaine après semaine.
+ */
+const TAPER_FACTORS = [0.7, 0.5] as const
+const SINGLE_WEEK_TAPER_FACTOR = 0.6
+const RECOVERY_FACTOR = 0.5
+const REBUILD_FACTOR = 0.8
 
 export interface PlanWeek {
   index: number
@@ -49,6 +48,10 @@ export interface PlanWeek {
   longRunMaxM: number
   light: boolean
   comebackRatio?: number
+  /** Position dans la phase, de 0 à 1 : pilote la progression des séances clés. */
+  phaseProgress: number
+  /** La séance clé du milieu de semaine devient un test 20′. */
+  test: boolean
   /** Restriction de la reprise : quand elle existe, seuls ces types sont plaçables. */
   allowedCodes?: RunSessionCode[]
 }
@@ -58,40 +61,89 @@ export interface WeekPlanInput {
   phases: PlanPhase[]
   /** Volume de course de la première semaine pleine, en mètres. */
   baseWeeklyVolumeM: number
+  /** Volume hebdomadaire maximal visé sur le cycle. */
+  peakWeeklyVolumeM: number
   /** Nombre de semaines de reprise surveillée ; 0 quand il n'y a pas eu de pause. */
   comebackWeeks?: number
-  /** Volume hebdomadaire maximal ; par défaut un multiple du volume de départ. */
-  peakWeeklyVolumeM?: number
+}
+
+function phaseFactor(phase: PlanPhase, weekInPhase: number): number | undefined {
+  const length = phase.endWeek - phase.startWeek + 1
+
+  switch (phase.type) {
+    case PhaseType.Taper:
+      return length === 1
+        ? SINGLE_WEEK_TAPER_FACTOR
+        : (TAPER_FACTORS[weekInPhase - 1] ?? TAPER_FACTORS.at(-1)!)
+    case PhaseType.Recovery:
+    case PhaseType.Transition:
+      return RECOVERY_FACTOR
+    case PhaseType.Rebuild:
+      return REBUILD_FACTOR
+    default:
+      return undefined
+  }
 }
 
 export function buildWeeks({
   startDate,
   phases,
   baseWeeklyVolumeM,
+  peakWeeklyVolumeM,
   comebackWeeks = COMEBACK_RATIOS.length,
-  peakWeeklyVolumeM = baseWeeklyVolumeM * PEAK_VOLUME_MULTIPLE,
 }: WeekPlanInput): PlanWeek[] {
   const lastWeek = phases.reduce((max, phase) => Math.max(max, phase.endWeek), 0)
   const firstMonday = startOfWeek(startDate)
   const weeks: PlanWeek[] = []
 
   let blockBase = baseWeeklyVolumeM
+  let blockPosition = 0
+  let lastFullVolume = baseWeeklyVolumeM
+  let currentRaceId: number | undefined
+  let lastTestWeek: number | undefined
 
   for (let index = 1; index <= lastWeek; index++) {
     const phase = phaseAtWeek(phases, index)
     if (!phase) continue
 
-    const positionInBlock = (index - 1) % BLOCK_WEEKS
-    const light = positionInBlock === BLOCK_WEEKS - 1
-    const ramped = Math.min(
-      peakWeeklyVolumeM,
-      blockBase * WEEKLY_PROGRESSION ** Math.min(positionInBlock, BLOCK_WEEKS - 2),
-    )
-    const beforePhase = light ? ramped * LIGHT_WEEK_FACTOR : ramped
-    const afterPhase = beforePhase * (PHASE_VOLUME_FACTOR[phase.type] ?? 1)
+    // Le compteur de bloc repart à 1 au début de chaque cycle (§ 5).
+    if (phase.raceId !== currentRaceId) {
+      currentRaceId = phase.raceId
+      blockPosition = 0
+      blockBase = Math.min(lastFullVolume, peakWeeklyVolumeM)
+    }
+
+    const length = phase.endWeek - phase.startWeek + 1
+    const weekInPhase = index - phase.startWeek + 1
+    const phaseProgress = length === 1 ? 1 : (weekInPhase - 1) / (length - 1)
 
     const comebackRatio = index <= comebackWeeks ? COMEBACK_RATIOS[index - 1] : undefined
-    const targetRunM = Math.round(afterPhase * (comebackRatio ?? 1))
+    const factor = phaseFactor(phase, weekInPhase)
+
+    let targetRunM: number
+    let light = false
+
+    if (comebackRatio !== undefined) {
+      // Reprise : volume de départ fixe, progression de bloc gelée.
+      targetRunM = baseWeeklyVolumeM * comebackRatio
+    } else if (factor !== undefined) {
+      targetRunM = lastFullVolume * factor
+    } else {
+      const positionInBlock = blockPosition % BLOCK_WEEKS
+      light = positionInBlock === BLOCK_WEEKS - 1
+      const ramped = Math.min(
+        peakWeeklyVolumeM,
+        blockBase * WEEKLY_PROGRESSION ** Math.min(positionInBlock, BLOCK_WEEKS - 2),
+      )
+      targetRunM = light ? ramped * LIGHT_WEEK_FACTOR : ramped
+      if (light) blockBase = ramped
+      else lastFullVolume = targetRunM
+      blockPosition += 1
+    }
+
+    const test = isTestWeek({ index, comebackWeeks, phase, lastTestWeek })
+    if (test) lastTestWeek = index
+
     const startOfThisWeek = addWeeks(firstMonday, index - 1)
 
     weeks.push({
@@ -100,15 +152,33 @@ export function buildWeeks({
       endDate: addDays(startOfThisWeek, 6),
       phaseType: phase.type,
       raceId: phase.raceId,
-      targetRunM,
+      targetRunM: Math.round(targetRunM),
       longRunMaxM: Math.round(targetRunM * LONG_RUN_MAX_SHARE),
       light,
       comebackRatio,
-      allowedCodes: index <= comebackWeeks ? COMEBACK_ALLOWED[index - 1] : undefined,
+      phaseProgress,
+      test,
+      allowedCodes: comebackRatio !== undefined ? COMEBACK_ALLOWED[index - 1] : undefined,
     })
-
-    if (light) blockBase = Math.min(ramped, peakWeeklyVolumeM)
   }
 
   return weeks
+}
+
+interface TestWeekInput {
+  index: number
+  comebackWeeks: number
+  phase: PlanPhase
+  lastTestWeek: number | undefined
+}
+
+/** Test 20′ : semaine 4 après une reprise, puis tous les six semaines, hors affûtage et récup. */
+function isTestWeek({ index, comebackWeeks, phase, lastTestWeek }: TestWeekInput): boolean {
+  if (phase.type === PhaseType.Taper || phase.type === PhaseType.Recovery) return false
+
+  const firstTestWeek = comebackWeeks + 1
+  if (index < firstTestWeek) return false
+  if (lastTestWeek === undefined) return index === firstTestWeek
+
+  return index - lastTestWeek >= TEST_INTERVAL_WEEKS
 }

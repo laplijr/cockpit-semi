@@ -68,13 +68,17 @@ export enum TrainingZone {
   Repetition = 'repetition',
 }
 
-/** Bornes de %VDOT par zone (plan §5). */
-const ZONE_FRACTIONS: Record<TrainingZone, { slow: number; fast: number }> = {
-  [TrainingZone.Easy]: { slow: 0.59, fast: 0.74 },
-  [TrainingZone.Marathon]: { slow: 0.75, fast: 0.84 },
-  [TrainingZone.Threshold]: { slow: 0.83, fast: 0.88 },
-  [TrainingZone.Interval]: { slow: 0.95, fast: 1.0 },
-  [TrainingZone.Repetition]: { slow: 1.05, fast: 1.1 },
+/**
+ * Bornes de %VDOT par zone, et fraction retenue pour l'allure unique affichée
+ * (§ 5) : E à 70 % comme la table publiée, T en haut de plage, les autres au
+ * milieu.
+ */
+const ZONE_FRACTIONS: Record<TrainingZone, { slow: number; fast: number; display: number }> = {
+  [TrainingZone.Easy]: { slow: 0.59, fast: 0.74, display: 0.7 },
+  [TrainingZone.Marathon]: { slow: 0.75, fast: 0.84, display: 0.795 },
+  [TrainingZone.Threshold]: { slow: 0.83, fast: 0.88, display: 0.88 },
+  [TrainingZone.Interval]: { slow: 0.95, fast: 1.0, display: 0.975 },
+  [TrainingZone.Repetition]: { slow: 1.05, fast: 1.1, display: 1.075 },
 }
 
 export interface PaceRange {
@@ -95,12 +99,17 @@ export function paceRangeFor(vdot: number, zone: TrainingZone): PaceRange {
   }
 }
 
-/**
- * Allure unique affichée pour une zone. Le seuil se court en haut de sa
- * fourchette, l'intervalle au milieu de la sienne ; les autres au milieu.
- */
+/** Allure unique affichée pour une zone. */
 export function paceFor(vdot: number, zone: TrainingZone): number {
-  const { slow, fast } = ZONE_FRACTIONS[zone]
-  const fraction = zone === TrainingZone.Threshold ? fast : (slow + fast) / 2
-  return paceSecPerKm(velocityForOxygenCost(vdot * fraction))
+  return paceSecPerKm(velocityForOxygenCost(vdot * ZONE_FRACTIONS[zone].display))
+}
+
+/**
+ * Allure semi : moyenne de la projection sur 21 097,5 m, jamais une zone.
+ * Au plancher, elle est plus lente que l'allure marathon théorique (§ 5).
+ */
+export function halfMarathonPace(vdot: number): number {
+  return (
+    raceTimeForVdot(vdot, RACE_DISTANCES_M.halfMarathon) / (RACE_DISTANCES_M.halfMarathon / 1000)
+  )
 }

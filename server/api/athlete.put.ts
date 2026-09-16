@@ -10,6 +10,8 @@ const weekdaySchema = z.number().int().min(1).max(7)
 const bodySchema = z.object({
   weightKg: z.number().positive().nullable().default(null),
   maxHr: z.number().int().positive().nullable().default(null),
+  startWeeklyVolumeM: z.number().int().positive().nullable().default(null),
+  peakWeeklyVolumeM: z.number().int().positive().nullable().default(null),
   constraints: z.object({
     availableDays: z.array(weekdaySchema),
     longRunDay: weekdaySchema.optional(),
