@@ -2,12 +2,10 @@ import type { AthleteConstraints } from '../domain/athlete/constraints'
 import type { PauseAllowances } from '../domain/pause/pause'
 import type { IsoDate } from '../domain/plan/calendar'
 import type { GeneratedPlan } from '../domain/plan/generate'
-import type { PlanTrigger } from '../domain/plan/session'
 import type { PlannedRace } from '../domain/plan/periodization'
+import type { PlanTrigger } from '../domain/plan/session'
 
-export interface Clock {
-  today(): IsoDate
-}
+export type { Clock } from '../domain/shared/clock'
 
 export interface AthleteSnapshot {
   constraints: AthleteConstraints
