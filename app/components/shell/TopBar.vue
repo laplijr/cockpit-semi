@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const ui = useUiStore()
+const proposals = usePropositionsStore()
 
 const title = computed(() => navItemFor(route.path)?.label ?? 'Cockpit')
 
@@ -40,9 +41,15 @@ const today = computed(() =>
         type="button"
         class="relative inline-flex text-text-dim hover:text-text"
         aria-label="Propositions"
-        @click="ui.openPanel('propositions')"
+        @click="navigateTo('/propositions')"
       >
         <UiAppIcon name="bell" />
+        <span
+          v-if="proposals.pendingCount > 0"
+          class="badge absolute -top-2 -right-[10px] h-4 min-w-4 text-[10px]"
+        >
+          {{ proposals.pendingCount }}
+        </span>
       </button>
     </div>
   </header>

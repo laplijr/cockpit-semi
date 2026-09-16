@@ -15,6 +15,7 @@ import type { AthleteConstraints } from '../../domain/athlete/constraints'
 import { FitnessOrigin } from '../../domain/fitness/fitness-point'
 import { Sensation, type Pain } from '../../domain/load/feedback'
 import { PauseType, type PauseAllowances } from '../../domain/pause/pause'
+import { ProposalStatus, ProposalTrigger } from '../../domain/rules/proposal-status'
 import { PhaseType } from '../../domain/plan/phases'
 import { PlanTrigger, SessionOrigin, SessionStatus } from '../../domain/plan/session'
 import {
@@ -29,6 +30,8 @@ import { Sport } from '../../domain/shared/sport'
 
 export {
   FitnessOrigin,
+  ProposalStatus,
+  ProposalTrigger,
   Sensation,
   PauseType,
   PlanTrigger,
@@ -56,6 +59,8 @@ export const planTriggerEnum = pgEnum('plan_trigger', enumValues(PlanTrigger))
 export const sessionStatusEnum = pgEnum('session_status', enumValues(SessionStatus))
 export const sessionOriginEnum = pgEnum('session_origin', enumValues(SessionOrigin))
 export const pauseTypeEnum = pgEnum('pause_type', enumValues(PauseType))
+export const proposalStatusEnum = pgEnum('proposal_status', enumValues(ProposalStatus))
+export const proposalTriggerEnum = pgEnum('proposal_trigger', enumValues(ProposalTrigger))
 
 /** Conserve les types littéraux de l'énumération pour que Drizzle les propage. */
 function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], ...T[keyof T][]] {
@@ -279,6 +284,25 @@ export const loadDaily = pgTable('load_daily', {
   totalUa: integer('total_ua').notNull().default(0),
 })
 
+/**
+ * Proposition d'ajustement issue d'une règle. Rien n'est appliqué sans décision
+ * de l'athlète, et les décisions sont le signal d'apprentissage (§ 1.3).
+ */
+export const proposal = pgTable('proposal', {
+  id: serial('id').primaryKey(),
+  trigger: proposalTriggerEnum('trigger').notNull(),
+  ruleId: text('rule_id').notNull(),
+  effect: text('effect').notNull(),
+  targetKind: text('target_kind').notNull(),
+  targetId: integer('target_id'),
+  before: text('before').notNull(),
+  after: text('after').notNull(),
+  explanation: text('explanation').notNull(),
+  status: proposalStatusEnum('status').notNull().default(ProposalStatus.Proposed),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  decidedAt: timestamp('decided_at', { withTimezone: true }),
+})
+
 export type Athlete = typeof athlete.$inferSelect
 export type NewAthlete = typeof athlete.$inferInsert
 export type Race = typeof race.$inferSelect
@@ -297,6 +321,8 @@ export type Week = typeof week.$inferSelect
 export type NewWeek = typeof week.$inferInsert
 export type Session = typeof session.$inferSelect
 export type NewSession = typeof session.$inferInsert
+export type Proposal = typeof proposal.$inferSelect
+export type NewProposal = typeof proposal.$inferInsert
 export type Pause = typeof pause.$inferSelect
 export type NewPause = typeof pause.$inferInsert
 export type Activity = typeof activity.$inferSelect

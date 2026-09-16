@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless'
+import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { regeneratePlan } from '../server/application/regenerate-plan'
 import { vdotFloorFrom } from '../server/domain/fitness/floor'
@@ -33,19 +34,21 @@ const REFERENCE_SEGMENTS = [
   },
 ]
 
+/**
+ * Vide toutes les tables applicatives. La liste est lue dans le catalogue
+ * Postgres plutôt qu'écrite à la main : une table ajoutée au schéma ne peut
+ * pas être oubliée ici.
+ */
 async function reset() {
-  await db.delete(schema.loadDaily)
-  await db.delete(schema.activity)
-  await db.delete(schema.feedback)
-  await db.delete(schema.session)
-  await db.delete(schema.week)
-  await db.delete(schema.phase)
-  await db.delete(schema.planVersion)
-  await db.delete(schema.fitnessPoint)
-  await db.delete(schema.raceSegment)
-  await db.delete(schema.race)
-  await db.delete(schema.pause)
-  await db.delete(schema.athlete)
+  const tables = await db.execute<{ tablename: string }>(
+    sql`select tablename from pg_tables where schemaname = 'public'`,
+  )
+  const names = tables.rows
+    .map((row) => row.tablename)
+    .filter((name) => !name.startsWith('__drizzle'))
+
+  if (names.length === 0) return
+  await db.execute(sql.raw(`truncate table ${names.map((n) => `"${n}"`).join(', ')} cascade`))
 }
 
 async function seed() {

@@ -2,8 +2,11 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { Sensation } from '../../../domain/load/feedback'
 import { SessionStatus } from '../../../domain/plan/session'
+import { ProposalTrigger } from '../../../domain/rules/proposal-status'
 import { useDatabase } from '../../../infra/db/client'
 import { recomputeLoadFor } from '../../../infra/db/load-repository'
+import { evaluateAndStore } from '../../../infra/db/proposal-repository'
+import { systemClock } from '../../../utils/context'
 import { feedback, session } from '../../../infra/db/schema'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
@@ -51,5 +54,9 @@ export default defineEventHandler(async (event) => {
     })
     .where(eq(session.id, id))
 
-  return { ok: true, load: await recomputeLoadFor(db, target.date) }
+  const load = await recomputeLoadFor(db, target.date)
+  // Le ressenti est ce qui déclenche l'évaluation des règles (§ 5).
+  const proposals = await evaluateAndStore(db, systemClock.today(), ProposalTrigger.Feedback)
+
+  return { ok: true, load, proposals: proposals.length }
 })

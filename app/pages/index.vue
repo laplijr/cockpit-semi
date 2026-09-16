@@ -2,7 +2,9 @@
 const plan = usePlanStore()
 const { data: races, refresh: refreshRaces } = await useFetch('/api/races')
 
-await plan.load()
+const proposals = usePropositionsStore()
+
+await Promise.all([plan.load(), proposals.load()])
 
 const raceA = computed(() =>
   (races.value ?? [])
@@ -42,7 +44,7 @@ async function onResume() {
       <CockpitRaceDial :race="raceA" :today="plan.today" />
       <CockpitVdotDial :vdot="vdot" :is-floor="vdotIsFloor" />
       <CockpitLoadDial />
-      <UiPhaseStub phase="P3">Forme du jour : état, causes, suggestion pour demain.</UiPhaseStub>
+      <CockpitReadinessDial />
     </section>
 
     <section class="grid grid-cols-[1.6fr_1fr] gap-4">
@@ -85,9 +87,7 @@ async function onResume() {
       </div>
 
       <CockpitPauseCard v-if="plan.pause" :pause="plan.pause" @resume="onResume" />
-      <UiPhaseStub v-else phase="P3">
-        À décider : propositions issues des règles R1 – R8, une case par ligne.
-      </UiPhaseStub>
+      <CockpitDecisionList v-else />
     </section>
 
     <CockpitWeekStrip

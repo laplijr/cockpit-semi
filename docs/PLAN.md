@@ -6,7 +6,7 @@ Maquettes de référence (v5, desktop) : https://claude.ai/artifact/GHF88CMB93rH
 
 ## État d'avancement et consigne aux agents
 
-**Où on en est (16 sept. 2026)** : P0, P0.5, P1 et P2 livrés (dernier commit `38abb52` « P2 — réalisé, retour de séance, charge » ; Strava abandonné, voir la décision dans le bloc P2). Nuxt 4 + Tailwind 4 + Pinia + nuxt-auth-utils + Drizzle/Neon, coque desktop complète, moteur `fitness` / `running` / `plan` / `load` / `matching` testé, seed des données réelles du § 0, écrans Courses, Profil, Semaine, Course à pied, Connexions et Cockpit avec réalisé, retour de séance et charge. Une revue d'entraîneur du plan généré (16 sept.) a relevé des défauts du moteur course, corrigés dans la brique **P1.5** ci-dessous, à exécuter avant P3 : le plan généré sert de base à la charge et aux propositions, il doit être juste d'abord.
+**Où on en est (16 sept. 2026)** : P0, P0.5, P1 et P2 livrés (dernier commit `38abb52` « P2 — réalisé, retour de séance, charge » ; Strava abandonné, voir la décision dans le bloc P2). Nuxt 4 + Tailwind 4 + Pinia + nuxt-auth-utils + Drizzle/Neon, coque desktop complète, moteur `fitness` / `running` / `plan` / `load` / `matching` testé, seed des données réelles du § 0, écrans Courses, Profil, Semaine, Course à pied, Connexions et Cockpit avec réalisé, retour de séance et charge. Une revue d'entraîneur du plan généré (16 sept.) a relevé des défauts du moteur course, corrigés dans la brique **P1.5** (livrée). P3 est entamé (`rules` et `readiness` testés) ; la brique **P2.5** s'intercale avant ses écrans : sans historique daté, la charge, la forme du jour, les propositions et la progression ne peuvent ni se voir ni se tester.
 
 **Consigne** : lire ce fichier en entier, puis exécuter la prochaine case non cochée de la liste ci-dessous, dans l'ordre, jusqu'au bout de la phase. Une phase est finie quand tous ses critères de « Fini » passent. Cocher les cases dans ce fichier au fil de l'eau. Ne pas anticiper une phase suivante, ne pas ajouter d'élément à l'écran principal sans en retirer un (§ 8), pas de responsive mobile, pas de PWA.
 
@@ -64,13 +64,23 @@ P2 — Réalisé, retour de séance et charge
 - [x] UI Connexions : indiquer qu'aucune connexion externe n'est active, pourquoi, et ce que ça change.
 - [x] Fini : tests verts, parcours « séance du jour → marquée faite → ressenti saisi → charge à jour » vérifié, commit « P2 — réalisé, retour de séance, charge ».
 
+P2.5 — Seed de dev daté et horloge simulée (avant les écrans de P3)
+
+Le seed actuel pose l'état réel du 16 sept. : pause ouverte, aucune séance faite, donc pas de charge, pas de forme du jour, pas de courbe de progression et aucune règle qui déclenche. Pour visualiser et tester réellement ces fonctionnalités, il faut pouvoir se placer à une date future avec un historique cohérent, produit par le moteur lui-même à partir d'une progression estimée, et non par des inserts inventés.
+
+- [ ] Horloge : `systemClock` (`server/utils/context.ts`) lit `NUXT_COCKPIT_TODAY` (date ISO) quand elle est définie, sinon la date réelle. Variable réservée au local, jamais définie sur Vercel (le noter dans `.env.example`) ; le seed et `pnpm dev` la partagent pour voir le cockpit au jour simulé. Test : l'horloge retourne la date forcée.
+- [ ] `application` : extraire l'enregistrement d'un ressenti (`recordFeedback` : ressenti, statut fait, réalisé, recalcul de `load_daily`, évaluation des règles) de `server/api/sessions/[id]/feedback.put.ts`, et la reprise de pause (`resumePause`) de `server/api/pause/resume.post.ts`, vers `server/application/`, avec l'horloge en paramètre. Les routes et le seed passent par le même code : le seed ne fait aucun insert brut d'`activity`, `feedback`, `load_daily`, `fitness_point` de test ni `proposal`.
+- [ ] Simulation : `pnpm db:seed --scenario=<nom>` rejoue jour par jour du 16 sept. au jour simulé. Reprise à la date du scénario (`resumePause` avec l'horloge à cette date, plan `Resume`), puis pour chaque séance planifiée passée : réalisé = prescription ± 5 %, RPE = RPE attendu ± 1, sommeil 6,5–8 h, sensations cohérentes avec l'écart de RPE, douleur « genou droit, face postérieure » qui décroît de 3 à 0 sur les 3 semaines de reprise ; environ 10 % de séances manquées (statut manquée, sans ressenti) ; chaque test 20' planifié enregistré via `recordTest` avec la distance déduite du VDOT visé (progression estimée : +0,6 VDOT par test, paramètre du scénario), ce qui régénère le plan comme dans l'app ; dans la dernière semaine du scénario, deux séances clés d'affilée à RPE prévu + 2 pour qu'au moins une règle déclenche. Générateur pseudo-aléatoire seedé : deux exécutions produisent exactement les mêmes données.
+- [ ] Scénarios, chacun fixe la date de reprise, le jour simulé et la graine : `pause` (défaut, état réel actuel, identique au seed d'aujourd'hui) ; `reprise-s2` (reprise le 28 sept., jour simulé 8 oct. : deux semaines de réalisé, ratio de charge encore indisponible, forme du jour calculable) ; `bloc-2` (jour simulé 22 nov. : test de semaine 4 fait, ratio disponible, deux points VDOT) ; `affutage-paris` (jour simulé 1er mars 2027 : quatre tests, semaine d'affûtage à 70 %, Madrid à 5 semaines). Le scénario affiche en fin d'exécution la `NUXT_COCKPIT_TODAY` à exporter avant `pnpm dev`.
+- [ ] Fini : lint, typecheck, tests (générateur déterministe ; réalisé et RPE dans les bornes ; VDOT strictement croissant d'un test au suivant) et build verts ; `pnpm db:seed --scenario=bloc-2` puis `pnpm dev` au jour simulé : cockpit avec la séance du jour, la charge disponible et la semaine courante avec ses séances faites et manquées, table `proposal` non vide ; les écrans de P3 se vérifient ensuite sur ce scénario ; commit « P2.5 — seed daté et horloge simulée ».
+
 P3 — Recalcul, forme du jour et progression
 - [x] `server/domain/rules` : R1 à R8 du § 5, chacune avec id, condition, effet et explication ; sortie = propositions typées, jamais d'application directe. Tests : chaque règle a un cas « déclenche » et un cas « ne déclenche pas » (§ 10).
 - [x] `server/domain/readiness` : score 0–100 (sommeil 35 %, RPE vs prévu sur 3 séances 30 %, sensations 20 %, ratio de charge 15 %), seuils Prêt ≥ 65 / Vigilance 40–64 / Repos < 40, suggestion par templates. Tests des trois états et du score sans données.
-- [ ] Schéma : `proposal` (déclencheur, règle, cible, avant, après, explication, statut, décidé le). Migration.
-- [ ] `application` : évaluation des règles après chaque ressenti et à la régénération ; acceptation d'une proposition l'applique et régénère le plan ; refus l'archive. Les refus et acceptations sont le signal d'apprentissage (§ 1.3).
-- [ ] Cockpit : cadran forme du jour (état, causes, suggestion pour demain) et zone « À décider » avec une case par ligne, la règle affichée, l'ancienne valeur barrée et « Appliquer n ».
-- [ ] Panneau détail d'une proposition + cloche de la barre du haut avec le nombre en attente ; page Propositions avec l'historique des décisions.
+- [x] Schéma : `proposal` (déclencheur, règle, cible, avant, après, explication, statut, décidé le). Migration.
+- [x] `application` : évaluation des règles après chaque ressenti et à la régénération ; acceptation d'une proposition l'applique et régénère le plan ; refus l'archive. Les refus et acceptations sont le signal d'apprentissage (§ 1.3).
+- [x] Cockpit : cadran forme du jour (état, causes, suggestion pour demain) et zone « À décider » avec une case par ligne, la règle affichée, l'ancienne valeur barrée et « Appliquer n ».
+- [x] Panneau détail d'une proposition + cloche de la barre du haut avec le nombre en attente ; page Propositions avec l'historique des décisions.
 - [ ] Page Progression v1 : courbe VDOT avec courses et tests, projection avec intervalle, volume et charge par semaine, adhérence, journal des séances clés filtrable. Lecture seule.
 - [ ] Cron quotidien Vercel : forme du jour pré-calculée, rappel de ressenti manquant, expiration des propositions. Précision ± 59 min assumée, la forme se recalcule à la demande à l'ouverture.
 - [ ] Fini : lint, typecheck, tests, build verts ; parcours « ressenti dur → proposition → acceptée → plan ajusté » vérifié ; commit « P3 — recalcul, forme du jour, progression ».
@@ -281,6 +291,9 @@ Le plan généré en P1 était juste sur le VDOT, la périodisation et les quota
 **P2 — Strava + retour de séance + charge**
 OAuth, import 24 mois, webhook, rattachement, panneau Retour de séance (RPE, sensations, sommeil, douleur), `load`, cadran charge, réalisé Strava dans « Aujourd'hui ». Livrable : une sortie faite avec la montre apparaît « faite » dans les 2 minutes dans le cockpit, tu ajoutes le ressenti en 20 s sans quitter l'écran.
 
+**P2.5 — Seed de dev daté et horloge simulée**
+`NUXT_COCKPIT_TODAY` force la date côté serveur en local ; le seed rejoue jour par jour une reprise puis des semaines d'entraînement en passant par les cas d'usage (ressenti, test 20', reprise) avec une progression estimée paramétrée, en scénarios nommés (`pause`, `reprise-s2`, `bloc-2`, `affutage-paris`). Livrable : en une commande, le cockpit se regarde à n'importe quel point de la saison avec un historique cohérent, ce qui rend la charge, la forme du jour, les propositions et la progression visibles et testables sans attendre des semaines réelles.
+
 **P3 — Recalcul + forme du jour**
 `rules` R1–R8, `proposal`, panneau « À décider » dans le cockpit + panneau détail, `readiness` et cadran forme du jour, cloche, cron quotidien. Page Progression v1 : courbe VDOT avec courses et tests, projection avec intervalle, volume et charge par semaine, adhérence, journal des séances clés. Livrable : la boucle complète séance → ressenti → propositions → plan ajusté, entièrement depuis le cockpit, et une vue qui montre si ça progresse.
 
@@ -296,7 +309,7 @@ Détecteurs d'habitudes, page Apprentissage, calibration hebdo, règles personne
 **P7 — Confort**
 Notifications navigateur (ressenti manquant, proposition en attente), bilan hebdo du dimanche généré depuis Progression, export CSV, kilométrage chaussures. Ensuite, si besoin : déclinaison mobile (même app, cockpit empilé), PWA.
 
-Ordre de valeur si le temps manque : P0 → P1 → P1.5 → P2 → P3. Le reste est additif.
+Ordre de valeur si le temps manque : P0 → P1 → P1.5 → P2 → P2.5 → P3. Le reste est additif.
 
 ## 10. Tests
 
