@@ -15,6 +15,13 @@
       "when": 1789583029329,
       "tag": "0001_high_greymalkin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789583985765,
+      "tag": "0002_simple_deathbird",
+      "breakpoints": true
     }
   ]
 }

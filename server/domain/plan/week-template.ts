@@ -1,22 +1,11 @@
 import type { Prescription, PrescriptionContext } from '../running/session-types'
 import { RunSessionCode, isAllowedInPhase, prescription } from '../running/session-types'
+import type { AthleteConstraints } from '../athlete/constraints'
+import { MONDAY } from '../athlete/constraints'
 import type { IsoDate } from './calendar'
 import { addDays } from './calendar'
 import { PhaseType } from './phases'
 import type { PlanWeek } from './weeks'
-
-export const MONDAY = 1
-export const SUNDAY = 7
-
-export interface AthleteConstraints {
-  /** Jours où l'athlète peut s'entraîner, 1 = lundi … 7 = dimanche. */
-  availableDays: number[]
-  /** Jour de la sortie longue ; par défaut le dernier jour disponible. */
-  longRunDay?: number
-  /** Jours qui restent faciles quoi qu'il arrive (« lundi facile », § 5). */
-  easyDays?: number[]
-  notes?: string[]
-}
 
 /** Séances clés appelées par chaque phase, dans l'ordre de priorité. */
 const KEY_SESSIONS: Record<PhaseType, RunSessionCode[]> = {

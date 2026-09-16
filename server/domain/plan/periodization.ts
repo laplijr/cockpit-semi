@@ -28,6 +28,8 @@ export interface PlanPhase {
 interface PhaseSpec {
   type: PhaseType
   weeks: number
+  /** Phase qui absorbe le mou quand le calendrier est plus long que le gabarit. */
+  flexible?: boolean
 }
 
 /** Rétro-planning d'un cycle long vers une course A (semi, marathon). */
@@ -38,14 +40,14 @@ function longCycle(totalWeeks: number): PhaseSpec[] {
     { type: PhaseType.Development, weeks: 8 },
   ]
   const base = Math.max(4, totalWeeks - 17)
-  return [{ type: PhaseType.Base, weeks: base }, ...fixed.reverse()]
+  return [{ type: PhaseType.Base, weeks: base, flexible: true }, ...fixed.reverse()]
 }
 
 /** Cycle vitesse vers une course A courte : 5 km ou 10 km (§ 5). */
 function speedCycle(): PhaseSpec[] {
   return [
     { type: PhaseType.Recovery, weeks: 2 },
-    { type: PhaseType.ShortBase, weeks: 4 },
+    { type: PhaseType.ShortBase, weeks: 4, flexible: true },
     { type: PhaseType.Speed, weeks: 8 },
     { type: PhaseType.Taper, weeks: 1 },
   ]
@@ -55,7 +57,7 @@ function speedCycle(): PhaseSpec[] {
 function miniCycle(totalWeeks: number): PhaseSpec[] {
   return [
     { type: PhaseType.Recovery, weeks: 2 },
-    { type: PhaseType.Rebuild, weeks: Math.max(0, totalWeeks - 3) },
+    { type: PhaseType.Rebuild, weeks: Math.max(0, totalWeeks - 3), flexible: true },
     { type: PhaseType.Taper, weeks: 1 },
   ]
 }
@@ -122,7 +124,10 @@ function fitSpecs(specs: PhaseSpec[], totalWeeks: number): PhaseSpec[] {
 
   const deficit = totalWeeks - result.reduce((sum, spec) => sum + spec.weeks, 0)
   if (deficit > 0) {
-    const grown = result.find((spec) => spec.type !== PhaseType.Taper) ?? result[0]!
+    const grown =
+      result.find((spec) => spec.flexible) ??
+      result.find((spec) => spec.type !== PhaseType.Taper) ??
+      result[0]!
     grown.weeks += deficit
   }
 

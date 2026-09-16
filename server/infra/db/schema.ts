@@ -11,8 +11,11 @@ import {
   timestamp,
   unique,
 } from 'drizzle-orm/pg-core'
+import type { AthleteConstraints } from '../../domain/athlete/constraints'
 import { FitnessOrigin } from '../../domain/fitness/fitness-point'
+import { PauseType, type PauseAllowances } from '../../domain/pause/pause'
 import { PhaseType } from '../../domain/plan/phases'
+import { PlanTrigger, SessionOrigin, SessionStatus } from '../../domain/plan/session'
 import {
   ObjectiveMode,
   RacePriority,
@@ -25,6 +28,10 @@ import { Sport } from '../../domain/shared/sport'
 
 export {
   FitnessOrigin,
+  PauseType,
+  PlanTrigger,
+  SessionOrigin,
+  SessionStatus,
   ObjectiveMode,
   PhaseType,
   RacePriority,
@@ -33,7 +40,7 @@ export {
   SegmentMode,
   Sport,
 }
-export type { RaceIncident }
+export type { AthleteConstraints, PauseAllowances, RaceIncident }
 
 export const sportEnum = pgEnum('sport', enumValues(Sport))
 export const racePriorityEnum = pgEnum('race_priority', enumValues(RacePriority))
@@ -42,9 +49,15 @@ export const raceStatusEnum = pgEnum('race_status', enumValues(RaceStatus))
 export const raceSourceEnum = pgEnum('race_source', enumValues(RaceSource))
 export const segmentModeEnum = pgEnum('segment_mode', enumValues(SegmentMode))
 export const fitnessOriginEnum = pgEnum('fitness_origin', enumValues(FitnessOrigin))
+export const phaseTypeEnum = pgEnum('phase_type', enumValues(PhaseType))
+export const planTriggerEnum = pgEnum('plan_trigger', enumValues(PlanTrigger))
+export const sessionStatusEnum = pgEnum('session_status', enumValues(SessionStatus))
+export const sessionOriginEnum = pgEnum('session_origin', enumValues(SessionOrigin))
+export const pauseTypeEnum = pgEnum('pause_type', enumValues(PauseType))
 
-function enumValues<T extends Record<string, string>>(source: T) {
-  return Object.values(source) as [string, ...string[]]
+/** Conserve les types littéraux de l'énumération pour que Drizzle les propage. */
+function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], ...T[keyof T][]] {
+  return Object.values(source) as [T[keyof T], ...T[keyof T][]]
 }
 
 /**
@@ -56,8 +69,11 @@ export const athlete = pgTable('athlete', {
   maxHr: integer('max_hr'),
   /** Jours de la semaine disponibles, 1 = lundi … 7 = dimanche. */
   availableDays: jsonb('available_days').$type<number[]>().notNull().default([]),
-  /** Contraintes libres exprimées par l'athlète (« sortie longue le dimanche »…). */
-  constraints: jsonb('constraints').$type<string[]>().notNull().default([]),
+  /** Jours disponibles, jour de sortie longue, jours faciles (§ 5). */
+  constraints: jsonb('constraints')
+    .$type<AthleteConstraints>()
+    .notNull()
+    .default({ availableDays: [] }),
   onboarded: boolean('onboarded').notNull().default(false),
   notes: text('notes'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -133,6 +149,79 @@ export const fitnessPoint = pgTable('fitness_point', {
   note: text('note'),
 })
 
+/** Chaque génération produit une version immuable ; le plan actif est la dernière. */
+export const planVersion = pgTable('plan_version', {
+  id: serial('id').primaryKey(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  trigger: planTriggerEnum('trigger').notNull(),
+  /** Paramètres de génération, rejouables : date de départ, volume de base, VDOT. */
+  parameters: jsonb('parameters').$type<Record<string, unknown>>().notNull().default({}),
+  startDate: date('start_date').notNull(),
+})
+
+export const phase = pgTable('phase', {
+  id: serial('id').primaryKey(),
+  planVersionId: integer('plan_version_id')
+    .notNull()
+    .references(() => planVersion.id, { onDelete: 'cascade' }),
+  type: phaseTypeEnum('type').notNull(),
+  startWeek: integer('start_week').notNull(),
+  endWeek: integer('end_week').notNull(),
+  raceId: integer('race_id').references(() => race.id, { onDelete: 'set null' }),
+})
+
+export const week = pgTable(
+  'week',
+  {
+    id: serial('id').primaryKey(),
+    planVersionId: integer('plan_version_id')
+      .notNull()
+      .references(() => planVersion.id, { onDelete: 'cascade' }),
+    index: integer('index').notNull(),
+    startDate: date('start_date').notNull(),
+    endDate: date('end_date').notNull(),
+    phaseType: phaseTypeEnum('phase_type').notNull(),
+    raceId: integer('race_id').references(() => race.id, { onDelete: 'set null' }),
+    targetRunM: integer('target_run_m').notNull(),
+    targetCyclingMin: integer('target_cycling_min').notNull().default(0),
+    targetStrengthCount: integer('target_strength_count').notNull().default(0),
+    longRunMaxM: integer('long_run_max_m').notNull(),
+    light: boolean('light').notNull().default(false),
+    comebackRatio: real('comeback_ratio'),
+  },
+  (table) => [unique('week_plan_index').on(table.planVersionId, table.index)],
+)
+
+export const session = pgTable('session', {
+  id: serial('id').primaryKey(),
+  weekId: integer('week_id')
+    .notNull()
+    .references(() => week.id, { onDelete: 'cascade' }),
+  date: date('date').notNull(),
+  sport: sportEnum('sport').notNull(),
+  /** Code de la bibliothèque (EF, seuil, VMA…) ; voir `session_type`. */
+  code: text('code').notNull(),
+  prescription: jsonb('prescription').$type<Record<string, unknown>>().notNull(),
+  status: sessionStatusEnum('status').notNull().default(SessionStatus.Planned),
+  origin: sessionOriginEnum('origin').notNull().default(SessionOrigin.Plan),
+  key: boolean('key').notNull().default(false),
+})
+
+export const pause = pgTable('pause', {
+  id: serial('id').primaryKey(),
+  type: pauseTypeEnum('type').notNull(),
+  zone: text('zone'),
+  painLevel: integer('pain_level'),
+  startDate: date('start_date').notNull(),
+  estimatedEndDate: date('estimated_end_date'),
+  /** Nul tant que la pause est ouverte : c'est l'athlète qui marque la reprise. */
+  endDate: date('end_date'),
+  allowances: jsonb('allowances').$type<PauseAllowances>().notNull(),
+  /** Zones à surveiller au retour, pré-cochées dans le retour de séance. */
+  watchZones: jsonb('watch_zones').$type<string[]>().notNull().default([]),
+  notes: text('notes'),
+})
+
 export type Athlete = typeof athlete.$inferSelect
 export type NewAthlete = typeof athlete.$inferInsert
 export type Race = typeof race.$inferSelect
@@ -143,3 +232,13 @@ export type SessionType = typeof sessionType.$inferSelect
 export type NewSessionType = typeof sessionType.$inferInsert
 export type FitnessPoint = typeof fitnessPoint.$inferSelect
 export type NewFitnessPoint = typeof fitnessPoint.$inferInsert
+export type PlanVersion = typeof planVersion.$inferSelect
+export type NewPlanVersion = typeof planVersion.$inferInsert
+export type Phase = typeof phase.$inferSelect
+export type NewPhase = typeof phase.$inferInsert
+export type Week = typeof week.$inferSelect
+export type NewWeek = typeof week.$inferInsert
+export type Session = typeof session.$inferSelect
+export type NewSession = typeof session.$inferInsert
+export type Pause = typeof pause.$inferSelect
+export type NewPause = typeof pause.$inferInsert

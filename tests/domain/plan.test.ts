@@ -84,6 +84,19 @@ describe('périodisation des trois courses du § 0', () => {
     ])
   })
 
+  it('fait absorber le mou du calendrier par la base courte, jamais par la récupération', () => {
+    const arz = phases.filter((phase) => phase.raceId === ILE_D_ARZ.id)
+    const weeksOf = (type: PhaseType) =>
+      arz
+        .filter((phase) => phase.type === type)
+        .reduce((n, p) => n + p.endWeek - p.startWeek + 1, 0)
+
+    expect(weeksOf(PhaseType.Recovery)).toBe(2)
+    expect(weeksOf(PhaseType.Speed)).toBe(8)
+    expect(weeksOf(PhaseType.Taper)).toBe(1)
+    expect(weeksOf(PhaseType.ShortBase)).toBeGreaterThanOrEqual(4)
+  })
+
   it('donne au 5 km un cycle vitesse et non un cycle long', () => {
     const arz = phases.filter((phase) => phase.raceId === ILE_D_ARZ.id).map((phase) => phase.type)
     expect(arz).toContain(PhaseType.Speed)
