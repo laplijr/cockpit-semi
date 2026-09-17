@@ -46,7 +46,7 @@ const ICONS = {
   trash: [path('M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13'), path('M10 11v6M14 11v6')],
   close: [path('M18 6 6 18M6 6l12 12')],
   info: [circle(12, 12, 9), path('M12 11v5'), path('M12 8h.01')],
-  fill: [path('M12 4v9'), path('M8.5 10.5 12 14l3.5-3.5'), path('M5 18h14')],
+  wand: [path('M4 20 14.5 9.5'), path('M16 3v5M13.5 5.5h5'), path('M19.5 12v3M18 13.5h3')],
   strava: [path('M8 3l6 12h-4l-2-4-2 4H2z'), path('M14 15l3 6 3-6h-2l-1 2-1-2z')],
 } satisfies Record<string, Shape[]>
 

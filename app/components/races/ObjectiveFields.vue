@@ -66,7 +66,10 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
         <span class="label text-[10.5px]">Objectif <UiInfoHint term="objectif" /></span>
         <select v-model="mode" class="input">
           <option value="temps">Chrono cible</option>
-          <option value="record" :disabled="recordS === null">Battre mon record</option>
+          <!-- Un mode indisponible dit pourquoi là où il se choisit, pas en note de bas de page. -->
+          <option value="record" :disabled="recordS === null">
+            Battre mon record{{ recordS === null ? ' — aucun record sur cette distance' : '' }}
+          </option>
         </select>
         <span />
       </label>
@@ -106,7 +109,7 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
             aria-label="Proposer les trois niveaux depuis ma projection"
             @click="proposeFromProjection"
           >
-            <UiAppIcon name="fill" :size="16" />
+            <UiAppIcon name="wand" :size="16" />
           </button>
           <span />
         </div>
@@ -121,12 +124,6 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
         </span>
       </div>
     </div>
-
-    <!-- La raison d'un mode grisé se dit en clair ; l'action, elle, se lit à son icône. -->
-    <p v-if="recordS === null" class="text-[12px] text-text-muted">
-      « Battre mon record » attend un résultat représentatif sur cette distance : tu n'en as pas
-      encore.
-    </p>
 
     <p v-if="misordered" class="text-[12px] text-warn">
       Ambition, réaliste et plancher vont du plus rapide au plus lent.
