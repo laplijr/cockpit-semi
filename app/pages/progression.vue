@@ -33,6 +33,28 @@ const maxVolume = computed(() =>
 const maxLoad = computed(() => Math.max(1, ...(data.value?.weeks ?? []).map((week) => week.loadUa)))
 
 const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
+
+type ProgressionWeek = NonNullable<typeof data.value>['weeks'][number]
+type WeekSummary = NonNullable<ProgressionWeek['summary']>
+
+/** Noms courts : la bulle tient sur trois lignes, pas « Course à pied ». */
+const SHORT_SPORT_LABELS: Record<string, string> = {
+  course: 'course',
+  velo: 'vélo',
+  muscu: 'muscu',
+  autre: 'autre',
+}
+
+function loadBreakdown(summary: WeekSummary): string {
+  return Object.entries(summary.loadBySport)
+    .filter(([, ua]) => ua > 0)
+    .map(([sport, ua]) => `${SHORT_SPORT_LABELS[sport] ?? sport} ${ua}`)
+    .join(' · ')
+}
+
+function formatSignedDistance(meters: number): string {
+  return `${meters > 0 ? '+' : '−'}${formatDistance(Math.abs(meters))}`
+}
 </script>
 
 <template>
@@ -96,24 +118,78 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
         <span class="label">Volume visé et charge par semaine <UiInfoHint term="ua" /></span>
         <span class="mono text-[11.5px] text-text-muted">24 premières semaines</span>
       </div>
+      <!-- L'objet survolé est la semaine, pas la barre : les deux barres
+           ouvrent la même bulle, et la semaine s'atteint au clavier. -->
       <div class="flex h-[140px] items-end gap-1">
-        <div
+        <UiHoverBubble
           v-for="week in visibleWeeks"
           :key="week.index"
-          class="flex flex-1 flex-col justify-end gap-px"
-          :title="`Semaine ${week.index} · ${formatDistance(week.targetRunM)} · ${week.loadUa} UA`"
+          class="flex-1"
+          :label="`Semaine ${week.index}`"
+          :width="300"
+          trigger-class="w-full items-end"
         >
-          <div
-            class="w-full rounded-t-sm"
-            :class="week.light ? 'bg-line-strong' : 'bg-accent/70'"
-            :style="{ height: `${(week.targetRunM / maxVolume) * 100}px` }"
-          />
-          <div
-            v-if="week.loadUa > 0"
-            class="w-full rounded-b-sm bg-ok/70"
-            :style="{ height: `${(week.loadUa / maxLoad) * 30}px` }"
-          />
-        </div>
+          <template #trigger="{ open }">
+            <span
+              class="flex w-full flex-col justify-end gap-px rounded-sm border p-px"
+              :class="open ? 'border-accent' : 'border-transparent'"
+            >
+              <span
+                class="w-full rounded-t-sm"
+                :class="week.light ? 'bg-line-strong' : 'bg-accent/70'"
+                :style="{ height: `${(week.targetRunM / maxVolume) * 100}px` }"
+              />
+              <span
+                v-if="week.loadUa > 0"
+                class="w-full rounded-b-sm bg-ok/70"
+                :style="{ height: `${(week.loadUa / maxLoad) * 30}px` }"
+              />
+            </span>
+          </template>
+
+          <span class="flex items-baseline gap-2">
+            <span class="label text-[10px]">Semaine {{ week.index }}</span>
+            <span class="mono text-[10.5px] text-text-muted">
+              {{ formatDate(week.startDate) }} – {{ formatDate(week.endDate) }}
+            </span>
+          </span>
+
+          <span class="flex flex-wrap items-baseline gap-2 text-[12.5px] text-text-dim">
+            {{ PHASE_LABELS[week.phaseType] ?? week.phaseType }}
+            <span v-if="week.light" class="pill text-[10px]">allégée</span>
+            <span v-if="week.test" class="pill text-[10px]">test</span>
+            <span v-if="week.comebackRatio !== null" class="pill text-[10px]">
+              reprise {{ Math.round(week.comebackRatio * 100) }} %
+            </span>
+          </span>
+
+          <span class="mono text-[12.5px]">
+            {{ formatDistance(week.targetRunM) }} visés
+            <template v-if="week.summary?.actualRunM !== null && week.summary">
+              · {{ formatDistance(week.summary.actualRunM) }} courus ({{
+                formatSignedDistance(week.summary.runGapM!)
+              }})
+            </template>
+          </span>
+
+          <span
+            v-if="week.summary && week.summary.loadUa > 0"
+            class="mono text-[12px] text-text-dim"
+          >
+            {{ week.summary.loadUa }} UA · {{ loadBreakdown(week.summary) }}
+          </span>
+
+          <span v-if="week.summary" class="mono text-[12px] text-text-dim">
+            {{ week.summary.sessionsDone }} séance{{
+              week.summary.sessionsDone > 1 ? 's' : ''
+            }}
+            faite{{ week.summary.sessionsDone > 1 ? 's' : '' }} sur
+            {{ week.summary.sessionsPlanned }}
+          </span>
+          <span v-else class="text-[12px] text-text-muted"
+            >Semaine à venir, rien d'enregistré.</span
+          >
+        </UiHoverBubble>
       </div>
       <span class="mono text-[11px] text-text-muted">
         Barre haute : volume visé. Barre basse : charge enregistrée, en unités arbitraires.
