@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ObjectiveLevelValues } from '~/components/races/ObjectiveFields.vue'
+
 const props = defineProps<{ raceId: number }>()
 const emit = defineEmits<{ changed: [] }>()
 
@@ -13,26 +15,26 @@ const DISTANCES = [
   { label: 'Marathon', value: 42195 },
 ]
 
+const OBJECTIVE_LEVELS = [
+  {
+    key: 'ambition',
+    label: 'Ambition',
+    field: 'objectifAmbitionS',
+    confidence: 'confidenceAmbitionPct',
+  },
+  { key: 'realiste', label: 'Réaliste', field: 'objectifS', confidence: 'confidencePct' },
+  {
+    key: 'plancher',
+    label: 'Plancher',
+    field: 'objectifPlancherS',
+    confidence: 'confidencePlancherPct',
+  },
+] as const
+
 const PRIORITY_MEANING: Record<string, string> = {
   A: 'Course principale : tout le cycle est construit pour elle.',
   B: 'Course secondaire : elle se court sur la forme de la course A.',
   C: 'Course test : elle remplace la séance clé de la semaine et recale le VDOT.',
-}
-
-function secondsToText(seconds: number | null): string {
-  if (seconds === null) return ''
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const rest = seconds % 60
-  return `${hours}:${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`
-}
-
-function textToSeconds(text: string): number | null {
-  const parts = text.trim().split(':').map(Number)
-  if (parts.length < 2 || parts.some(Number.isNaN)) return null
-  return parts.length === 3
-    ? parts[0]! * 3600 + parts[1]! * 60 + parts[2]!
-    : parts[0]! * 60 + parts[1]!
 }
 
 const form = reactive({
@@ -40,11 +42,52 @@ const form = reactive({
   date: race.value?.date ?? '',
   distanceM: race.value?.distanceM ?? 21097.5,
   priority: race.value?.priority ?? 'A',
-  objectiveMode: race.value?.objectiveMode ?? 'performance_max',
-  objectiveText: secondsToText(race.value?.objectifS ?? null),
+  objectiveMode: (race.value?.objectiveMode ?? 'temps') as string,
   elevationGainM: race.value?.elevationGainM ?? null,
   expectedTempC: race.value?.expectedTempC ?? null,
   notes: race.value?.notes ?? '',
+})
+
+const levels = ref<ObjectiveLevelValues>({
+  ambitionS: race.value?.objectifAmbitionS ?? null,
+  realisticS: race.value?.objectifS ?? null,
+  floorS: race.value?.objectifPlancherS ?? null,
+})
+
+/** Record sur la distance choisie : la référence du mode record (§ 5). */
+const recordS = computed(() => {
+  const best = (races.value ?? [])
+    .filter(
+      (item) =>
+        item.status === 'courue' &&
+        item.representative &&
+        item.resultatS !== null &&
+        Math.abs(item.distanceM - form.distanceM) < 1,
+    )
+    .map((item) => item.resultatS!)
+    .sort((a, b) => a - b)
+  return best.at(0) ?? null
+})
+
+watch(recordS, (value) => {
+  if (value === null && form.objectiveMode === 'record') form.objectiveMode = 'temps'
+})
+
+/** La projection suit la distance et la date saisies, pas celles enregistrées. */
+const proposed = ref<ObjectiveLevelValues | null>(race.value?.proposedLevels ?? null)
+
+watchEffect(async () => {
+  const query = {
+    date: form.date,
+    distanceM: form.distanceM,
+    elevationGainM: form.elevationGainM,
+    expectedTempC: form.expectedTempC,
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(query.date)) {
+    proposed.value = null
+    return
+  }
+  proposed.value = (await $fetch('/api/races/projection', { query })).proposedLevels
 })
 
 /** Ancienne valeur, affichée barrée dès qu'un champ change (§ 8). */
@@ -53,14 +96,13 @@ const before = computed(() => race.value)
 const changed = (field: keyof typeof form, current: unknown) =>
   before.value !== undefined && String(form[field] ?? '') !== String(current ?? '')
 
-/** Les quatre champs qui pilotent la périodisation (§ 5). */
+/** Les trois champs qui pilotent la périodisation (§ 5, P5.15). */
 const regenerates = computed(
   () =>
     race.value !== undefined &&
     (form.date !== race.value.date ||
       form.distanceM !== race.value.distanceM ||
-      form.priority !== race.value.priority ||
-      form.objectiveMode !== race.value.objectiveMode),
+      form.priority !== race.value.priority),
 )
 
 const saving = ref(false)
@@ -79,7 +121,9 @@ async function save() {
         distanceM: form.distanceM,
         priority: form.priority,
         objectiveMode: form.objectiveMode,
-        objectifS: form.objectiveMode === 'temps' ? textToSeconds(form.objectiveText) : null,
+        objectifAmbitionS: levels.value.ambitionS,
+        objectifS: levels.value.realisticS,
+        objectifPlancherS: levels.value.floorS,
         elevationGainM: form.elevationGainM,
         expectedTempC: form.expectedTempC,
         notes: form.notes.trim() || null,
@@ -183,32 +227,53 @@ async function remove() {
         </select>
       </label>
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Objectif</span>
-        <select v-model="form.objectiveMode" class="input">
-          <option value="temps">Chrono cible</option>
-          <option value="performance_max">Performance maximale</option>
-        </select>
-      </label>
-      <label v-if="form.objectiveMode === 'temps'" class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Chrono visé (h:mm:ss)</span>
-        <input
-          ref="objectiveInput"
-          v-model="form.objectiveText"
-          type="text"
-          class="input mono"
-          placeholder="1:38:00"
-        />
-      </label>
-      <label v-else class="flex flex-col gap-[6px]">
         <span class="label text-[10.5px]">D+ (m)</span>
         <input v-model.number="form.elevationGainM" type="number" class="input mono" />
       </label>
+      <label class="flex flex-col gap-[6px]">
+        <span class="label text-[10.5px]">Température attendue (°C)</span>
+        <input v-model.number="form.expectedTempC" type="number" class="input mono" />
+      </label>
+    </div>
+
+    <RacesObjectiveFields
+      v-model:mode="form.objectiveMode"
+      v-model:levels="levels"
+      :proposed="proposed"
+      :record-s="recordS"
+    />
+
+    <!-- Les trois niveaux se lisent comme un curseur de risque, pas comme trois verdicts. -->
+    <div v-if="race.objectiveMode === 'record'" class="tile bg-surface-inset">
+      <span class="label text-[10.5px]">Record à battre <UiInfoHint term="confiance" /></span>
+      <span class="mono text-[17px]">{{ formatDuration(race.recordS) }}</span>
+      <span class="text-[12px] text-text-muted">
+        {{ race.recordName }} · {{ race.recordDate ? formatDate(race.recordDate) : '—' }} ·
+        confiance {{ race.confidencePct === null ? '—' : `${race.confidencePct} %` }}
+      </span>
+    </div>
+    <div v-else-if="!race.objectiveToSet" class="tile bg-surface-inset">
+      <span class="label text-[10.5px]">
+        Confiance par niveau <UiInfoHint term="confiance" />
+      </span>
+      <div class="grid grid-cols-3 gap-4">
+        <div v-for="level in OBJECTIVE_LEVELS" :key="level.key" class="flex flex-col">
+          <span class="label text-[10px]">{{ level.label }}</span>
+          <span class="mono text-[17px]">{{ formatDuration(race[level.field]) }}</span>
+          <span class="mono text-[12px] text-text-muted">
+            {{ race[level.confidence] === null ? '—' : `${race[level.confidence]} %` }}
+          </span>
+        </div>
+      </div>
+      <span class="text-[12px] text-text-muted">
+        Du plus ambitieux au plus sûr : la confiance monte avec le temps qu'on s'accorde.
+      </span>
     </div>
 
     <p class="text-[13px] text-text-muted">{{ PRIORITY_MEANING[form.priority] }}</p>
 
     <p v-if="regenerates" class="text-[13px] text-warn">
-      Date, distance, priorité ou mode d'objectif : enregistrer régénérera le plan.
+      Date, distance ou priorité : enregistrer régénérera le plan.
     </p>
     <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
 

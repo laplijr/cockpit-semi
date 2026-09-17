@@ -7,6 +7,7 @@ interface RaceRow {
   priority: string
   objectiveMode: string
   objectifS: number | null
+  recordS: number | null
   projectionS: number | null
   projectionLowS: number | null
   projectionHighS: number | null
@@ -43,9 +44,12 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
 
     <!-- Quatre informations : J−, objectif, projection, confiance (§ 8). -->
     <div class="flex items-baseline gap-4">
+      <!-- Le niveau réaliste seul : les trois vivent dans le dialog (§ 9, P5.15). -->
       <span class="mono text-[11.5px] text-text-muted">
         <template v-if="race.objectiveToSet">objectif à fixer</template>
-        <template v-else-if="race.objectiveMode === 'performance_max'">perf. max</template>
+        <template v-else-if="race.objectiveMode === 'record'">
+          record {{ formatDuration(race.recordS) }}
+        </template>
         <template v-else>objectif {{ formatDuration(race.objectifS) }}</template>
       </span>
       <span class="mono text-[11.5px]">{{ formatDuration(race.projectionS) }}</span>

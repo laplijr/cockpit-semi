@@ -9,6 +9,12 @@ const { data: readiness } = await useFetch('/api/readiness')
 const { data: library } = await useFetch('/api/library/running')
 const { data: races } = await useFetch('/api/races')
 
+const OBJECTIVE_LEVELS = [
+  { label: 'Ambition', field: 'objectifAmbitionS', confidence: 'confidenceAmbitionPct' },
+  { label: 'Réaliste', field: 'objectifS', confidence: 'confidencePct' },
+  { label: 'Plancher', field: 'objectifPlancherS', confidence: 'confidencePlancherPct' },
+] as const
+
 const SPORTS = [
   { key: 'course', label: 'Course' },
   { key: 'velo', label: 'Vélo' },
@@ -167,10 +173,14 @@ const title = computed(
           <span class="label text-[10.5px]">Objectif</span>
           <span class="mono text-[20px]">
             <template v-if="raceA.objectiveToSet">à fixer</template>
-            <template v-else-if="raceA.objectiveMode === 'performance_max'">
-              performance max
+            <template v-else-if="raceA.objectiveMode === 'record'">
+              {{ formatDuration(raceA.recordS) }}
             </template>
             <template v-else>{{ formatDuration(raceA.objectifS) }}</template>
+          </span>
+          <span v-if="raceA.objectiveMode === 'record'" class="text-[12px] text-text-muted">
+            record · {{ raceA.recordName }} ·
+            {{ raceA.recordDate ? formatDate(raceA.recordDate) : '—' }}
           </span>
         </div>
         <div class="tile bg-surface-inset">
@@ -192,10 +202,10 @@ const title = computed(
             <template v-if="raceA.confidencePct === null">
               Sans objectif ni référence à battre, il n'y a rien à estimer.
             </template>
-            <template v-else-if="raceA.objectiveMode === 'performance_max'">
-              probabilité de faire mieux que ta dernière référence
+            <template v-else-if="raceA.objectiveMode === 'record'">
+              probabilité de battre ton record sur la distance
             </template>
-            <template v-else>probabilité de tenir le chrono visé</template>
+            <template v-else>probabilité de tenir le niveau réaliste</template>
           </span>
         </div>
         <div class="tile bg-surface-inset">
@@ -212,6 +222,27 @@ const title = computed(
           </span>
           <span class="text-[12px] text-text-muted">1,5 % par degré au-dessus de 18</span>
         </div>
+      </div>
+
+      <!-- Les trois niveaux se lisent ensemble : un curseur de risque, pas trois verdicts. -->
+      <div
+        v-if="raceA.objectiveMode === 'temps' && !raceA.objectiveToSet"
+        class="tile bg-surface-inset"
+      >
+        <span class="label text-[10.5px]">Les trois niveaux</span>
+        <div class="grid grid-cols-3 gap-4">
+          <div v-for="level in OBJECTIVE_LEVELS" :key="level.label" class="flex flex-col">
+            <span class="label text-[10px]">{{ level.label }}</span>
+            <span class="mono text-[17px]">{{ formatDuration(raceA[level.field]) }}</span>
+            <span class="mono text-[12px] text-text-muted">
+              {{ raceA[level.confidence] === null ? '—' : `${raceA[level.confidence]} %` }}
+            </span>
+          </div>
+        </div>
+        <span class="text-[12px] text-text-muted">
+          Du plus ambitieux au plus sûr : plus le chrono s'accorde de temps, plus la confiance
+          monte. Un seul des trois est « l'objectif » — le réaliste.
+        </span>
       </div>
 
       <p class="text-[13px] text-text-muted">

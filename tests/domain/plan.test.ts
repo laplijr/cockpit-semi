@@ -32,7 +32,7 @@ const ILE_D_ARZ = {
   date: '2027-08-08',
   distanceM: 5000,
   priority: RacePriority.A,
-  objectiveMode: ObjectiveMode.MaxPerformance,
+  objectiveMode: ObjectiveMode.Time,
 }
 
 const ALL_RACES = [PARIS, MADRID, ILE_D_ARZ]

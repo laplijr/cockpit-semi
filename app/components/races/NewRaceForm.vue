@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import type { LookupFields } from './RaceSearch.vue'
+import type { ObjectiveLevelValues } from './ObjectiveFields.vue'
 
 const props = defineProps<{ lookupId?: number | null; prefill?: LookupFields | null }>()
 const emit = defineEmits<{ created: [] }>()
+
+const { data: races } = await useFetch('/api/races')
 
 const DISTANCES = [
   { label: '5 km', value: 5000 },
@@ -17,12 +20,52 @@ const form = reactive({
   distanceM: 21097.5,
   priority: 'A',
   objectiveMode: 'temps',
-  objectiveText: '',
   elevationGainM: null as number | null,
 })
 
+const levels = ref<ObjectiveLevelValues>({ ambitionS: null, realisticS: null, floorS: null })
+
 const saving = ref(false)
 const error = ref('')
+
+/** Meilleur résultat représentatif sur la distance choisie : la référence du mode record (§ 5). */
+const recordS = computed(() => {
+  const best = (races.value ?? [])
+    .filter(
+      (race) =>
+        race.status === 'courue' &&
+        race.representative &&
+        race.resultatS !== null &&
+        Math.abs(race.distanceM - form.distanceM) < 1,
+    )
+    .map((race) => race.resultatS!)
+    .sort((a, b) => a - b)
+  return best.at(0) ?? null
+})
+
+/** Le mode record retombe sur le chrono cible dès que la distance perd son record. */
+watch(recordS, (value) => {
+  if (value === null && form.objectiveMode === 'record') form.objectiveMode = 'temps'
+})
+
+/**
+ * Projection de la course qu'on est en train de saisir : elle n'existe pas
+ * encore en base, donc elle se demande sur ses champs (§ 9, P5.15).
+ */
+const proposed = ref<ObjectiveLevelValues | null>(null)
+
+watchEffect(async () => {
+  const query = {
+    date: form.date,
+    distanceM: form.distanceM,
+    elevationGainM: form.elevationGainM,
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(query.date)) {
+    proposed.value = null
+    return
+  }
+  proposed.value = (await $fetch('/api/races/projection', { query })).proposedLevels
+})
 
 /** Un champ trouvé pré-remplit le formulaire ; il reste modifiable (§ 6). */
 watch(
@@ -42,15 +85,6 @@ watch(
   { immediate: true },
 )
 
-/** « 1:38:00 » ou « 98:00 » → secondes. */
-function parseObjective(text: string): number | null {
-  const parts = text.trim().split(':').map(Number)
-  if (parts.length < 2 || parts.some((part) => Number.isNaN(part))) return null
-  return parts.length === 3
-    ? parts[0]! * 3600 + parts[1]! * 60 + parts[2]!
-    : parts[0]! * 60 + parts[1]!
-}
-
 const canSave = computed(() => form.name.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(form.date))
 
 async function save() {
@@ -65,14 +99,16 @@ async function save() {
         distanceM: form.distanceM,
         priority: form.priority,
         objectiveMode: form.objectiveMode,
-        objectifS: form.objectiveMode === 'temps' ? parseObjective(form.objectiveText) : null,
+        objectifAmbitionS: levels.value.ambitionS,
+        objectifS: levels.value.realisticS,
+        objectifPlancherS: levels.value.floorS,
         elevationGainM: form.elevationGainM,
         lookupId: props.lookupId ?? null,
       },
     })
     emit('created')
-  } catch {
-    error.value = 'Enregistrement impossible. Vérifie la date et la distance.'
+  } catch (failure) {
+    error.value = apiMessage(failure, 'Enregistrement impossible. Vérifie la date et la distance.')
   } finally {
     saving.value = false
   }
@@ -107,26 +143,19 @@ async function save() {
         </select>
       </label>
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Objectif</span>
-        <select v-model="form.objectiveMode" class="input">
-          <option value="temps">Chrono cible</option>
-          <option value="performance_max">Performance maximale</option>
-        </select>
-      </label>
-      <label v-if="form.objectiveMode === 'temps'" class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Chrono visé (h:mm:ss)</span>
-        <input v-model="form.objectiveText" type="text" class="input mono" placeholder="1:38:00" />
-      </label>
-      <span v-else />
-      <label class="flex flex-col gap-[6px]">
         <span class="label text-[10.5px]">D+ (m)</span>
         <input v-model.number="form.elevationGainM" type="number" class="input mono" />
       </label>
+      <span />
     </div>
 
-    <p v-if="form.objectiveMode === 'performance_max'" class="text-[13px] text-text-muted">
-      Sans chrono cible, l'objectif affiché sera la projection du jour, à battre.
-    </p>
+    <RacesObjectiveFields
+      v-model:mode="form.objectiveMode"
+      v-model:levels="levels"
+      :proposed="proposed"
+      :record-s="recordS"
+    />
+
     <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
 
     <div class="flex items-center gap-3">

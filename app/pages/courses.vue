@@ -80,8 +80,8 @@ async function onCreated() {
               >
                 à fixer
               </button>
-              <span v-else-if="race.objectiveMode === 'performance_max'" class="text-text-dim">
-                perf. max
+              <span v-else-if="race.objectiveMode === 'record'" class="text-text-dim">
+                record {{ formatDuration(race.recordS) }}
               </span>
               <span v-else>{{ formatDuration(race.objectifS) }}</span>
             </td>

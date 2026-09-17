@@ -30,7 +30,7 @@ const RACES = [
     date: '2027-08-08',
     distanceM: 5000,
     priority: RacePriority.A,
-    objectiveMode: ObjectiveMode.MaxPerformance,
+    objectiveMode: ObjectiveMode.Time,
   },
 ]
 

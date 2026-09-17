@@ -113,8 +113,12 @@ export const race = pgTable('race', {
   distanceM: real('distance_m').notNull(),
   priority: racePriorityEnum('priority').notNull(),
   objectiveMode: objectiveModeEnum('objective_mode').notNull().default(ObjectiveMode.Time),
-  /** Nul tant que l'objectif n'est pas fixé, et toujours nul en performance maximale. */
+  /** Niveau réaliste, nul tant qu'il n'est pas fixé et toujours nul en mode record. */
   objectifS: integer('objectif_s'),
+  /** Niveau ambition : le chrono du bon jour, la borne basse de l'intervalle. */
+  objectifAmbitionS: integer('objectif_ambition_s'),
+  /** Niveau plancher : le chrono à ne pas manquer, la borne haute de l'intervalle. */
+  objectifPlancherS: integer('objectif_plancher_s'),
   elevationGainM: integer('elevation_gain_m'),
   profileType: text('profile_type'),
   expectedTempC: real('expected_temp_c'),
