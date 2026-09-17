@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const proposals = usePropositionsStore()
-const plan = usePlanStore()
 await proposals.load()
 
 const STATUS_LABELS: Record<string, string> = {
@@ -8,11 +7,6 @@ const STATUS_LABELS: Record<string, string> = {
   acceptee: 'acceptée',
   refusee: 'refusée',
   expiree: 'expirée',
-}
-
-async function apply() {
-  await proposals.applySelected()
-  await plan.load()
 }
 </script>
 
@@ -45,14 +39,5 @@ async function apply() {
         </span>
       </div>
     </div>
-
-    <button
-      v-if="proposals.selected.length > 0"
-      type="button"
-      class="btn self-start"
-      @click="apply"
-    >
-      Appliquer {{ proposals.selected.length }}
-    </button>
   </div>
 </template>

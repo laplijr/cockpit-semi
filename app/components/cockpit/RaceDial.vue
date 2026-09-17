@@ -58,6 +58,16 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
       </span>
       <span v-else-if="race.projectionIsFloor" class="pill pill-warn ml-auto">plancher</span>
     </div>
+
+    <!-- L'échelle remplace la ligne grise : la confiance situe le décompte. -->
+    <div class="relative h-[10px]">
+      <span class="absolute inset-x-0 top-[4px] h-[3px] rounded-sm bg-accent-track" />
+      <span
+        v-if="race.confidencePct !== null"
+        class="absolute top-[4px] h-[3px] rounded-sm bg-accent"
+        :style="{ width: `${race.confidencePct}%` }"
+      />
+    </div>
   </div>
 
   <div v-else class="tile border-dashed">

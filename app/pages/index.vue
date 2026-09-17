@@ -40,7 +40,8 @@ async function onResume() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <section class="grid grid-cols-4 gap-4">
+    <!-- Course A est le seul cadran qui est un but, pas une mesure (§ 9, P5.19). -->
+    <section class="grid grid-cols-[1.15fr_1fr_1fr_1fr] gap-4">
       <CockpitRaceDial :race="raceA" :today="plan.today" />
       <CockpitVdotDial :vdot="vdot" :is-floor="vdotIsFloor" />
       <CockpitLoadDial />
@@ -93,7 +94,7 @@ async function onResume() {
       </div>
 
       <CockpitPauseCard v-if="plan.pause" :pause="plan.pause" @resume="onResume" />
-      <CockpitDecisionList v-else />
+      <CockpitDecisionList v-else :limit="3" />
     </section>
 
     <CockpitWeekStrip

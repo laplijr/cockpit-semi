@@ -155,3 +155,62 @@ export const SPORT_STYLES: Record<
 export function sportStyle(sport: string) {
   return SPORT_STYLES[sport] ?? SPORT_STYLES.autre!
 }
+
+/**
+ * Ce qu'une proposition fait à sa cible, au participe féminin : la ligne
+ * nomme son sujet, l'effet le qualifie (§ 9, P5.19).
+ */
+export const EFFECT_ACTIONS: Record<string, string> = {
+  muscu_serie_en_moins: 'allégée',
+  faciles_reduites: 'raccourcie',
+  sortie_longue_reduite: 'raccourcie',
+  repetitions_en_moins: 'allégée',
+  seance_replacee: 'replacée',
+  conversion_velo: 'convertie en vélo',
+  seance_deplacee: 'déplacée',
+  seance_retiree: 'retirée',
+}
+
+/** Effets qui ne visent pas une séance : ils se nomment tout seuls. */
+export const EFFECT_TITLES: Record<string, string> = {
+  progression_gelee: 'Progression de bloc gelée',
+  progression_retablie: 'Progression de bloc relancée',
+  pause_proposee: 'Pause proposée',
+  pause_imposee: 'Pause imposée',
+  course_redatee: 'Course redatée',
+}
+
+/** Noms de sport au singulier court, pour « 4 séances de muscu allégées ». */
+export const SHORT_SPORT_LABELS: Record<string, string> = {
+  course: 'course',
+  velo: 'vélo',
+  muscu: 'muscu',
+  autre: 'sport',
+}
+
+interface PrescriptionLike {
+  durationMin?: number
+  steps: {
+    repeats?: number
+    durationS?: number
+    distanceM?: number
+    paceSecPerKm?: number
+    recoveryS?: number
+  }[]
+}
+
+/** Durée prévue d'une séance : celle de la prescription, ou celle de ses étapes. */
+export function prescribedMinutes(prescription: PrescriptionLike): number {
+  if (prescription.durationMin) return prescription.durationMin
+
+  const seconds = prescription.steps.reduce((total, step) => {
+    const repeats = step.repeats ?? 1
+    if (step.durationS) return total + step.durationS * repeats + (step.recoveryS ?? 0) * repeats
+    if (step.distanceM && step.paceSecPerKm) {
+      return total + (step.distanceM / 1000) * step.paceSecPerKm * repeats
+    }
+    return total
+  }, 0)
+
+  return Math.round(seconds / 60)
+}

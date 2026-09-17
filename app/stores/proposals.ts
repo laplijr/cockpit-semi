@@ -1,3 +1,5 @@
+import type { ProposalGroup, ProposalTargetSession } from '~~/server/application/group-proposals'
+
 export interface ProposalRow {
   id: number
   trigger: string
@@ -13,39 +15,64 @@ export interface ProposalRow {
   decidedAt: string | null
 }
 
+export type PendingRow = ProposalRow & { target: ProposalTargetSession | null }
+
+interface ProposalsPayload {
+  pending: PendingRow[]
+  groups: ProposalGroup[]
+  decided: ProposalRow[]
+}
+
+/**
+ * Ce qui se décide est un groupe — une règle et son effet — pas une ligne :
+ * quatre séances allégées par la même règle font une seule décision (§ 9, P5.19).
+ */
 export const usePropositionsStore = defineStore('proposals', () => {
-  const pending = ref<ProposalRow[]>([])
+  const pending = ref<PendingRow[]>([])
+  const groups = ref<ProposalGroup[]>([])
   const decided = ref<ProposalRow[]>([])
-  const selected = ref<number[]>([])
+  const selected = ref<string[]>([])
   const request = useRequestFetch()
 
   async function load() {
-    const payload = await request<{ pending: ProposalRow[]; decided: ProposalRow[] }>(
-      '/api/proposals',
-    )
+    const payload = await request<ProposalsPayload>('/api/proposals')
     pending.value = payload.pending
+    groups.value = payload.groups
     decided.value = payload.decided
-    selected.value = selected.value.filter((id) => payload.pending.some((row) => row.id === id))
+    selected.value = selected.value.filter((key) =>
+      payload.groups.some((group) => group.key === key),
+    )
   }
 
-  function toggle(id: number) {
-    const index = selected.value.indexOf(id)
-    if (index === -1) selected.value.push(id)
+  function toggle(key: string) {
+    const index = selected.value.indexOf(key)
+    if (index === -1) selected.value.push(key)
     else selected.value.splice(index, 1)
   }
 
-  /** Applique les propositions cochées, une par une, puis recharge. */
+  function idsOf(keys: string[]): number[] {
+    return groups.value.filter((group) => keys.includes(group.key)).flatMap((group) => group.ids)
+  }
+
+  /** Applique les décisions cochées : toutes les lignes de chaque groupe. */
   async function applySelected() {
-    for (const id of [...selected.value]) {
+    for (const id of idsOf([...selected.value])) {
       await request(`/api/proposals/${id}/accept`, { method: 'POST' })
     }
     selected.value = []
     await load()
   }
 
-  /** Applique une seule proposition, depuis son panneau de détail. */
+  /** Applique une seule proposition, depuis son dialog de détail. */
   async function applyOne(id: number) {
     await request(`/api/proposals/${id}/accept`, { method: 'POST' })
+    await load()
+  }
+
+  async function refuseGroup(key: string) {
+    for (const id of idsOf([key])) {
+      await request(`/api/proposals/${id}/refuse`, { method: 'POST' })
+    }
     await load()
   }
 
@@ -54,7 +81,20 @@ export const usePropositionsStore = defineStore('proposals', () => {
     await load()
   }
 
-  const pendingCount = computed(() => pending.value.length)
+  /** La cloche compte les décisions, pas les lignes. */
+  const pendingCount = computed(() => groups.value.length)
 
-  return { pending, decided, selected, pendingCount, load, toggle, applySelected, applyOne, refuse }
+  return {
+    pending,
+    groups,
+    decided,
+    selected,
+    pendingCount,
+    load,
+    toggle,
+    applySelected,
+    applyOne,
+    refuse,
+    refuseGroup,
+  }
 })

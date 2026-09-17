@@ -13,24 +13,12 @@ const SENSATIONS = [
   { value: 'nausee', label: 'Nausée' },
 ]
 
-/** Durée prévue, déduite de la distance et de l'allure de la prescription. */
 const isStrength = computed(() => props.session.sport === 'muscu')
 const isRunning = computed(() => props.session.sport === 'course')
 const strengthSets = ref<{ save: () => Promise<void> } | null>(null)
 
-const plannedMinutes = computed(() => {
-  if (props.session.prescription.durationMin) return props.session.prescription.durationMin
-  const steps = props.session.prescription.steps
-  const seconds = steps.reduce((total, step) => {
-    const repeats = step.repeats ?? 1
-    if (step.durationS) return total + step.durationS * repeats + (step.recoveryS ?? 0) * repeats
-    if (step.distanceM && step.paceSecPerKm) {
-      return total + (step.distanceM / 1000) * step.paceSecPerKm * repeats
-    }
-    return total
-  }, 0)
-  return Math.round(seconds / 60)
-})
+/** Durée prévue, déduite de la distance et de l'allure de la prescription. */
+const plannedMinutes = computed(() => prescribedMinutes(props.session.prescription))
 
 const form = reactive({
   rpe: props.session.prescription.expectedRpe,
