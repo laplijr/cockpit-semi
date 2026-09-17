@@ -130,6 +130,15 @@ async function seed() {
       objectifS: null,
       notes: 'Première course sur 5 km : les trois niveaux se posent depuis la projection.',
     },
+    {
+      name: 'Semi-marathon Auray-Vannes',
+      date: '2027-09-12',
+      distanceM: 21097.5,
+      priority: RacePriority.A,
+      objectiveMode: ObjectiveMode.Time,
+      objectifS: 1 * 3600 + 50 * 60,
+      notes: 'Course principale de la saison.',
+    },
   ])
 
   await db.insert(schema.pause).values({
