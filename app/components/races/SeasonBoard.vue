@@ -10,6 +10,8 @@ const props = defineProps<{
   dated: boolean
 }>()
 
+const ui = useUiStore()
+
 const layout = computed(() => seasonLayout({ ...props }))
 
 /** Le cap : la première course A à venir, celle sur laquelle tout se cale. */
@@ -85,10 +87,11 @@ function pillShift(positionPct: number): string {
     <!-- Le trait d'aujourd'hui traverse la barre, le ruban et l'axe. -->
     <div class="relative pt-1">
       <div class="flex h-7 w-full overflow-hidden rounded-sm">
-        <div
+        <button
           v-for="(segment, index) in layout.segments"
           :key="segment.id"
-          class="flex items-center justify-center border-r border-ink text-[10.5px] whitespace-nowrap"
+          type="button"
+          class="flex cursor-pointer items-center justify-center border-r border-ink text-[10.5px] whitespace-nowrap hover:brightness-125"
           :class="
             segment.current
               ? 'bg-accent text-on-accent'
@@ -97,10 +100,12 @@ function pillShift(positionPct: number): string {
                 : 'bg-surface-inset text-text-muted'
           "
           :style="{ width: `${segment.sharePct}%` }"
+          :aria-label="`${PHASE_LABELS[segment.type] ?? segment.type}, ${segment.weeks} semaines`"
+          @click="ui.openModal('bloc', segment.id)"
         >
           <span v-if="segment.sharePct > 5">{{ PHASE_LABELS[segment.type] }}</span>
           <span v-else class="mono">{{ segment.weeks }}</span>
-        </div>
+        </button>
       </div>
 
       <div v-if="layout.dated" class="relative h-[58px]">
@@ -113,17 +118,20 @@ function pillShift(positionPct: number): string {
             ]"
             :style="{ left: `${mark.positionPct}%` }"
           />
-          <span
-            class="pill absolute text-[10.5px] whitespace-nowrap"
+          <!-- Un clic n'empile jamais deux surfaces : le repère ouvre la course. -->
+          <button
+            type="button"
+            class="pill tile-action absolute text-[10.5px] whitespace-nowrap"
             :class="mark.race.priority === 'A' && 'bg-accent/15 text-accent'"
             :style="{
               left: `${mark.positionPct}%`,
               top: mark.level === 0 ? '14px' : '34px',
               transform: pillShift(mark.positionPct),
             }"
+            @click="ui.openModal('course', mark.race.id)"
           >
             {{ mark.race.name }} · J−{{ mark.daysUntil }}
-          </span>
+          </button>
         </template>
       </div>
 

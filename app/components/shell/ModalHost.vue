@@ -11,6 +11,7 @@ const WIDTHS: Record<string, number> = {
   proposition: 760,
   course: 760,
   exercice: 640,
+  bloc: 880,
 }
 
 const TITLES: Record<string, string> = {
@@ -20,6 +21,7 @@ const TITLES: Record<string, string> = {
   proposition: 'Proposition',
   course: 'Course',
   exercice: 'Exercice',
+  bloc: 'Bloc',
 }
 
 async function onSessionSaved() {
@@ -71,6 +73,11 @@ async function onDecided() {
         v-else-if="ui.modal === 'proposition' && ui.modalTargetId"
         :proposal-id="ui.modalTargetId"
         @decided="onDecided"
+      />
+
+      <DialogsBlockDialog
+        v-else-if="ui.modal === 'bloc' && ui.modalTargetId"
+        :phase-id="ui.modalTargetId"
       />
     </ShellAppModal>
   </Teleport>

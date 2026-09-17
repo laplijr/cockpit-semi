@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { GLOSSARY } from '~/utils/glossary'
+import { GLOSSARY, PHASE_PURPOSE } from '~/utils/glossary'
+import { PhaseType } from '~~/server/domain/plan/phases'
 
 const entries = Object.entries(GLOSSARY)
 
@@ -18,5 +19,16 @@ describe('glossaire (§ 11, P5.13)', () => {
 
     expect(new Set(titles).size).toBe(titles.length)
     expect(new Set(texts).size).toBe(texts.length)
+  })
+})
+
+describe('raison d’être des blocs (§ 9, P5.17)', () => {
+  it('couvre chaque type de phase du moteur, sans entrée vide', () => {
+    const types = Object.values(PhaseType)
+
+    expect(Object.keys(PHASE_PURPOSE).sort()).toEqual([...types].sort())
+    for (const type of types) {
+      expect(PHASE_PURPOSE[type].trim(), type).not.toBe('')
+    }
   })
 })

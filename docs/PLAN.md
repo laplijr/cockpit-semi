@@ -281,13 +281,13 @@ P5.17 — Dialog Bloc
 
 La frise montre le découpage de la saison et rien de ce qu'il contient. Un segment « Spécifique · 7 sem. » ne dit ni ses dates, ni ses volumes, ni ses séances clés, ni pourquoi il existe : son seul détail est un `title` natif qui répète le libellé et le nombre de semaines. Le § 8 tranche déjà le cas — une tuile qui a un détail s'ouvre en dialog, et un dialog porte un objet. Le bloc devient donc le sixième objet de dialog, en lecture seule : il ne se modifie pas, il se régénère depuis les courses.
 
-- [ ] `app/utils/glossary.ts` (P5.13) gagne `PHASE_PURPOSE` : une phrase par type de phase — ce que le bloc cherche à développer et ce qui le termine. Un type inconnu ne compile pas. Tests : une entrée par type de phase du moteur, aucune vide.
-- [ ] `ModalId` `'bloc'` : le segment cliqué appelle `ui.openModal('bloc', phase.id)` et `ShellModalHost` rend `DialogsBlockDialog`. Le segment porte `cursor: pointer` et répond au clavier (Entrée, Espace).
-- [ ] Dialog **Bloc** : type et raison d'être de la phase, semaines n→m avec leurs dates, volume visé semaine par semaine avec la semaine allégée et la semaine de test marquées, nombre et rôle des séances clés de la phase, vélo et muscu de la phase, et la course qui termine le bloc — sa ligne ouvre le dialog Course. Aucune action : un bloc ne se modifie pas.
-- [ ] Repère de course cliquable : la tige d'une course dans le ruban ouvre le dialog Course de P5.10. Un clic n'empile jamais deux surfaces.
-- [ ] § 8 : la liste des dialogs passe à six objets (séance, course, cadran, proposition, exercice, bloc), et la règle s'écrit — un bloc est en lecture seule, il se pilote par ses courses.
-- [ ] Vérifier au scénario `bloc-2` : cliquer « Spécifique » ouvre ses sept semaines avec le volume qui monte puis la semaine allégée ; cliquer le repère de Paris ouvre la course ; Échap ne ferme qu'une surface.
-- [ ] Fini : lint, typecheck, tests, build verts ; § 8 relu ; commit « P5.17 — dialog bloc ».
+- [x] `app/utils/glossary.ts` (P5.13) gagne `PHASE_PURPOSE` : une phrase par type de phase — ce que le bloc cherche à développer et ce qui le termine. Un type inconnu ne compile pas. Tests : une entrée par type de phase du moteur, aucune vide.
+- [x] `ModalId` `'bloc'` : le segment cliqué appelle `ui.openModal('bloc', phase.id)` et `ShellModalHost` rend `DialogsBlockDialog`. Le segment porte `cursor: pointer` et répond au clavier (Entrée, Espace).
+- [x] Dialog **Bloc** : type et raison d'être de la phase, semaines n→m avec leurs dates, volume visé semaine par semaine avec la semaine allégée et la semaine de test marquées, nombre et rôle des séances clés de la phase, vélo et muscu de la phase, et la course qui termine le bloc — sa ligne ouvre le dialog Course. Aucune action : un bloc ne se modifie pas.
+- [x] Repère de course cliquable : la tige d'une course dans le ruban ouvre le dialog Course de P5.10. Un clic n'empile jamais deux surfaces.
+- [x] § 8 : la liste des dialogs passe à six objets (séance, course, cadran, proposition, exercice, bloc), et la règle s'écrit — un bloc est en lecture seule, il se pilote par ses courses.
+- [x] Vérifier au scénario `bloc-2` : cliquer « Spécifique » ouvre ses sept semaines avec le volume qui monte puis la semaine allégée ; cliquer le repère de Paris ouvre la course ; Échap ne ferme qu'une surface.
+- [x] Fini : lint, typecheck, tests, build verts ; § 8 relu ; commit « P5.17 — dialog bloc ».
 
 P5.18 — Trajectoire de la saison
 
@@ -529,13 +529,13 @@ Une bibliothèque n'est pas un plan : on y consulte et on y ajuste le contenu (c
 2. Zone d'action : **Aujourd'hui** (séances du jour, réalisé Strava vs prévu, une seule action par ligne : compléter le ressenti / ouvrir la séance ; ligne « demain ») et **À décider** (propositions, une case par ligne, règle affichée, « Appliquer n »).
 3. Contexte : semaine en cours sur 7 colonnes, frise de saison.
 
-**Panneaux latéraux** (par-dessus le cockpit, Échap ferme) : Imprévu (⌘K), Pause / blessure — la saisie liée au flux, sans objet à lire. **Dialogs** (fenêtre centrée, Échap ferme) : séance (détail complet et retour de séance), course, cadran, proposition, exercice de muscu. **Fenêtre** : Nouvelle course (recherche automatique à gauche, formulaire pré-rempli à droite) ; Itinéraires (depuis la ligne d'une course : adresse du logement, date d'arrivée, une ligne par sortie sur place avec tracé, distance, D+ et téléchargement du GPX).
+**Panneaux latéraux** (par-dessus le cockpit, Échap ferme) : Imprévu (⌘K), Pause / blessure — la saisie liée au flux, sans objet à lire. **Dialogs** (fenêtre centrée, Échap ferme), six objets : séance (détail complet et retour de séance), course, cadran, proposition, exercice de muscu, bloc (une phase de la frise, en **lecture seule** — un bloc ne se modifie pas, il se pilote par ses courses). **Fenêtre** : Nouvelle course (recherche automatique à gauche, formulaire pré-rempli à droite) ; Itinéraires (depuis la ligne d'une course : adresse du logement, date d'arrivée, une ligne par sortie sur place avec tracé, distance, D+ et téléchargement du GPX).
 
 Règles d'ergonomie : une action principale par ligne, jamais deux boutons pleins côte à côte ; toute valeur proposée affiche l'ancienne barrée ; les nombres en police mono alignée ; aucun écran secondaire n'est nécessaire pour la routine séance → ressenti → décision.
 
 Règles de tuile (fixées le 16 sept. 2026) :
 - **Une tuile montre au plus quatre informations.** Tout le détail vit dans son dialog. C'est la contrepartie de la règle du § 11 : une tuile qui grossit se vide dans son dialog au lieu de pousser les autres.
-- **Toute tuile qui a un détail est cliquable et ouvre un dialog.** Dialog = lire et agir sur un objet (séance, course, cadran, proposition, exercice). Panneau latéral = saisie liée au flux (Imprévu, Pause). Un clic n'empile jamais deux surfaces.
+- **Toute tuile qui a un détail est cliquable et ouvre un dialog.** Dialog = lire et agir sur un objet (séance, course, cadran, proposition, exercice, bloc). Panneau latéral = saisie liée au flux (Imprévu, Pause). Un clic n'empile jamais deux surfaces.
 - **Les tuiles occupent la largeur de la zone principale.** Aucune page ne borne sa largeur ; les formulaires se répartissent en grille de 2 ou 3 colonnes pour que cette largeur serve. Exception unique : la page de connexion, carte centrée de 360 px.
 - Tout élément cliquable porte `cursor: pointer` et répond au clavier (Entrée, Espace). Tailwind 4 ne met plus le curseur sur `<button>` : c'est à la feuille de base de le faire.
 - **Un libellé de métier porte son icône d'information** (`UiInfoHint`, glossaire unique et partagé de `app/utils/glossary.ts`), un libellé ordinaire n'en porte pas. La bulle s'ouvre au survol et au focus clavier, n'exécute aucune action, et **ne compte pas dans les quatre informations d'une tuile** : elle explique une valeur déjà affichée, elle n'en ajoute pas.

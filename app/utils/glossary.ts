@@ -4,6 +4,8 @@
  * relève d'une page, pas d'une bulle.
  */
 
+import { PhaseType } from '~~/server/domain/plan/phases'
+
 export interface GlossaryEntry {
   /** Libellé complet de la notion, quand l'écran l'abrège. */
   readonly title: string
@@ -245,4 +247,29 @@ export function glossaryTermFor(
   code: string,
 ): GlossaryTerm | undefined {
   return map[code]
+}
+
+/**
+ * Raison d'être de chaque bloc : ce qu'il cherche à développer, et ce qui le
+ * termine. Un type de phase inconnu ne compile pas (§ 9, P5.17).
+ */
+export const PHASE_PURPOSE: Record<PhaseType, string> = {
+  [PhaseType.Base]:
+    "Construire le volume et l'endurance foncière à allure facile. Il se termine quand le kilométrage hebdomadaire se tient sans fatigue résiduelle.",
+  [PhaseType.ShortBase]:
+    'Remonter le volume en quatre semaines seulement, entre deux objectifs rapprochés. Il se termine à l\u2019entrée du bloc de vitesse.',
+  [PhaseType.Development]:
+    "Ajouter de la qualité au volume — seuil et VMA — sans toucher au pic de kilométrage. Il se termine quand les séances clés se tiennent à l'allure prévue.",
+  [PhaseType.Specific]:
+    "Courir l'allure de la course A, surtout dans la sortie longue, au pic de volume. Il se termine deux semaines avant la course, à l'entrée de l'affûtage.",
+  [PhaseType.Speed]:
+    'VMA, répétitions courtes et côtes pour un objectif court, sortie longue ramenée à 75′. Il se termine à l\u2019affûtage du 5 ou du 10 km.',
+  [PhaseType.Taper]:
+    "Faire tomber la fatigue sans perdre l'intensité : 70 % puis 50 % du dernier volume plein. Il se termine le jour de la course.",
+  [PhaseType.Recovery]:
+    'Laisser le corps encaisser la course : volume bas, aucune séance dure. Il se termine quand la fatigue et les douleurs sont parties.',
+  [PhaseType.Rebuild]:
+    "Relancer l'intensité après la récupération, sur peu de semaines. Il se termine à l'affûtage de la course suivante.",
+  [PhaseType.Transition]:
+    'Coupure entre deux saisons : mobilité, autre sport, aucun objectif chiffré. Il se termine quand une nouvelle course A est posée.',
 }
