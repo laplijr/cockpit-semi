@@ -18,8 +18,6 @@ watchEffect(() => {
 const routes = computed(() => data.value?.routes ?? [])
 const variant = computed(() => routes.value[shown.value % Math.max(1, routes.value.length)])
 
-const mapUrl = computed(() => (variant.value ? walkingMapUrl(variant.value.points) : null))
-
 /** Écart à la distance de la séance, en toutes lettres plutôt qu'en pourcent. */
 const gapLabel = computed(() => {
   const current = variant.value
@@ -90,17 +88,15 @@ async function suggest() {
     </p>
 
     <template v-else>
-      <div class="flex items-center gap-3">
-        <svg viewBox="0 0 88 88" class="size-[88px] shrink-0 rounded-md bg-surface">
-          <path
-            :d="routePath(variant.points, 88, 88)"
-            fill="none"
-            stroke="var(--color-accent)"
-            stroke-width="1.5"
-            stroke-linejoin="round"
-          />
-        </svg>
+      <!-- La carte se charge côté navigateur : Leaflet a besoin d'un DOM. -->
+      <ClientOnly>
+        <UiRouteMap :points="variant.points" :height="240" />
+        <template #fallback>
+          <UiSkeleton variant="block" :height="240" class="rounded-md" />
+        </template>
+      </ClientOnly>
 
+      <div class="flex items-center gap-3">
         <div class="flex min-w-0 flex-1 flex-col gap-px">
           <span class="mono flex items-baseline gap-2 text-[13px]">
             {{ formatDistance(variant.distanceM) }} · D+ {{ variant.elevationGainM }} m
@@ -122,23 +118,10 @@ async function suggest() {
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <a :href="`/api/routes/${variant.id}`" class="btn btn-ghost" download>
-          <UiAppIcon name="route" :size="15" />
-          Télécharger le GPX
-        </a>
-        <!-- Vue sur carte : Google redessine entre les étapes, le GPX reste la
-             référence au mètre près. -->
-        <a
-          v-if="mapUrl"
-          :href="mapUrl"
-          target="_blank"
-          rel="noopener"
-          class="mono text-[11.5px] text-text-muted hover:text-text"
-        >
-          Voir sur une carte
-        </a>
-      </div>
+      <a :href="`/api/routes/${variant.id}`" class="btn btn-ghost self-start" download>
+        <UiAppIcon name="route" :size="15" />
+        Télécharger le GPX
+      </a>
     </template>
   </div>
 </template>
