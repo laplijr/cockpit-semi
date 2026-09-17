@@ -63,8 +63,9 @@ async function onResume() {
       <CockpitReadinessDial />
     </section>
 
-    <!-- `items-start` : la tuile cesse de s'étirer à la hauteur de « À décider ». -->
-    <section class="grid grid-cols-[1.6fr_1fr] items-start gap-4">
+    <!-- Les deux tuiles finissent sur la même ligne : « À décider » est borné à
+         trois décisions depuis P5.19, l'étirement ne fuit donc plus (§ 8). -->
+    <section class="grid grid-cols-[1.6fr_1fr] gap-4">
       <!-- Une seule ligne de séance en squelette : c'est la journée courante. -->
       <div v-if="!plan.loaded" class="tile" aria-busy="true">
         <div class="flex items-baseline gap-3">

@@ -51,9 +51,12 @@ const preventionBlock = computed(() =>
       </table>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
-      <div v-for="item in data?.sessions ?? []" :key="item.code" class="tile">
-        <div class="flex items-baseline gap-3">
+    <!-- Une bibliothèque se parcourt du regard : les huit séances tiennent en
+         trois colonnes à la même hauteur, et c'est la liste des pas qui défile
+         dans sa tuile, pas la page (§ 8, P5.21). -->
+    <div class="grid grid-cols-3 gap-4">
+      <div v-for="item in data?.sessions ?? []" :key="item.code" class="tile h-[340px]">
+        <div class="flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-1">
           <span class="display text-[20px] font-semibold">{{ item.label }}</span>
           <span v-if="planned.has(item.code)" class="pill bg-accent/15 text-accent">
             cette semaine
@@ -62,9 +65,11 @@ const preventionBlock = computed(() =>
           <span class="pill">{{ formatMinutes(item.prescription.durationMin) }}</span>
         </div>
 
-        <p class="text-[13px] text-text-muted">{{ item.note }}</p>
+        <p class="shrink-0 text-[13px] text-text-muted">{{ item.note }}</p>
 
-        <div class="flex flex-col gap-2 border-t border-line-soft pt-2">
+        <div
+          class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto border-t border-line-soft pt-2"
+        >
           <div
             v-for="step in item.prescription.steps"
             :key="step.label"

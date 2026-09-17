@@ -29,7 +29,7 @@ const line = computed(() => {
 </script>
 
 <template>
-  <div v-if="loading" class="tile" aria-busy="true">
+  <div v-if="loading" class="tile dial" aria-busy="true">
     <div class="flex items-baseline justify-between">
       <span class="label"><UiSkeleton :height="15" width="72px" /></span>
       <UiSkeleton variant="block" :height="22" width="104px" />
@@ -40,7 +40,7 @@ const line = computed(() => {
 
   <div
     v-else
-    class="tile tile-action"
+    class="tile dial tile-action"
     role="button"
     :tabindex="0"
     @click="ui.openDial('vdot')"

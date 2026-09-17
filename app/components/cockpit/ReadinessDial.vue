@@ -19,7 +19,7 @@ const SEGMENTS = [
 </script>
 
 <template>
-  <div v-if="isLoading(status)" class="tile" aria-busy="true">
+  <div v-if="isLoading(status)" class="tile dial" aria-busy="true">
     <div class="flex items-baseline justify-between">
       <span class="label">Forme du jour <UiInfoHint term="formeDuJour" /></span>
       <UiSkeleton variant="block" :height="22" width="72px" />
@@ -30,7 +30,7 @@ const SEGMENTS = [
 
   <div
     v-else
-    class="tile tile-action"
+    class="tile dial tile-action"
     role="button"
     :tabindex="0"
     @click="ui.openDial('forme')"

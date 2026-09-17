@@ -25,7 +25,12 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
 </script>
 
 <template>
-  <div v-if="loading" class="tile" style="border-color: rgba(242, 162, 58, 0.35)" aria-busy="true">
+  <div
+    v-if="loading"
+    class="tile dial"
+    style="border-color: rgba(242, 162, 58, 0.35)"
+    aria-busy="true"
+  >
     <div class="flex items-baseline justify-between">
       <span class="label">Course A <UiInfoHint term="courseA" /></span>
       <UiSkeleton width="64px" />
@@ -40,7 +45,7 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
 
   <div
     v-else-if="race"
-    class="tile tile-action"
+    class="tile dial tile-action"
     style="border-color: rgba(242, 162, 58, 0.35)"
     role="button"
     :tabindex="0"
@@ -83,8 +88,22 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
     </div>
   </div>
 
-  <div v-else class="tile border-dashed">
-    <span class="label">Course A</span>
-    <p class="text-[13px] text-text-muted">Aucune course à venir. Ajoute-en une depuis Courses.</p>
+  <!-- Sans course, le cadran montre son gabarit : le tiret et l'échelle en
+       creux disent qu'il y a une mesure à venir (§ 8, P5.21). -->
+  <div v-else class="tile dial border-dashed">
+    <div class="flex items-baseline justify-between">
+      <span class="label">Course A <UiInfoHint term="courseA" /></span>
+    </div>
+
+    <span class="display text-[44px] leading-none font-bold text-text-muted">—</span>
+
+    <div class="flex items-baseline gap-4">
+      <span class="text-[11.5px] text-text-muted">Aucune course à venir</span>
+      <NuxtLink to="/courses" class="mono ml-auto text-[11.5px] text-accent">en ajouter</NuxtLink>
+    </div>
+
+    <div class="relative h-[10px]">
+      <span class="absolute inset-x-0 top-[4px] h-[3px] rounded-sm bg-accent-track" />
+    </div>
   </div>
 </template>
