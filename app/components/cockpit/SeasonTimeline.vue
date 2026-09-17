@@ -1,69 +1,61 @@
 <script setup lang="ts">
 import type { PlanPhaseRow, PlanWeekRow } from '~/stores/plan'
-
-interface RaceRow {
-  id: number
-  name: string
-  date: string
-  priority: string
-}
+import { seasonLayout, type SeasonRace } from '~/utils/season-layout'
 
 const props = defineProps<{
   phases: PlanPhaseRow[]
   weeks: PlanWeekRow[]
-  races: RaceRow[]
+  races: SeasonRace[]
   today: string
+  dated: boolean
 }>()
 
-const totalWeeks = computed(() => props.weeks.length || 1)
+/**
+ * La bande du cockpit reste ce qu'elle était : le détail de la saison vit sur
+ * la page Courses (§ 9, P5.16). Seule la géométrie est désormais partagée.
+ */
+const layout = computed(() => seasonLayout({ ...props }))
 
-const segments = computed(() =>
-  props.phases.map((phase) => ({
-    ...phase,
-    weeks: phase.endWeek - phase.startWeek + 1,
-    share: ((phase.endWeek - phase.startWeek + 1) / totalWeeks.value) * 100,
-    race: props.races.find((race) => race.id === phase.raceId),
-  })),
-)
-
-const currentWeekIndex = computed(
-  () =>
-    props.weeks.find((week) => week.startDate <= props.today && props.today <= week.endDate)
-      ?.index ?? 0,
-)
+const target = computed(() => {
+  const raceId = layout.value.segments.at(-1)?.raceId
+  return props.races.find((race) => race.id === raceId)
+})
 </script>
 
 <template>
-  <div v-if="segments.length > 0" class="tile">
+  <div v-if="layout.segments.length > 0" class="tile">
     <div class="flex items-baseline gap-3">
       <span class="label">Cap</span>
       <span class="mono text-[11.5px] text-text-muted">
-        {{ totalWeeks }} semaines jusqu'à {{ segments.at(-1)?.race?.name }}
+        {{ layout.totalWeeks }} semaines jusqu'à {{ target?.name }}
       </span>
     </div>
 
     <div class="flex h-6 w-full overflow-hidden rounded-sm">
       <div
-        v-for="(segment, index) in segments"
+        v-for="(segment, index) in layout.segments"
         :key="segment.id"
         class="flex items-center justify-center border-r border-ink text-[10px] whitespace-nowrap"
         :class="
-          currentWeekIndex >= segment.startWeek && currentWeekIndex <= segment.endWeek
+          segment.current
             ? 'bg-accent text-on-accent'
             : index % 2 === 0
               ? 'bg-surface-raised text-text-dim'
               : 'bg-surface-inset text-text-muted'
         "
-        :style="{ width: `${segment.share}%` }"
-        :title="`${PHASE_LABELS[segment.type]} · ${segment.weeks} sem.`"
+        :style="{ width: `${segment.sharePct}%` }"
       >
-        <span v-if="segment.share > 6">{{ PHASE_LABELS[segment.type] }}</span>
+        <span v-if="segment.sharePct > 6">{{ PHASE_LABELS[segment.type] }}</span>
       </div>
     </div>
 
     <div class="flex flex-wrap gap-x-5 gap-y-1">
-      <span v-for="race in races" :key="race.id" class="mono text-[11.5px] text-text-muted">
-        {{ race.name }} · {{ formatDate(race.date) }} · J−{{ daysUntil(race.date, today) }}
+      <span
+        v-for="mark in layout.races"
+        :key="mark.race.id"
+        class="mono text-[11.5px] text-text-muted"
+      >
+        {{ mark.race.name }} · {{ formatDate(mark.race.date) }} · J−{{ mark.daysUntil }}
       </span>
     </div>
   </div>

@@ -108,6 +108,7 @@ async function onResume() {
       :weeks="plan.plan.weeks"
       :races="upcoming"
       :today="plan.today"
+      :dated="!plan.awaitingResumption"
     />
   </div>
 </template>

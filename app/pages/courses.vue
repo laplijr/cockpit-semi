@@ -36,6 +36,16 @@ async function onCreated() {
       </button>
     </div>
 
+    <!-- La saison se lit avant la liste : c'est la page qui pilote le plan (§ 9, P5.16). -->
+    <RacesSeasonBoard
+      v-if="plan.plan"
+      :phases="plan.plan.phases"
+      :weeks="plan.plan.weeks"
+      :races="upcoming"
+      :today="plan.today"
+      :dated="!plan.awaitingResumption"
+    />
+
     <div class="tile">
       <span class="label">Courses à venir</span>
       <table class="w-full text-[13px]">
@@ -120,14 +130,6 @@ async function onCreated() {
         </span>
       </div>
     </div>
-
-    <CockpitSeasonTimeline
-      v-if="plan.plan"
-      :phases="plan.plan.phases"
-      :weeks="plan.plan.weeks"
-      :races="upcoming"
-      :today="plan.today"
-    />
 
     <Teleport to="body">
       <ShellAppModal
