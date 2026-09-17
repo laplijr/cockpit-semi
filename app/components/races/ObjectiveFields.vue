@@ -100,12 +100,13 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
           <span />
           <button
             type="button"
-            class="btn btn-ghost"
+            class="btn btn-ghost h-9 w-9 px-0"
             :disabled="proposed === null"
+            title="Proposer les trois niveaux depuis ma projection"
             aria-label="Proposer les trois niveaux depuis ma projection"
             @click="proposeFromProjection"
           >
-            Proposer
+            <UiAppIcon name="fill" :size="16" />
           </button>
           <span />
         </div>
@@ -121,19 +122,10 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
       </div>
     </div>
 
-    <p class="text-[12px] text-text-muted">
-      <template v-if="mode === 'temps' && proposed === null">
-        « Proposer » remplit les trois niveaux depuis les bornes de ta projection : il attend une
-        date de course.
-      </template>
-      <template v-else-if="mode === 'temps'">
-        « Proposer » remplit les trois niveaux depuis les bornes de ta projection. Le réaliste seul
-        est obligatoire.
-      </template>
-      <template v-if="recordS === null">
-        « Battre mon record » attend un résultat représentatif sur cette distance : tu n'en as pas
-        encore.
-      </template>
+    <!-- La raison d'un mode grisé se dit en clair ; l'action, elle, se lit à son icône. -->
+    <p v-if="recordS === null" class="text-[12px] text-text-muted">
+      « Battre mon record » attend un résultat représentatif sur cette distance : tu n'en as pas
+      encore.
     </p>
 
     <p v-if="misordered" class="text-[12px] text-warn">
