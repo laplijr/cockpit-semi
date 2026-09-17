@@ -4,6 +4,8 @@ import type { ObjectiveLevelValues } from '~/components/races/ObjectiveFields.vu
 const props = defineProps<{ raceId: number }>()
 const emit = defineEmits<{ changed: [] }>()
 
+/** Le décompte se lit sur l'horloge de l'app, pas sur celle de la machine (§ P3.5). */
+const plan = usePlanStore()
 const { data: races } = await useFetch('/api/races')
 
 const race = computed(() => (races.value ?? []).find((item) => item.id === props.raceId))
@@ -172,9 +174,7 @@ async function remove() {
       </div>
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Jours restants</span>
-        <span class="mono text-[20px]">{{
-          daysUntil(race.date, new Date().toISOString().slice(0, 10))
-        }}</span>
+        <span class="mono text-[20px]">{{ daysUntil(race.date, plan.today) }}</span>
       </div>
     </div>
 
