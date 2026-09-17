@@ -1,7 +1,23 @@
 <script setup lang="ts">
 import type { GlossaryTerm } from '~/utils/glossary'
 
-const { data } = await useFetch('/api/progression')
+/** Fenêtre de lecture : le bloc en cours, la saison, ou tout (§ 9, P6). */
+const PERIODS = [
+  { value: 'bloc', label: '8 semaines' },
+  { value: 'saison', label: '6 mois' },
+  { value: 'tout', label: 'Tout' },
+] as const
+
+const period = ref<(typeof PERIODS)[number]['value']>('tout')
+
+const { data } = await useFetch('/api/progression', {
+  query: { period },
+})
+
+/** La courbe promise par le § 8 : la table reste dessous, elle donne le détail. */
+const vdotCurve = computed(() =>
+  (data.value?.vdot ?? []).map((point) => ({ date: point.date, value: point.vdot })),
+)
 
 const VDOT_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
   { label: 'Date' },
@@ -30,6 +46,21 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
 
 <template>
   <div class="flex flex-col gap-4">
+    <!-- Le filtre commande toute la page : il se pose avant ce qu'il filtre. -->
+    <div class="flex items-center gap-2">
+      <span class="label">Période</span>
+      <button
+        v-for="option in PERIODS"
+        :key="option.value"
+        type="button"
+        class="btn btn-ghost"
+        :class="period === option.value && 'border-accent text-accent'"
+        @click="period = option.value"
+      >
+        {{ option.label }}
+      </button>
+    </div>
+
     <section class="grid grid-cols-3 gap-4">
       <div class="tile">
         <span class="label">Forme mesurée <UiInfoHint term="vdot" /></span>
@@ -60,7 +91,15 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
     </section>
 
     <div class="tile">
-      <span class="label">VDOT et projection sur semi</span>
+      <div class="flex items-baseline gap-3">
+        <span class="label">VDOT et projection sur semi</span>
+        <span class="mono text-[11.5px] text-text-muted">
+          la courbe donne la trajectoire, la table les points
+        </span>
+      </div>
+
+      <UiSeriesChart :points="vdotCurve" :height="140" />
+
       <table class="w-full text-[13px]">
         <thead>
           <tr class="text-left">
@@ -94,6 +133,105 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
       <span class="mono text-[11px] text-text-muted">
         Barre haute : volume visé. Barre basse : charge enregistrée, en unités arbitraires.
       </span>
+    </div>
+
+    <section class="grid grid-cols-2 gap-4">
+      <!-- Calibration du ressenti : le tableau du § 8, sans seuil de détection. -->
+      <div class="tile">
+        <div class="flex items-baseline gap-3">
+          <span class="label">Calibration du ressenti <UiInfoHint term="calibration" /></span>
+          <span class="mono text-[11.5px] text-text-muted">RPE vécu moins RPE prescrit</span>
+        </div>
+
+        <p v-if="(data?.rpeCalibration.length ?? 0) === 0" class="text-[13px] text-text-muted">
+          Aucun ressenti sur la période.
+        </p>
+
+        <div
+          v-for="row in data?.rpeCalibration ?? []"
+          :key="row.code"
+          class="flex items-baseline gap-3 border-t border-line-soft py-[6px] first:border-t-0"
+        >
+          <span class="text-[13px]">{{ SESSION_LABELS[row.code] ?? row.code }}</span>
+          <span class="mono ml-auto text-[13px]" :class="Math.abs(row.bias) >= 0.5 && 'text-warn'">
+            {{ row.bias > 0 ? '+' : '' }}{{ formatDecimal(row.bias) }}
+          </span>
+          <span class="mono w-[70px] text-right text-[11.5px] text-text-faint">
+            {{ row.samples }} séance{{ row.samples > 1 ? 's' : '' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="tile">
+        <div class="flex items-baseline gap-3">
+          <span class="label">Récupération</span>
+          <span class="mono text-[11.5px] text-text-muted">sommeil déclaré et jours sans rien</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div class="flex flex-col">
+            <span class="label text-[10px]">Sommeil moyen</span>
+            <span class="mono text-[17px]">
+              {{
+                data?.recovery.sleepMeanH === null
+                  ? '—'
+                  : `${formatDecimal(data?.recovery.sleepMeanH, 1)} h`
+              }}
+            </span>
+            <span class="mono text-[10.5px] text-text-faint">
+              {{ data?.recovery.samples.nights }} nuits
+            </span>
+          </div>
+          <div class="flex flex-col">
+            <span class="label text-[10px]">Nuits courtes</span>
+            <span
+              class="mono text-[17px]"
+              :class="(data?.recovery.shortNightShare ?? 0) > 0.25 && 'text-warn'"
+            >
+              {{
+                data?.recovery.shortNightShare === null
+                  ? '—'
+                  : `${Math.round((data?.recovery.shortNightShare ?? 0) * 100)} %`
+              }}
+            </span>
+            <span class="mono text-[10.5px] text-text-faint">
+              {{ data?.recovery.shortNights }} sous 6 h
+            </span>
+          </div>
+          <div class="flex flex-col">
+            <span class="label text-[10px]">Jours sans rien</span>
+            <span class="mono text-[17px]">
+              {{ formatDecimal(data?.recovery.restDaysPerWeek, 1) }}
+            </span>
+            <span class="mono text-[10.5px] text-text-faint">par semaine</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div v-if="(data?.strengthLoads.length ?? 0) > 0" class="tile">
+      <div class="flex items-baseline gap-3">
+        <span class="label">Charges tenues en muscu</span>
+        <span class="mono text-[11.5px] text-text-muted">
+          la plus lourde série de chaque séance
+        </span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-4">
+        <div
+          v-for="series in data?.strengthLoads ?? []"
+          :key="series.exerciseId"
+          class="flex flex-col gap-1"
+        >
+          <span class="text-[12.5px]">{{ series.exerciseId }}</span>
+          <UiSeriesChart
+            :points="series.points.map((point) => ({ date: point.date, value: point.loadKg }))"
+            :height="72"
+            unit=" kg"
+            :decimals="0"
+          />
+        </div>
+      </div>
     </div>
 
     <div class="tile">

@@ -10,7 +10,9 @@ Maquettes de référence (v5, desktop) : https://claude.ai/artifact/GHF88CMB93rH
 
 Les sept dernières briques, livrées le 17 sept. 2026 : **P5.13** pose un glossaire unique et une bulle d'explication au survol et au focus des libellés de métier ; **P5.14** remplace le `title` natif du graphe de Progression par cette bulle, adossée à `summariseWeek` ; **P5.15** remplace le mode « performance maximale » par un objectif à trois niveaux (ambition, réaliste, plancher) et un mode record, et sort le mode d'objectif de `racePlansChanged` ; **P5.16** sépare la bande du cockpit du plateau de la page Courses et lui donne un ruban de courses, un axe de dates et un trait d'aujourd'hui, tous calculés par `seasonLayout` ; **P5.17** fait du bloc le sixième objet de dialog, en lecture seule ; **P5.18** partage `UiWeekBars` entre Progression et la frise, qui gagne un deuxième étage ; **P5.19** groupe les propositions par règle et effet, borne « À décider » à trois décisions et donne son échelle à chaque cadran — le cockpit passe de 1421 px à 961 px.
 
-**Ce qui reste** : P5.20 (squelettes de chargement), P5.21 (tuiles de même taille), P5.5 (itinéraires GPX), P6 (apprentissage, nutrition, Progression v2) et P7 (confort), décrits au § 9, à transformer en cases au moment d'attaquer la phase. Dette connue, hors périmètre livré : le § 8 promet une *courbe* VDOT sur Progression là où la page affiche une table.
+**Livré depuis** (17 sept. 2026, même journée) : **P5.20** squelettes de chargement, **P5.21** tuiles de même taille, **P5.5** itinéraire d'une séance — repris en cours de route, l'itinéraire sert l'entraînement et non un séjour de course — et **P6** en trois blocs : nutrition, apprentissage, Progression v2. La dette de la courbe VDOT est réglée par P6.3.
+
+**Ce qui reste** : **P7** (confort : notifications navigateur, bilan hebdo du dimanche, export CSV, kilométrage chaussures), décrit au § 9, à transformer en cases au moment d'attaquer la phase. Deux choses attendent de la donnée plutôt que du code : aucune habitude n'est détectable sur le seed actuel (les seuils du § 5 demandent un réalisé plus contrasté), et les charges muscu ne s'affichent pas faute de séries enregistrées par le simulateur.
 
 **Consigne** : lire ce fichier en entier, puis exécuter la prochaine case non cochée de la liste ci-dessous, dans l'ordre, jusqu'au bout de la phase. Une phase est finie quand tous ses critères de « Fini » passent. Cocher les cases dans ce fichier au fil de l'eau. Ne pas anticiper une phase suivante, ne pas ajouter d'élément à l'écran principal sans en retirer un (§ 8), pas de responsive mobile, pas de PWA.
 
@@ -389,7 +391,19 @@ P6.2 — Apprentissage : détecteurs, calibration, règles personnelles R100+
 - [x] Tests : `tests/domain/learning.test.ts` (19 cas : chaque détecteur au seuil et juste en dessous, confiance, les quatre règles apprises dans le moteur, et le fait que sans habitude acceptée le moteur se comporte exactement comme avant).
 - [x] **Vérifié dans le navigateur, et ce que la vraie donnée dit :** le cron tourne et la calibration de la semaine du 16 nov. s'affiche — **+0,57 d'écart de RPE sur 7 séances**, le reste sans échantillon. **Aucune habitude n'est détectée sur le seed `bloc-2`**, et c'est le comportement juste : l'endurance est à −0,25 sur 8 séances (sous le demi-point), tous les autres types sont sous six ressentis, aucun jour n'est mort et aucune proposition n'a encore été décidée. Les détecteurs sont donc vérifiés par les tests, pas par le seed ; le livrable « premières habitudes après ~8 semaines » demande un réalisé plus contrasté que celui que le simulateur produit.
 
-P6.3 et P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
+P6.3 — Progression v2 : calibration du ressenti, charges muscu, récupération, filtres
+
+- [x] **La courbe VDOT promise par le § 8**, qui manquait depuis P3 et figurait en dette au haut de ce fichier : `UiSeriesChart` dessine une série datée en SVG, sans bibliothèque, avec ses quatre bornes en clair — valeur haute, valeur basse, première et dernière date. La table reste dessous : la courbe donne la trajectoire, la table donne les points.
+- [x] Calibration du ressenti : `rpeByCode` dans `domain/learning/calibration` — la même mesure que le détecteur de biais, **sans son seuil**, pour que même le petit écart se lise. Rangée du plus marqué au plus faible, l'écart d'un demi-point ou plus en orange.
+- [x] Récupération : `domain/load/recovery` — sommeil moyen déclaré, part des nuits sous six heures, jours sans aucune séance ramenés à la semaine. Aucune de ces mesures ne juge une séance ; elles disent si le corps a eu le temps d'encaisser.
+- [x] Charges muscu : une courbe par exercice, un point par séance (la série la plus lourde du jour). La tuile disparaît tant qu'aucune série n'est saisie.
+- [x] Filtres de période : 8 semaines, 6 mois, tout. Le filtre commande toute la page et se pose avant ce qu'il filtre.
+- [x] Tests : trois cas de plus dans `tests/domain/learning.test.ts` (calibration par type de séance, récupération, absence de moyenne sans déclaration).
+- [x] **Vérifié dans le navigateur au scénario `bloc-2` :** la courbe VDOT monte de 33,1 à 33,7 entre le 13 sept. et le 20 oct. ; la calibration du ressenti classe VMA à +2 sur une séance, Pull et Sortie longue à +0,43 sur sept, Endurance à −0,14 sur quatorze ; la récupération lit 7,3 h de sommeil sur 64 nuits, aucune nuit courte, 1,8 jour sans rien par semaine. Les charges muscu ne s'affichent pas : le simulateur du seed n'enregistre pas de séries. Le filtre de période interroge bien l'API (`?period=bloc` → 200) mais donne les mêmes chiffres, le réalisé du seed tenant tout entier dans huit semaines.
+- [x] **Un piège de date à retenir :** `'0000-01-01'` comme borne basse fait échouer la requête Postgres — l'année zéro n'existe pas. La borne « tout » est `'1970-01-01'`.
+- [x] Fini : lint, typecheck, tests, build verts ; commit « P6 — Progression v2 ».
+
+P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
 
 ## 0. Données réelles de départ (à seeder en P1)
 

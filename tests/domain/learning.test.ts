@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { calibrate } from '~~/server/domain/learning/calibration'
+import { calibrate, rpeByCode } from '~~/server/domain/learning/calibration'
+import { summariseRecovery } from '~~/server/domain/load/recovery'
 import {
   detectDayShift,
   detectDeadSlot,
@@ -224,5 +225,51 @@ describe('calibration hebdomadaire (§ 5)', () => {
 
     expect(result.acceptanceRate).toBeNull()
     expect(result.projectionGap).toBeNull()
+  })
+})
+
+describe('calibration du ressenti par type de séance (§ 9, P6)', () => {
+  it('range les écarts du plus marqué au plus faible, ressenti manquant ignoré', () => {
+    const rows = rpeByCode([
+      { code: 'EF', expectedRpe: 4, rpe: 4 },
+      { code: 'EF', expectedRpe: 4, rpe: 5 },
+      { code: 'VMA', expectedRpe: 8, rpe: 10 },
+      { code: 'VMA', expectedRpe: 8, rpe: null },
+    ])
+
+    expect(rows).toEqual([
+      { code: 'VMA', samples: 1, bias: 2 },
+      { code: 'EF', samples: 2, bias: 0.5 },
+    ])
+  })
+})
+
+describe('récupération (§ 9, P6)', () => {
+  it('compte les nuits courtes et les jours sans rien, ramenés à la semaine', () => {
+    const recovery = summariseRecovery({
+      nights: [7, 8, 5, 6, 5],
+      days: [
+        { date: '2026-11-16', sessions: 1 },
+        { date: '2026-11-17', sessions: 0 },
+        { date: '2026-11-18', sessions: 2 },
+        { date: '2026-11-19', sessions: 0 },
+        { date: '2026-11-20', sessions: 1 },
+        { date: '2026-11-21', sessions: 1 },
+        { date: '2026-11-22', sessions: 1 },
+      ],
+    })
+
+    expect(recovery.sleepMeanH).toBe(6.2)
+    expect(recovery.shortNights).toBe(2)
+    expect(recovery.shortNightShare).toBe(0.4)
+    expect(recovery.restDaysPerWeek).toBe(2)
+  })
+
+  it('ne rend aucune moyenne sans déclaration, plutôt qu’un zéro trompeur', () => {
+    const recovery = summariseRecovery({ nights: [], days: [] })
+
+    expect(recovery.sleepMeanH).toBeNull()
+    expect(recovery.shortNightShare).toBeNull()
+    expect(recovery.restDaysPerWeek).toBeNull()
   })
 })
