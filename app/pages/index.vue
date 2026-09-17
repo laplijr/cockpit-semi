@@ -134,6 +134,7 @@ async function onResume() {
             :session="session"
             muted
           />
+          <CockpitNutritionHint />
         </div>
       </div>
 

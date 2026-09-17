@@ -111,6 +111,32 @@ export const STRENGTH_PHASE_LABELS: Record<string, string> = {
   arret: 'Arrêt',
 }
 
+/** Types de journée au sens nutritionnel (§ 5, P6). */
+export const DAY_KIND_LABELS: Record<string, string> = {
+  repos: 'Repos',
+  facile: 'Journée facile',
+  qualite: 'Journée de qualité',
+  sortie_longue: 'Sortie longue',
+  course: 'Jour de course',
+}
+
+export const FUEL_PRODUCT_LABELS: Record<string, string> = {
+  eau: 'Eau',
+  gel: 'Gel',
+  boisson: 'Boisson',
+}
+
+/**
+ * Fourchette en grammes ou en millilitres : « 45 à 60 g ». La liste arrive de
+ * l'API, où la sérialisation JSON a effacé le tuple : on lit ses deux bornes.
+ */
+export function formatRange(range: readonly number[] | null | undefined, unit: string): string {
+  const [low, high] = range ?? []
+  if (low === undefined || high === undefined) return '—'
+  const format = (value: number) => String(Math.round(value * 10) / 10).replace('.', ',')
+  return low === high ? `${format(low)} ${unit}` : `${format(low)} à ${format(high)} ${unit}`
+}
+
 export const BENEFIT_LABELS: Record<string, string> = {
   course: 'Course',
   velo: 'Vélo',

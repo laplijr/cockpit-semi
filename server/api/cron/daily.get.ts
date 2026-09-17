@@ -1,3 +1,4 @@
+import { generateDueFuelPlans } from '../../application/generate-fuel-plan'
 import { recheckRaces } from '../../application/recheck-races'
 import { ProposalTrigger } from '../../domain/rules/proposal-status'
 import { useDatabase } from '../../infra/db/client'
@@ -24,6 +25,9 @@ export default defineEventHandler(async (event) => {
   await expireStaleProposals(db, today)
   const proposals = await evaluateAndStore(db, today, ProposalTrigger.DailyCron)
 
+  /** À J−7, chaque course encore planifiée reçoit son plan ravito (§ 5). */
+  const fuelPlans = await generateDueFuelPlans(db, today)
+
   /** La revérification des dates de course ne doit pas faire tomber le cron. */
   let recheckedRaces = 0
   try {
@@ -33,5 +37,5 @@ export default defineEventHandler(async (event) => {
     console.error('Revérification des courses impossible', error)
   }
 
-  return { today, newProposals: proposals.length, recheckedRaces }
+  return { today, newProposals: proposals.length, recheckedRaces, fuelPlans }
 })

@@ -366,7 +366,18 @@ P5.5 — Itinéraire d'une séance
 - [x] **Incident de la reprise :** les colonnes ajoutées au schéma (`race.fuel_plan`, `athlete.home_address`) ont tourné une dizaine de minutes sans migration, et `/api/races` répondait 500 — plus aucune course à l'écran. Leçon : `pnpm db:generate` **et** `pnpm db:migrate` dans la foulée de toute édition de `schema.ts`, avant de toucher à autre chose. Le renommage `race_route` → `route` a demandé trois migrations au lieu d'une : `drizzle-kit generate` pose une question interactive dès qu'une table ou une colonne disparaît en même temps qu'une autre apparaît, et il n'a pas de TTY ici — il faut donc séparer les suppressions des ajouts.
 - [x] Fini : lint, typecheck, tests, build verts ; commit « P5.5 — itinéraire d'une séance ».
 
-P6 et P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
+P6.1 — Nutrition : repères, ravito d'entraînement, protocole et plan de course
+
+- [x] `server/domain/nutrition` : type de journée (repos, facile, qualité, sortie longue, course) déduit de la séance la plus exigeante ; repères ACSM / ISSN en g/kg par type de jour, les glucides seuls suivant la charge ; ravito d'entraînement par durée (eau sous 75′, 30–40 g/h jusqu'à 2 h, 60–80 g/h au-delà) ; plan ravito de course selon les trois régimes du § 5, avec les prises situées au kilomètre à l'allure projetée ; protocole J−7 dont la charge glucidique ne dure que les trois derniers jours.
+- [x] Schéma : `race.fuel_plan` (§ 4), migration `0018`.
+- [x] `server/application/generate-fuel-plan.ts` : le plan se calcule sur la durée **projetée**, pas sur l'objectif. Généré par le cron quotidien pour chaque course planifiée à J−7, régénéré à la demande depuis le dialog Course, et recalculé quand la date, la distance ou la météo attendue change.
+- [x] API : `GET /api/nutrition` (repères, jour et lendemain, ravito des séances prévues, protocole et plan quand une course est à moins de sept jours), `POST /api/races/:id/fuel-plan`.
+- [x] UI : page Nutrition (jour et lendemain, protocole de la semaine de course, plan ravito détaillé, table des repères), tuile « Ravito et hydratation en course » dans le dialog Course avec sa baguette de régénération, et rappel nutrition sous la ligne « demain » du cockpit — visible la semaine d'une course seulement, invisible le reste du temps.
+- [x] Tests : `tests/domain/nutrition.test.ts` (18 cas : type de journée, repères, ravito d'entraînement, les trois régimes de course, position des prises au kilomètre, sodium au-dessus de 20 °C, protocole).
+- [x] Vérifié dans le navigateur au scénario `bloc-2` : la page Nutrition lit « Sortie longue · 7 à 10 g/kg » aujourd'hui et « Journée facile · 5 à 7 g/kg » demain, et le plan ravito du semi de Paris — projection 2:05:45, 30 à 60 g/h, 500 à 650 ml/h, dix prises — s'affiche dans le dialog de la course. Le poids n'étant pas renseigné, les repères restent en g/kg et la page le dit.
+- [x] Fini : lint, typecheck, tests, build verts ; commit « P6 — nutrition ».
+
+P6.2, P6.3 et P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
 
 ## 0. Données réelles de départ (à seeder en P1)
 

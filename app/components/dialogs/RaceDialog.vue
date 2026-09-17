@@ -6,7 +6,7 @@ const emit = defineEmits<{ changed: [] }>()
 
 /** Le décompte se lit sur l'horloge de l'app, pas sur celle de la machine (§ P3.5). */
 const plan = usePlanStore()
-const { data: races } = await useFetch('/api/races')
+const { data: races, refresh: refreshRaces } = await useFetch('/api/races')
 
 const race = computed(() => (races.value ?? []).find((item) => item.id === props.raceId))
 
@@ -270,6 +270,14 @@ async function remove() {
         Du plus ambitieux au plus sûr : la confiance monte avec le temps qu'on s'accorde.
       </span>
     </div>
+
+    <!-- Le ravito se pilote depuis la course, il se lit dans Nutrition (§ 9, P6). -->
+    <RacesFuelPlanTile
+      v-if="race.status === 'planifiee'"
+      :race-id="raceId"
+      :fuel-plan="race.fuelPlan"
+      @generated="refreshRaces()"
+    />
 
     <p class="text-[13px] text-text-muted">{{ PRIORITY_MEANING[form.priority] }}</p>
 

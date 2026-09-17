@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { generateFuelPlan } from '../../application/generate-fuel-plan'
 import { regeneratePlan } from '../../application/regenerate-plan'
 import { PlanTrigger } from '../../domain/plan/session'
 import { RaceStatus, racePlansChanged } from '../../domain/races/race'
@@ -40,6 +41,15 @@ export default defineEventHandler(async (event) => {
   const regenerated = racePlansChanged(existing, updated!)
   if (regenerated) {
     await regeneratePlan(planGateway(), systemClock, PlanTrigger.RaceEdited)
+  }
+
+  /** Le plan ravito dépend de la durée projetée et de la météo attendue (§ 5). */
+  const fuelInputChanged =
+    existing.expectedTempC !== updated!.expectedTempC ||
+    existing.distanceM !== updated!.distanceM ||
+    existing.date !== updated!.date
+  if (existing.fuelPlan && fuelInputChanged) {
+    await generateFuelPlan(db, id, systemClock.today())
   }
 
   return { ...updated, regenerated }
