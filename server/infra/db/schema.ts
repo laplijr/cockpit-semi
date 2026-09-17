@@ -30,6 +30,7 @@ import {
   SegmentMode,
   type RaceIncident,
 } from '../../domain/races/race'
+import { HabitStatus, HabitType } from '../../domain/learning/habit'
 import type { FuelPlan } from '../../domain/nutrition/fuel-plan'
 import { Sport } from '../../domain/shared/sport'
 
@@ -50,6 +51,8 @@ export {
   RacePriority,
   RaceSource,
   RaceStatus,
+  HabitStatus,
+  HabitType,
   SegmentMode,
   Sport,
 }
@@ -79,6 +82,8 @@ export const pauseTypeEnum = pgEnum('pause_type', enumValues(PauseType))
 export const proposalStatusEnum = pgEnum('proposal_status', enumValues(ProposalStatus))
 export const proposalTriggerEnum = pgEnum('proposal_trigger', enumValues(ProposalTrigger))
 export const unplannedStatusEnum = pgEnum('unplanned_status', enumValues(UnplannedStatus))
+export const habitTypeEnum = pgEnum('habit_type', enumValues(HabitType))
+export const habitStatusEnum = pgEnum('habit_status', enumValues(HabitStatus))
 
 /** Conserve les types littéraux de l'énumération pour que Drizzle les propage. */
 function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], ...T[keyof T][]] {
@@ -456,6 +461,51 @@ export type StrengthSet = typeof strengthSet.$inferSelect
 export type NewStrengthSet = typeof strengthSet.$inferInsert
 export type UnplannedEventRow = typeof unplannedEvent.$inferSelect
 export type NewUnplannedEventRow = typeof unplannedEvent.$inferInsert
+/**
+ * Habitude détectée par observation (§ 5). Elle ne devient une règle apprise
+ * qu'une fois acceptée ; la clé rend une détection idempotente.
+ */
+export const habit = pgTable(
+  'habit',
+  {
+    id: serial('id').primaryKey(),
+    type: habitTypeEnum('type').notNull(),
+    key: text('key').notNull(),
+    parameters: jsonb('parameters').$type<Record<string, number | string>>().notNull().default({}),
+    /** Preuve : n cas sur N observés. */
+    matched: integer('matched').notNull(),
+    total: integer('total').notNull(),
+    confidence: real('confidence').notNull(),
+    statement: text('statement').notNull(),
+    status: habitStatusEnum('status').notNull().default(HabitStatus.Detected),
+    detectedAt: timestamp('detected_at', { withTimezone: true }).notNull().defaultNow(),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+  },
+  (table) => [unique('habit_key').on(table.key)],
+)
+
+/** Mesure hebdomadaire de l'écart entre ce que le moteur annonce et ce qui arrive. */
+export const calibration = pgTable(
+  'calibration',
+  {
+    id: serial('id').primaryKey(),
+    /** Lundi de la semaine mesurée. */
+    date: date('date').notNull(),
+    rpeError: real('rpe_error').notNull(),
+    acceptanceRate: real('acceptance_rate'),
+    projectionGap: real('projection_gap'),
+    samples: jsonb('samples')
+      .$type<{ rpe: number; decisions: number; tests: number }>()
+      .notNull()
+      .default({ rpe: 0, decisions: 0, tests: 0 }),
+  },
+  (table) => [unique('calibration_date').on(table.date)],
+)
+
+export type Habit = typeof habit.$inferSelect
+export type NewHabit = typeof habit.$inferInsert
+export type CalibrationRow = typeof calibration.$inferSelect
+export type NewCalibrationRow = typeof calibration.$inferInsert
 export type RaceLookup = typeof raceLookup.$inferSelect
 export type NewRaceLookup = typeof raceLookup.$inferInsert
 export type Route = typeof route.$inferSelect

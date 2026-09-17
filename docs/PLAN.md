@@ -377,7 +377,19 @@ P6.1 — Nutrition : repères, ravito d'entraînement, protocole et plan de cour
 - [x] Vérifié dans le navigateur au scénario `bloc-2` : la page Nutrition lit « Sortie longue · 7 à 10 g/kg » aujourd'hui et « Journée facile · 5 à 7 g/kg » demain, et le plan ravito du semi de Paris — projection 2:05:45, 30 à 60 g/h, 500 à 650 ml/h, dix prises — s'affiche dans le dialog de la course. Le poids n'étant pas renseigné, les repères restent en g/kg et la page le dit.
 - [x] Fini : lint, typecheck, tests, build verts ; commit « P6 — nutrition ».
 
-P6.2, P6.3 et P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
+P6.2 — Apprentissage : détecteurs, calibration, règles personnelles R100+
+
+- [x] `server/domain/learning` : les cinq détecteurs du § 5 avec leurs seuils (glissement de jour ≥ 60 % sur ≥ 8, créneau jamais honoré 0 sur ≥ 8, biais de RPE sur ≥ 6, sensibilité au sommeil sur ≥ 5, refus systématique ≥ 70 % sur ≥ 5) ; confiance = part observée tempérée par la maturité de l'échantillon, qui plafonne au double du seuil ; calibration hebdomadaire (écart de RPE, taux d'acceptation, écart projection / test).
+- [x] **Ce que le moteur peut réellement observer.** Le § 5 parle d'une séance « déplacée » : rien n'enregistre un déplacement en tant que tel. Le détecteur lit donc les **propositions de déplacement acceptées** — leur cible donne le jour prévu, leur `payload` le jour de destination. C'est la seule trace fidèle d'un déplacement dans la base.
+- [x] Règles apprises : **R100** replace une séance du jour prévu vers le jour tenu, **R101** vide un créneau mort vers le premier jour vivant, **R102** recale le RPE attendu (nouvel effet `rpe_attendu_ajuste`, appliqué depuis le `payload`), **R103** fait tomber R3 dès une seule nuit courte, **R104** tait une famille de propositions. Le filtre des familles tues s'applique **en dernier**, après R1–R8 : une règle apprise ne dépasse jamais une règle de sécurité, elle la tait.
+- [x] Schéma : tables `habit` (clé unique par sujet, pour qu'une nouvelle détection remplace la précédente au lieu de s'empiler) et `calibration` (une ligne par semaine, sur son lundi) ; migration `0021`.
+- [x] `server/application/detect-habits.ts` : relecture sur 120 jours, `onConflictDoUpdate` sur la clé — une habitude déjà décidée garde son statut, seule sa preuve se met à jour. Calibration de la semaine en cours, recalculée à chaque passage. Les deux tournent dans le cron quotidien.
+- [x] API : `GET /api/learning`, `PUT /api/habits/:id` (accepter, refuser, remettre à décider).
+- [x] UI : page Apprentissage — ce qui attend une décision en premier, les règles personnelles appliquées, la calibration des huit dernières semaines, les habitudes écartées en bas. Deux entrées de glossaire : « habitude » et « calibration ».
+- [x] Tests : `tests/domain/learning.test.ts` (19 cas : chaque détecteur au seuil et juste en dessous, confiance, les quatre règles apprises dans le moteur, et le fait que sans habitude acceptée le moteur se comporte exactement comme avant).
+- [x] **Vérifié dans le navigateur, et ce que la vraie donnée dit :** le cron tourne et la calibration de la semaine du 16 nov. s'affiche — **+0,57 d'écart de RPE sur 7 séances**, le reste sans échantillon. **Aucune habitude n'est détectée sur le seed `bloc-2`**, et c'est le comportement juste : l'endurance est à −0,25 sur 8 séances (sous le demi-point), tous les autres types sont sous six ressentis, aucun jour n'est mort et aucune proposition n'a encore été décidée. Les détecteurs sont donc vérifiés par les tests, pas par le seed ; le livrable « premières habitudes après ~8 semaines » demande un réalisé plus contrasté que celui que le simulateur produit.
+
+P6.3 et P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
 
 ## 0. Données réelles de départ (à seeder en P1)
 

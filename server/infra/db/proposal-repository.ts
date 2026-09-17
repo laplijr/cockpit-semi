@@ -1,4 +1,6 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lt, notInArray } from 'drizzle-orm'
+import { loadAcceptedHabits } from '../../application/detect-habits'
+import { adjustmentsFrom } from '../../domain/learning/personal-rules'
 import { addDays } from '../../domain/plan/calendar'
 import { SessionStatus } from '../../domain/plan/session'
 import { PauseType } from '../../domain/pause/pause'
@@ -89,6 +91,7 @@ async function buildContext(db: Database, today: string): Promise<RuleContext> {
       key: row.key,
       distanceM: prescription.totalDistanceM,
       repeats: repeatsOf(prescription),
+      expectedRpe: prescription.expectedRpe,
     }
   })
 
@@ -97,6 +100,8 @@ async function buildContext(db: Database, today: string): Promise<RuleContext> {
     recent,
     upcoming,
     sameDayStrength: upcoming.filter((item) => item.sport === Sport.Strength),
+    /** Les habitudes acceptées deviennent des règles R100+ (§ 5). */
+    personal: adjustmentsFrom(await loadAcceptedHabits(db)),
   }
 }
 
@@ -156,7 +161,7 @@ export async function acceptProposal(db: Database, id: number, today: string) {
 
   if (isSessionEffect(effect) && row.targetId !== null) {
     await updateSessionPrescription(db, row.targetId, (prescription) =>
-      applyToPrescription(prescription, effect),
+      applyToPrescription(prescription, effect, row.payload),
     )
   }
 

@@ -1,5 +1,6 @@
+import { EMPTY_ADJUSTMENTS, type PersonalAdjustments } from '../learning/personal-rules'
 import { FATIGUE_SENSATIONS, type Pain, type Sensation } from '../load/feedback'
-import type { IsoDate } from '../plan/calendar'
+import { addDays, weekday as weekdayOf, type IsoDate } from '../plan/calendar'
 import { RunSessionCode } from '../running/session-types'
 import { Sport } from '../shared/sport'
 
@@ -17,6 +18,12 @@ export enum RuleId {
   I1 = 'I1',
   /** Calendrier : la date annoncée d'une course a changé depuis la recherche (§ 6). */
   C1 = 'C1',
+  /** Apprise : la séance se fait un autre jour que celui prévu (§ 5, R100+). */
+  R100 = 'R100',
+  /** Apprise : un jour de la semaine où rien n'est jamais fait. */
+  R101 = 'R101',
+  /** Apprise : un type de séance ressenti autrement que prévu. */
+  R102 = 'R102',
 }
 
 export enum ProposalEffect {
@@ -33,6 +40,8 @@ export enum ProposalEffect {
   MoveSession = 'seance_deplacee',
   CancelSession = 'seance_retiree',
   MoveRace = 'course_redatee',
+  /** Apprise : le RPE attendu d'une séance est recalé sur le ressenti observé. */
+  AdjustExpectedRpe = 'rpe_attendu_ajuste',
 }
 
 export interface ProposalTarget {
@@ -83,6 +92,8 @@ export interface UpcomingSession {
   key: boolean
   distanceM: number
   repeats: number | null
+  /** RPE prescrit, que R102 recale ; absent tant que rien ne le lit. */
+  expectedRpe?: number
 }
 
 export interface RuleContext {
@@ -92,6 +103,8 @@ export interface RuleContext {
   upcoming: UpcomingSession[]
   /** Séances de musculation du jour, cibles de R1. */
   sameDayStrength: UpcomingSession[]
+  /** Règles apprises acceptées ; sans elles, le moteur se comporte comme avant. */
+  personal?: PersonalAdjustments
 }
 
 const isFatigueSensation = (sensation: Sensation) =>
@@ -173,7 +186,9 @@ function r2(context: RuleContext): Proposal[] {
 /** R3 — deux nuits courtes → une répétition en moins, allure inchangée. */
 function r3(context: RuleContext): Proposal[] {
   const shortNights = context.recent.filter(shortNight)
-  if (shortNights.length < 2) return []
+  /** R103 apprise : une seule nuit courte suffit, quand elle se paie à chaque fois. */
+  const needed = context.personal?.sleepSensitive ? 1 : 2
+  if (shortNights.length < needed) return []
 
   const next = keyRuns(context.upcoming)[0]
   if (!next?.repeats) return []
@@ -185,7 +200,7 @@ function r3(context: RuleContext): Proposal[] {
       target: { kind: 'session', id: next.sessionId },
       before: `${next.repeats} répétitions`,
       after: `${next.repeats - 1} répétitions, allure inchangée`,
-      explanation: `Deux nuits sous ${SLEEP_DEBT_HOURS} h.`,
+      explanation: `${shortNights.length === 1 ? 'Une nuit' : `${shortNights.length} nuits`} sous ${SLEEP_DEBT_HOURS} h.`,
     },
   ]
 }
@@ -305,12 +320,105 @@ function r8(context: RuleContext): Proposal[] {
     }))
 }
 
-const RULES = [r1, r2, r3, r4, r5, r6, r7, r8]
+/**
+ * R100 et R101 — apprises : replacer une séance du jour prévu vers le jour
+ * réellement tenu, et vider un créneau jamais honoré. Elles ne font que
+ * déplacer ; la date de destination voyage dans le `payload`, pas dans le texte.
+ */
+function learnedMoves(context: RuleContext): Proposal[] {
+  const personal = context.personal ?? EMPTY_ADJUSTMENTS
+  if (personal.dayShifts.length === 0 && personal.deadWeekdays.length === 0) return []
+
+  return context.upcoming
+    .flatMap((session) => {
+      const day = weekdayOf(session.date)
+      const shift = personal.dayShifts.find(
+        (entry) => entry.code === session.code && entry.fromWeekday === day,
+      )
+      if (shift) return [moveProposal(RuleId.R100, session, day, shift.toWeekday)]
+
+      if (!personal.deadWeekdays.includes(day)) return []
+      const destination = nextLivedDay(day, personal.deadWeekdays)
+      return destination === null ? [] : [moveProposal(RuleId.R101, session, day, destination)]
+    })
+    .slice(0, MAX_TARGETS_PER_RULE)
+}
+
+const WEEKDAY_NAMES = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
+
+function moveProposal(
+  ruleId: RuleId,
+  session: UpcomingSession,
+  from: number,
+  to: number,
+): Proposal {
+  const date = addDays(session.date, (((to - from) % 7) + 7) % 7)
+  return {
+    ruleId,
+    effect: ProposalEffect.MoveSession,
+    target: { kind: 'session', id: session.sessionId },
+    before: `${WEEKDAY_NAMES[from - 1]} ${session.date}`,
+    after: `${WEEKDAY_NAMES[to - 1]} ${date}`,
+    explanation:
+      ruleId === RuleId.R100
+        ? 'Habitude acceptée : cette séance se fait ce jour-là.'
+        : 'Habitude acceptée : rien ne se fait ce jour-là.',
+    payload: { date },
+  }
+}
+
+/** Premier jour suivant qui n'est pas lui-même un créneau mort. */
+function nextLivedDay(from: number, dead: number[]): number | null {
+  for (let step = 1; step < 7; step += 1) {
+    const day = ((from - 1 + step) % 7) + 1
+    if (!dead.includes(day)) return day
+  }
+  return null
+}
+
+/** R102 — apprise : le RPE attendu d'un type de séance est recalé. */
+function learnedRpe(context: RuleContext): Proposal[] {
+  const biases = context.personal?.rpeBias ?? []
+  if (biases.length === 0) return []
+
+  return context.upcoming
+    .flatMap((session) => {
+      const bias = biases.find((entry) => entry.code === session.code)
+      if (!bias || session.expectedRpe === undefined) return []
+
+      const adjusted = Math.min(10, Math.max(1, session.expectedRpe + bias.bias))
+      if (adjusted === session.expectedRpe) return []
+
+      return [
+        {
+          ruleId: RuleId.R102,
+          effect: ProposalEffect.AdjustExpectedRpe,
+          target: { kind: 'session' as const, id: session.sessionId },
+          before: `RPE ${session.expectedRpe}`,
+          after: `RPE ${adjusted}`,
+          explanation: 'Habitude acceptée : cette séance se ressent autrement que prévu.',
+          payload: { expectedRpe: adjusted },
+        },
+      ]
+    })
+    .slice(0, MAX_TARGETS_PER_RULE)
+}
+
+const RULES = [r1, r2, r3, r4, r5, r6, r7, r8, learnedMoves, learnedRpe]
 
 /**
- * Évalue les règles R1 à R8 et retourne des propositions.
- * Rien n'est appliqué ici : la décision revient à l'athlète (§ 1.3).
+ * Évalue les règles R1 à R8 puis les règles apprises, et retourne des
+ * propositions. Rien n'est appliqué ici : la décision revient à l'athlète
+ * (§ 1.3). Une famille refusée systématiquement est retirée en dernier — une
+ * règle apprise ne dépasse jamais une règle de sécurité, elle la tait.
  */
 export function evaluateRules(context: RuleContext): Proposal[] {
-  return RULES.flatMap((rule) => rule(context))
+  const suppressed = context.personal?.suppressed ?? []
+
+  return RULES.flatMap((rule) => rule(context)).filter(
+    (proposal) =>
+      !suppressed.some(
+        (family) => family.ruleId === proposal.ruleId && family.effect === proposal.effect,
+      ),
+  )
 }

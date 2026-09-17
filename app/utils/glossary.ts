@@ -13,6 +13,14 @@ export interface GlossaryEntry {
 }
 
 export const GLOSSARY = {
+  habitude: {
+    title: 'Habitude',
+    text: "Régularité observée dans ce qui s'est passé — jamais une intuition. Acceptée, elle devient une règle personnelle qui peut déplacer ou adoucir, jamais dépasser une règle de sécurité.",
+  },
+  calibration: {
+    title: 'Calibration',
+    text: 'Écart mesuré chaque semaine entre ce que le moteur annonce et ce qui arrive : RPE prévu contre ressenti, propositions acceptées, projection contre test. Elle ne corrige rien, elle dit de combien il se trompe.',
+  },
   vdot: {
     title: 'VDOT',
     text: "Indice de forme de Daniels, calculé depuis un chrono. Il donne les allures d'entraînement et la projection sur n'importe quelle distance.",

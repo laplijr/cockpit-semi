@@ -11,6 +11,7 @@ const SESSION_EFFECTS: ProposalEffect[] = [
   ProposalEffect.ReduceLongRun,
   ProposalEffect.ReduceRepeats,
   ProposalEffect.ReduceStrengthSet,
+  ProposalEffect.AdjustExpectedRpe,
 ]
 
 export function isSessionEffect(effect: ProposalEffect): boolean {
@@ -56,6 +57,7 @@ function dropOneRepeat(prescription: Prescription): Prescription {
 export function applyToPrescription(
   prescription: Prescription,
   effect: ProposalEffect,
+  payload?: Record<string, unknown> | null,
 ): Prescription {
   switch (effect) {
     case ProposalEffect.ReduceEasyVolume:
@@ -65,7 +67,19 @@ export function applyToPrescription(
     case ProposalEffect.ReduceRepeats:
     case ProposalEffect.ReduceStrengthSet:
       return dropOneRepeat(prescription)
+    case ProposalEffect.AdjustExpectedRpe:
+      return withExpectedRpe(prescription, payload)
     default:
       return prescription
   }
+}
+
+/** Le RPE recalé voyage dans le `payload` : le texte d'une proposition ne le porte pas. */
+function withExpectedRpe(
+  prescription: Prescription,
+  payload: Record<string, unknown> | null | undefined,
+): Prescription {
+  const value = Number(payload?.expectedRpe)
+  if (!Number.isFinite(value)) return prescription
+  return { ...prescription, expectedRpe: Math.min(10, Math.max(1, value)) }
 }

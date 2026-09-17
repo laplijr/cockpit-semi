@@ -111,6 +111,22 @@ export const STRENGTH_PHASE_LABELS: Record<string, string> = {
   arret: 'Arrêt',
 }
 
+/** Nombre décimal en français : virgule, et pas de zéro qui traîne. */
+export function formatDecimal(value: number | null | undefined, decimals = 2): string {
+  if (value === null || value === undefined) return '—'
+  const text = value.toFixed(decimals).replace('.', ',')
+  return text.includes(',') ? text.replace(/0+$/, '').replace(/,$/, '') : text
+}
+
+/** Habitudes détectées (§ 5, P6). */
+export const HABIT_LABELS: Record<string, string> = {
+  glissement_de_jour: 'Glissement de jour',
+  creneau_jamais_honore: 'Créneau jamais honoré',
+  biais_rpe: 'Biais de ressenti',
+  sensibilite_sommeil: 'Sensibilité au sommeil',
+  refus_systematique: 'Refus systématique',
+}
+
 /** Types de journée au sens nutritionnel (§ 5, P6). */
 export const DAY_KIND_LABELS: Record<string, string> = {
   repos: 'Repos',

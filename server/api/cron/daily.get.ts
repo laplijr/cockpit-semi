@@ -1,3 +1,4 @@
+import { calibrateWeek, detectAndStoreHabits } from '../../application/detect-habits'
 import { generateDueFuelPlans } from '../../application/generate-fuel-plan'
 import { recheckRaces } from '../../application/recheck-races'
 import { ProposalTrigger } from '../../domain/rules/proposal-status'
@@ -28,6 +29,10 @@ export default defineEventHandler(async (event) => {
   /** À J−7, chaque course encore planifiée reçoit son plan ravito (§ 5). */
   const fuelPlans = await generateDueFuelPlans(db, today)
 
+  /** Les habitudes se relisent et la semaine se calibre tous les jours (§ 5). */
+  const habits = await detectAndStoreHabits(db, today)
+  await calibrateWeek(db, today)
+
   /** La revérification des dates de course ne doit pas faire tomber le cron. */
   let recheckedRaces = 0
   try {
@@ -37,5 +42,5 @@ export default defineEventHandler(async (event) => {
     console.error('Revérification des courses impossible', error)
   }
 
-  return { today, newProposals: proposals.length, recheckedRaces, fuelPlans }
+  return { today, newProposals: proposals.length, recheckedRaces, fuelPlans, habits }
 })
