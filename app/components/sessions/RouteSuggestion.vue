@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { RouteRejection } from '~~/server/domain/routes/validate'
+
 const props = defineProps<{ sessionId: number; distanceM: number }>()
 
 const { data, refresh } = await useFetch(() => `/api/sessions/${props.sessionId}/routes`)
@@ -15,6 +17,26 @@ watchEffect(() => {
 
 const routes = computed(() => data.value?.routes ?? [])
 const variant = computed(() => routes.value[shown.value % Math.max(1, routes.value.length)])
+
+const mapUrl = computed(() => (variant.value ? walkingMapUrl(variant.value.points) : null))
+
+/** Écart à la distance de la séance, en toutes lettres plutôt qu'en pourcent. */
+const gapLabel = computed(() => {
+  const current = variant.value
+  if (!current) return ''
+  const gap = Math.round(current.distanceM - current.targetDistanceM)
+  if (Math.abs(gap) < 100) return 'à la distance visée'
+  return `${gap > 0 ? '+' : '−'} ${formatDistance(Math.abs(gap))} sur la cible`
+})
+
+const rejections = computed(() => variant.value?.rejections ?? [])
+const offTarget = computed(
+  () =>
+    rejections.value.includes(RouteRejection.TooShort) ||
+    rejections.value.includes(RouteRejection.TooLong),
+)
+/** Le relief se dit à côté du D+, pas dans la ligne de la distance. */
+const hilly = computed(() => rejections.value.includes(RouteRejection.TooHilly))
 
 async function suggest() {
   generating.value = true
@@ -80,12 +102,14 @@ async function suggest() {
         </svg>
 
         <div class="flex min-w-0 flex-1 flex-col gap-px">
-          <span class="mono text-[13px]">
+          <span class="mono flex items-baseline gap-2 text-[13px]">
             {{ formatDistance(variant.distanceM) }} · D+ {{ variant.elevationGainM }} m
+            <span v-if="hilly" class="pill pill-warn text-[10px]">vallonnée</span>
           </span>
-          <span class="mono text-[11.5px] text-text-muted">
-            {{ variant.turns }} virages · variante {{ (shown % routes.length) + 1 }} /
-            {{ routes.length }}
+          <!-- Le service vise la distance sans la tenir : l'écart se dit. -->
+          <span class="mono text-[11.5px]" :class="offTarget ? 'text-warn' : 'text-text-muted'">
+            {{ gapLabel }} · {{ variant.turns }} virages · variante
+            {{ (shown % routes.length) + 1 }} / {{ routes.length }}
           </span>
           <button
             v-if="routes.length > 1"
@@ -98,10 +122,23 @@ async function suggest() {
         </div>
       </div>
 
-      <a :href="`/api/routes/${variant.id}`" class="btn btn-ghost" download>
-        <UiAppIcon name="route" :size="15" />
-        Télécharger le GPX
-      </a>
+      <div class="flex items-center gap-2">
+        <a :href="`/api/routes/${variant.id}`" class="btn btn-ghost" download>
+          <UiAppIcon name="route" :size="15" />
+          Télécharger le GPX
+        </a>
+        <!-- Vue sur carte : Google redessine entre les étapes, le GPX reste la
+             référence au mètre près. -->
+        <a
+          v-if="mapUrl"
+          :href="mapUrl"
+          target="_blank"
+          rel="noopener"
+          class="mono text-[11.5px] text-text-muted hover:text-text"
+        >
+          Voir sur une carte
+        </a>
+      </div>
     </template>
   </div>
 </template>

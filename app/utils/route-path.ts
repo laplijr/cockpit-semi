@@ -3,6 +3,38 @@ export interface TracePoint {
   lon: number
 }
 
+/** L'URL de Google Maps n'accepte pas plus d'étapes que ça entre deux points. */
+const MAX_WAYPOINTS = 9
+
+/**
+ * Ouvre la boucle dans Google Maps, à pied. Le tracé y est **redessiné** entre
+ * les étapes échantillonnées : c'est une vue du parcours sur une carte, pas le
+ * GPX au mètre près — celui-là se télécharge.
+ */
+export function walkingMapUrl(points: TracePoint[]): string | null {
+  const start = points.at(0)
+  const end = points.at(-1)
+  if (!start || !end) return null
+
+  const at = (point: TracePoint) => `${point.lat.toFixed(5)},${point.lon.toFixed(5)}`
+  const step = Math.max(1, Math.floor((points.length - 2) / MAX_WAYPOINTS))
+  const waypoints = points
+    .slice(1, -1)
+    .filter((_, index) => index % step === 0)
+    .slice(0, MAX_WAYPOINTS)
+    .map(at)
+
+  const query = new URLSearchParams({
+    api: '1',
+    origin: at(start),
+    destination: at(end),
+    travelmode: 'walking',
+  })
+  if (waypoints.length > 0) query.set('waypoints', waypoints.join('|'))
+
+  return `https://www.google.com/maps/dir/?${query}`
+}
+
 /** Veille d'une date ISO, pour la date d'arrivée par défaut (§ 9, P5.5). */
 export function isoDayBefore(iso: string): string {
   return new Date(Date.parse(`${iso}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10)

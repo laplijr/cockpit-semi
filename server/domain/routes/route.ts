@@ -26,6 +26,24 @@ export interface RouteTrace {
   turns: number
 }
 
+/**
+ * OpenRouteService vise la longueur demandée sans la tenir : il rend des
+ * boucles 10 à 20 % trop longues. Un second appel avec la longueur corrigée
+ * proportionnellement recadre la trace. Le facteur est borné : au-delà, ce
+ * n'est plus une correction, c'est un autre trajet.
+ */
+export const LENGTH_CORRECTION_BOUNDS = { min: 0.6, max: 1.6 } as const
+
+export function correctedLength(requestedM: number, obtainedM: number, targetM: number): number {
+  if (obtainedM <= 0) return requestedM
+  const factor = targetM / obtainedM
+  const bounded = Math.min(
+    LENGTH_CORRECTION_BOUNDS.max,
+    Math.max(LENGTH_CORRECTION_BOUNDS.min, factor),
+  )
+  return Math.round(requestedM * bounded)
+}
+
 /** Tolérances du § 9 : ce qu'une trace doit respecter pour être proposée. */
 export const ROUTE_TOLERANCE = {
   /** Écart maximal à la distance visée, en fraction. */

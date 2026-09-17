@@ -44,12 +44,18 @@ function isClosed(trace: RouteTrace): boolean {
 /**
  * À distance tenue, la meilleure variante est la plus plate ; à D+ égal, celle
  * qui tourne le moins (§ 9). Les traces invalides restent en queue plutôt que
- * de disparaître : sans variante valide, mieux vaut la moins mauvaise.
+ * de disparaître : sans variante valide, mieux vaut la moins mauvaise — et
+ * entre deux boucles hors tolérance, c'est la distance qui départage, parce
+ * que c'est elle qu'on est venu chercher.
  */
 export function rankVariants<T extends RouteTrace>(traces: T[], target: RouteTarget): T[] {
+  const gapTo = (trace: RouteTrace) => Math.abs(trace.distanceM - target.distanceM)
+
   return [...traces].sort((a, b) => {
     const validity = Number(isValid(b, target)) - Number(isValid(a, target))
     if (validity !== 0) return validity
+
+    if (!isValid(a, target) && gapTo(a) !== gapTo(b)) return gapTo(a) - gapTo(b)
     if (a.elevationGainM !== b.elevationGainM) return a.elevationGainM - b.elevationGainM
     return a.turns - b.turns
   })

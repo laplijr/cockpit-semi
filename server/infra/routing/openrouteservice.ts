@@ -29,7 +29,12 @@ async function ask<T>(path: string, body?: Record<string, unknown>): Promise<T> 
   try {
     const payload = await $fetch(`${BASE_URL}${path}`, {
       method: body === undefined ? 'GET' : 'POST',
-      headers: { Authorization: authorization, 'Content-Type': 'application/json' },
+      /** Sans `Accept`, l'API des itinéraires répond 406 sur le format GeoJSON. */
+      headers: {
+        Authorization: authorization,
+        'Content-Type': 'application/json',
+        Accept: 'application/geo+json, application/json',
+      },
       body,
     })
     return payload as T

@@ -99,6 +99,14 @@ describe('classement des variantes (§ 9)', () => {
 
     expect(rankVariants([tooShort, valid], target(5000))).toEqual([valid, tooShort])
   })
+
+  /** Sans variante valide, c'est la distance qu'on est venu chercher. */
+  it('entre deux boucles hors tolérance, garde la plus proche de la cible', () => {
+    const short = { points: [], distanceM: 6365, elevationGainM: 75, turns: 49 }
+    const close = { points: [], distanceM: 7516, elevationGainM: 89, turns: 48 }
+
+    expect(rankVariants([short, close], target(7260))).toEqual([close, short])
+  })
 })
 
 describe('réponse OpenRouteService', () => {
