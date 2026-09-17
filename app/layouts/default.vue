@@ -6,7 +6,14 @@ const plan = usePlanStore()
  * La barre du haut affiche la date et la semaine sur toutes les pages, pas
  * seulement celles qui chargent le plan pour leur propre contenu.
  */
-await plan.ensureLoaded()
+/**
+ * Le plan ne bloque plus la coque : elle se peint tout de suite et les tuiles
+ * qui l'attendent portent leur squelette (§ 8). Les pages qui n'ont rien à
+ * montrer sans lui — Semaine, Courses — l'attendent, elles, dans leur setup.
+ */
+onMounted(() => {
+  plan.ensureLoaded()
+})
 
 useShellShortcuts()
 

@@ -1,19 +1,16 @@
 <script setup lang="ts">
-const props = defineProps<{ vdot: number | null; isFloor: boolean }>()
+const props = defineProps<{ vdot: number | null; isFloor: boolean; loading?: boolean }>()
 
 const ui = useUiStore()
-const { data } = await useFetch('/api/progression')
+const { data, status } = useFetch('/api/progression', { lazy: true, server: false })
+
+/** Le titre lui-même dépend du plan : sans lui, il est encore inconnu (§ 8). */
+const loading = computed(() => props.loading || isLoading(status.value))
 
 const label = computed(() => (props.isFloor ? 'Plancher' : 'VDOT'))
 
-/** Points de forme mesurés : c'est eux que la sparkline dessine. */
 const points = computed(() => (data.value?.vdot ?? []).map((point) => point.vdot))
 
-/**
- * Sparkline en polyligne SVG : l'échelle est la plage des points elle-même,
- * élargie d'un demi-point pour qu'une progression plate ne se lise pas comme
- * un mur.
- */
 const line = computed(() => {
   if (points.value.length < 2) return null
 
@@ -32,7 +29,17 @@ const line = computed(() => {
 </script>
 
 <template>
+  <div v-if="loading" class="tile" aria-busy="true">
+    <div class="flex items-baseline justify-between">
+      <span class="label"><UiSkeleton :height="15" width="72px" /></span>
+      <UiSkeleton variant="block" :height="22" width="104px" />
+    </div>
+    <UiSkeleton variant="number" />
+    <UiSkeleton variant="block" :height="14" />
+  </div>
+
   <div
+    v-else
     class="tile tile-action"
     role="button"
     :tabindex="0"

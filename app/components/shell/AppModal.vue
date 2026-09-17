@@ -28,7 +28,15 @@ const dialog = useDialogFocus()
           <UiAppIcon name="close" :size="18" />
         </button>
       </div>
-      <slot />
+
+      <!-- La fenêtre s'ouvre sur la forme de son corps, jamais sur une boîte
+           vide ni après l'attente de la requête (§ 8, P5.20). -->
+      <Suspense>
+        <slot />
+        <template #fallback>
+          <slot name="skeleton" />
+        </template>
+      </Suspense>
     </section>
   </div>
 </template>

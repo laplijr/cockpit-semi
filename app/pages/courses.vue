@@ -138,6 +138,10 @@ async function onCreated() {
         :width="1040"
         @close="ui.closeModal()"
       >
+        <template #skeleton>
+          <DialogsDialogSkeleton modal="nouvelle-course" />
+        </template>
+
         <RacesNewRaceWindow @created="onCreated" />
       </ShellAppModal>
     </Teleport>

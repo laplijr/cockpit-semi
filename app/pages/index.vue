@@ -1,10 +1,20 @@
 <script setup lang="ts">
 const plan = usePlanStore()
-const { data: races, refresh: refreshRaces } = await useFetch('/api/races')
-
 const proposals = usePropositionsStore()
 
-await Promise.all([plan.ensureLoaded(), proposals.load()])
+/**
+ * Rien n'est attendu avant le rendu : le cockpit se peint tout de suite et
+ * chaque tuile porte son squelette jusqu'à sa donnée (§ 8, P5.20).
+ */
+const {
+  data: races,
+  status: racesStatus,
+  refresh: refreshRaces,
+} = useFetch('/api/races', { lazy: true, server: false })
+
+onMounted(() => {
+  proposals.load()
+})
 
 const raceA = computed(() =>
   (races.value ?? [])
@@ -42,15 +52,48 @@ async function onResume() {
   <div class="flex flex-col gap-4">
     <!-- Course A est le seul cadran qui est un but, pas une mesure (§ 9, P5.19). -->
     <section class="grid grid-cols-[1.15fr_1fr_1fr_1fr] gap-4">
-      <CockpitRaceDial :race="raceA" :today="plan.today" />
-      <CockpitVdotDial :vdot="vdot" :is-floor="vdotIsFloor" />
+      <!-- Le décompte se compte depuis aujourd'hui : sans le plan, pas de J−. -->
+      <CockpitRaceDial
+        :race="raceA"
+        :today="plan.today"
+        :loading="isLoading(racesStatus) || !plan.loaded"
+      />
+      <CockpitVdotDial :vdot="vdot" :is-floor="vdotIsFloor" :loading="!plan.loaded" />
       <CockpitLoadDial />
       <CockpitReadinessDial />
     </section>
 
     <!-- `items-start` : la tuile cesse de s'étirer à la hauteur de « À décider ». -->
     <section class="grid grid-cols-[1.6fr_1fr] items-start gap-4">
-      <div class="tile">
+      <!-- Une seule ligne de séance en squelette : c'est la journée courante. -->
+      <div v-if="!plan.loaded" class="tile" aria-busy="true">
+        <div class="flex items-baseline gap-3">
+          <span class="label">Aujourd'hui</span>
+          <UiSkeleton width="150px" />
+          <UiSkeleton class="ml-auto" width="230px" />
+        </div>
+        <div class="flex items-center gap-3 px-2 py-[10px]">
+          <UiSkeleton variant="block" :height="18" width="18px" class="rounded-sm" />
+          <div class="flex flex-1 flex-col gap-px">
+            <UiSkeleton :height="22" width="34%" />
+            <UiSkeleton :height="16" width="52%" />
+          </div>
+          <UiSkeleton variant="block" :height="32" width="196px" class="rounded-md" />
+        </div>
+
+        <div class="border-t border-line-soft pt-3">
+          <span class="label text-[10.5px]">Demain</span>
+          <div class="flex items-center gap-3 px-2 py-[10px]">
+            <UiSkeleton variant="block" :height="18" width="18px" class="rounded-sm" />
+            <div class="flex flex-1 flex-col gap-px">
+              <UiSkeleton :height="22" width="28%" />
+              <UiSkeleton :height="16" width="46%" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="tile">
         <div class="flex items-baseline gap-3">
           <span class="label">Aujourd'hui</span>
           <span class="mono text-[11.5px] text-text-muted">{{ formatLongDate(plan.today) }}</span>
@@ -101,15 +144,16 @@ async function onResume() {
       :week="plan.currentWeek"
       :sessions="currentWeekSessions"
       :today="plan.today"
+      :loading="!plan.loaded"
     />
 
     <CockpitSeasonTimeline
-      v-if="plan.plan"
-      :phases="plan.plan.phases"
-      :weeks="plan.plan.weeks"
+      :phases="plan.plan?.phases ?? []"
+      :weeks="plan.plan?.weeks ?? []"
       :races="upcoming"
       :today="plan.today"
       :dated="!plan.awaitingResumption"
+      :loading="!plan.loaded"
     />
   </div>
 </template>

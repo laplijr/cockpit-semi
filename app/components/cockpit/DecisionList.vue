@@ -48,7 +48,27 @@ async function apply() {
 </script>
 
 <template>
-  <div class="tile">
+  <!-- Trois lignes : c'est la borne de « À décider », donc sa hauteur pleine. -->
+  <div v-if="!proposals.loaded" class="tile" aria-busy="true">
+    <div class="flex items-baseline gap-3">
+      <span class="label">À décider</span>
+      <UiSkeleton width="88px" />
+    </div>
+    <div
+      v-for="row in limit || 3"
+      :key="row"
+      class="flex items-start gap-3 border-t border-line-soft py-[10px] first:border-t-0"
+    >
+      <UiSkeleton variant="block" :height="14" width="14px" class="mt-1" />
+      <div class="flex flex-1 flex-col gap-px">
+        <UiSkeleton :height="19" width="70%" />
+        <UiSkeleton :height="17" width="45%" />
+      </div>
+    </div>
+    <UiSkeleton :height="18" width="140px" />
+  </div>
+
+  <div v-else class="tile">
     <div class="flex items-baseline gap-3">
       <span class="label">À décider</span>
       <span class="mono text-[11.5px] text-text-muted">

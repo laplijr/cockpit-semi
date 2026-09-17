@@ -50,6 +50,10 @@ async function onDecided() {
       :width="WIDTHS[ui.modal] ?? 760"
       @close="ui.closeModal()"
     >
+      <template #skeleton>
+        <DialogsDialogSkeleton :modal="ui.modal" />
+      </template>
+
       <DialogsSessionDialog
         v-if="ui.modal === 'seance' && ui.modalTargetId"
         :session-id="ui.modalTargetId"

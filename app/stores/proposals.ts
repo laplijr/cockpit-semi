@@ -32,6 +32,8 @@ export const usePropositionsStore = defineStore('proposals', () => {
   const groups = ref<ProposalGroup[]>([])
   const decided = ref<ProposalRow[]>([])
   const selected = ref<string[]>([])
+  /** Vrai dès la première réponse : une recharge garde la liste déjà affichée. */
+  const loaded = ref(false)
   const request = useRequestFetch()
 
   async function load() {
@@ -42,6 +44,7 @@ export const usePropositionsStore = defineStore('proposals', () => {
     selected.value = selected.value.filter((key) =>
       payload.groups.some((group) => group.key === key),
     )
+    loaded.value = true
   }
 
   function toggle(key: string) {
@@ -89,6 +92,7 @@ export const usePropositionsStore = defineStore('proposals', () => {
     groups,
     decided,
     selected,
+    loaded,
     pendingCount,
     load,
     toggle,

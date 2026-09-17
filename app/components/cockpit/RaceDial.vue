@@ -17,7 +17,7 @@ interface RaceRow {
   objectiveToSet: boolean
 }
 
-const props = defineProps<{ race?: RaceRow; today: string }>()
+const props = defineProps<{ race?: RaceRow; today: string; loading?: boolean }>()
 
 const ui = useUiStore()
 
@@ -25,8 +25,21 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
 </script>
 
 <template>
+  <div v-if="loading" class="tile" style="border-color: rgba(242, 162, 58, 0.35)" aria-busy="true">
+    <div class="flex items-baseline justify-between">
+      <span class="label">Course A <UiInfoHint term="courseA" /></span>
+      <UiSkeleton width="64px" />
+    </div>
+    <UiSkeleton variant="number" />
+    <div class="flex items-center justify-between gap-4">
+      <UiSkeleton :height="22" width="164px" />
+      <UiSkeleton variant="block" :height="22" width="48px" />
+    </div>
+    <UiSkeleton variant="block" :height="10" />
+  </div>
+
   <div
-    v-if="race"
+    v-else-if="race"
     class="tile tile-action"
     style="border-color: rgba(242, 162, 58, 0.35)"
     role="button"

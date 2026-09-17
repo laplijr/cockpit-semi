@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const ui = useUiStore()
-const { data } = await useFetch('/api/load')
+const { data, status } = useFetch('/api/load', { lazy: true, server: false })
 
 const missingDays = computed(() => Math.max(0, 28 - (data.value?.historyDays ?? 0)))
 
@@ -19,7 +19,17 @@ const band = computed(() => {
 </script>
 
 <template>
+  <div v-if="isLoading(status)" class="tile" aria-busy="true">
+    <div class="flex items-baseline justify-between">
+      <span class="label">Charge combinée <UiInfoHint term="chargeCombinee" /></span>
+      <UiSkeleton variant="block" :height="22" width="96px" />
+    </div>
+    <UiSkeleton variant="number" />
+    <UiSkeleton variant="block" :height="14" />
+  </div>
+
   <div
+    v-else
     class="tile tile-action"
     role="button"
     :tabindex="0"

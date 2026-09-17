@@ -125,6 +125,9 @@ export const usePlanStore = defineStore('plan', () => {
     await load()
   }
 
+  /** Vrai dès la première réponse : une recharge garde la donnée déjà affichée. */
+  const loaded = computed(() => payload.value !== undefined)
+
   const today = computed(() => payload.value?.today ?? '')
   const plan = computed(() => payload.value?.plan ?? null)
   const pause = computed(() => payload.value?.pause ?? null)
@@ -165,6 +168,7 @@ export const usePlanStore = defineStore('plan', () => {
   return {
     payload,
     pending,
+    loaded,
     load,
     ensureLoaded,
     markResumption,

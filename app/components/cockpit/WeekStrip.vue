@@ -5,6 +5,7 @@ const props = defineProps<{
   week?: PlanWeekRow
   sessions: PlanSession[]
   today: string
+  loading?: boolean
 }>()
 
 const days = computed(() => {
@@ -23,7 +24,33 @@ const days = computed(() => {
 </script>
 
 <template>
-  <div v-if="week" class="tile">
+  <div v-if="loading" class="tile" aria-busy="true">
+    <div class="flex items-baseline gap-3">
+      <span class="label">Semaine</span>
+      <UiSkeleton :height="22" width="200px" />
+    </div>
+    <!-- Le gabarit d'un jour chargé — un libellé et deux séances — parce que
+         c'est le jour le plus haut qui donne sa hauteur à la rangée. -->
+    <div class="grid grid-cols-7 gap-2">
+      <div
+        v-for="day in WEEKDAY_LABELS"
+        :key="day"
+        class="flex min-h-[104px] flex-col gap-2 rounded-md border border-line-soft bg-surface-inset p-3"
+      >
+        <UiSkeleton :height="12" width="30px" />
+        <div class="flex flex-col gap-px">
+          <UiSkeleton :height="20" width="76%" />
+          <UiSkeleton :height="14" width="52%" />
+        </div>
+        <div class="flex flex-col gap-px border-t border-line-soft pt-2">
+          <UiSkeleton :height="20" width="66%" />
+          <UiSkeleton :height="14" width="44%" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-else-if="week" class="tile">
     <div class="flex items-baseline gap-3">
       <span class="label">Semaine {{ week.index }}</span>
       <span class="mono text-[11.5px] text-text-muted">

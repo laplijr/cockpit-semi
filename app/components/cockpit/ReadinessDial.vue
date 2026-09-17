@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const ui = useUiStore()
-const { data } = await useFetch('/api/readiness')
+const { data, status } = useFetch('/api/readiness', { lazy: true, server: false })
 
 const STATES = {
   pret: { label: 'Prêt', tone: 'text-ok' },
@@ -19,7 +19,17 @@ const SEGMENTS = [
 </script>
 
 <template>
+  <div v-if="isLoading(status)" class="tile" aria-busy="true">
+    <div class="flex items-baseline justify-between">
+      <span class="label">Forme du jour <UiInfoHint term="formeDuJour" /></span>
+      <UiSkeleton variant="block" :height="22" width="72px" />
+    </div>
+    <UiSkeleton variant="number" />
+    <UiSkeleton variant="block" :height="14" />
+  </div>
+
   <div
+    v-else
     class="tile tile-action"
     role="button"
     :tabindex="0"

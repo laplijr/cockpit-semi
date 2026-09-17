@@ -23,6 +23,7 @@ const title = computed(() => navItemFor(route.path)?.label ?? 'Cockpit')
 
 /** Le plan est chargé par la coque (`app/layouts/default.vue`) avant ce rendu. */
 const context = computed(() => {
+  if (!plan.loaded) return ''
   const date = formatDateWithYear(plan.today)
   if (!plan.plan) return `${date} · aucun plan actif`
   const week = plan.currentWeek

@@ -8,6 +8,7 @@ const props = defineProps<{
   races: SeasonRace[]
   today: string
   dated: boolean
+  loading?: boolean
 }>()
 
 /**
@@ -23,7 +24,16 @@ const target = computed(() => {
 </script>
 
 <template>
-  <div v-if="layout.segments.length > 0" class="tile">
+  <div v-if="loading" class="tile" aria-busy="true">
+    <div class="flex items-baseline gap-3">
+      <span class="label">Cap</span>
+      <UiSkeleton width="220px" />
+    </div>
+    <UiSkeleton variant="block" :height="24" />
+    <UiSkeleton width="340px" />
+  </div>
+
+  <div v-else-if="layout.segments.length > 0" class="tile">
     <div class="flex items-baseline gap-3">
       <span class="label">Cap</span>
       <span class="mono text-[11.5px] text-text-muted">
