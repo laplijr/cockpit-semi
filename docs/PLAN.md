@@ -293,12 +293,12 @@ P5.18 — Trajectoire de la saison
 
 La barre des phases dit la structure de la saison, pas son contenu : deux blocs de huit semaines s'affichent à l'identique, que le volume y monte de 20 à 45 km ou qu'il stagne. La page Courses garde de la hauteur inutilisée sous la frise, et le graphe qui manque ici — une barre de volume par semaine — existe déjà sur Progression sans être partagé.
 
-- [ ] `app/components/ui/WeekBars.vue` : barres de volume visé par semaine, semaine allégée et semaine de test marquées, extraites de `app/pages/progression.vue` sans changer son rendu. Deux sites d'appel suffisent : c'est le même graphe, pas deux graphes qui se ressemblent.
-- [ ] Deuxième étage de la frise, sur le même axe x que les phases : une barre par semaine alignée au segment de sa phase, les tiges de course traversant les deux étages. Les semaines passées portent leur charge enregistrée en barre basse, lue depuis `summariseWeek` (P5.14).
-- [ ] Le survol d'une semaine ouvre la bulle de P5.14 : rien de nouveau à écrire côté bulle, et la semaine reste atteignable au clavier.
-- [ ] § 8 : les deux étages comptent pour **une** information — la trajectoire de la saison — et non pour deux. L'écrire, sinon la règle des quatre informations se contredit à la première lecture.
-- [ ] Vérifier au scénario `affutage-paris` à 1440 px : la montée des blocs, les semaines allégées et l'affûtage décroissant se lisent sur l'étage du bas, les tiges de course tombent au bon endroit, et la page n'a plus de vide sous la frise.
-- [ ] Fini : lint, typecheck, tests, build verts ; § 8 relu ; commit « P5.18 — trajectoire de la saison ».
+- [x] `app/components/ui/WeekBars.vue` : barres de volume visé par semaine, semaine allégée et semaine de test marquées, extraites de `app/pages/progression.vue` sans changer son rendu. Deux sites d'appel suffisent : c'est le même graphe, pas deux graphes qui se ressemblent.
+- [x] Deuxième étage de la frise, sur le même axe x que les phases : une barre par semaine alignée au segment de sa phase, les tiges de course traversant les deux étages. Les semaines passées portent leur charge enregistrée en barre basse, lue depuis `summariseWeek` (P5.14).
+- [x] Le survol d'une semaine ouvre la bulle de P5.14 : rien de nouveau à écrire côté bulle, et la semaine reste atteignable au clavier.
+- [x] § 8 : les deux étages comptent pour **une** information — la trajectoire de la saison — et non pour deux. L'écrire, sinon la règle des quatre informations se contredit à la première lecture.
+- [x] Vérifier au scénario `affutage-paris` à 1440 px : la montée des blocs, les semaines allégées et l'affûtage décroissant se lisent sur l'étage du bas, les tiges de course tombent au bon endroit, et la page n'a plus de vide sous la frise.
+- [x] Fini : lint, typecheck, tests, build verts ; § 8 relu ; commit « P5.18 — trajectoire de la saison ».
 
 P5.19 — Le cockpit tient dans un écran (retour d'usage de Ronan, 17 sept. 2026)
 
@@ -535,6 +535,7 @@ Règles d'ergonomie : une action principale par ligne, jamais deux boutons plein
 
 Règles de tuile (fixées le 16 sept. 2026) :
 - **Une tuile montre au plus quatre informations.** Tout le détail vit dans son dialog. C'est la contrepartie de la règle du § 11 : une tuile qui grossit se vide dans son dialog au lieu de pousser les autres.
+- **Un graphe à deux étages sur le même axe compte pour une information.** Les phases de la saison et les volumes par semaine se lisent ensemble — c'est la trajectoire de la saison, pas deux chiffres — et la frise de la page Courses n'en consomme donc qu'une seule des quatre.
 - **Toute tuile qui a un détail est cliquable et ouvre un dialog.** Dialog = lire et agir sur un objet (séance, course, cadran, proposition, exercice, bloc). Panneau latéral = saisie liée au flux (Imprévu, Pause). Un clic n'empile jamais deux surfaces.
 - **Les tuiles occupent la largeur de la zone principale.** Aucune page ne borne sa largeur ; les formulaires se répartissent en grille de 2 ou 3 colonnes pour que cette largeur serve. Exception unique : la page de connexion, carte centrée de 360 px.
 - Tout élément cliquable porte `cursor: pointer` et répond au clavier (Entrée, Espace). Tailwind 4 ne met plus le curseur sur `<button>` : c'est à la feuille de base de le faire.

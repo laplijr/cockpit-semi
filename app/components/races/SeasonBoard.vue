@@ -12,7 +12,13 @@ const props = defineProps<{
 
 const ui = useUiStore()
 
+/** Les résumés de semaine de P5.14 : c'est eux qui portent la charge réalisée. */
+const { data: progression } = await useFetch('/api/progression')
+
 const layout = computed(() => seasonLayout({ ...props }))
+
+/** Une barre par semaine, alignée au segment de sa phase : même axe x, sans écart. */
+const weekBars = computed(() => progression.value?.weeks ?? [])
 
 /** Le cap : la première course A à venir, celle sur laquelle tout se cale. */
 const target = computed(() =>
@@ -106,6 +112,20 @@ function pillShift(positionPct: number): string {
           <span v-if="segment.sharePct > 5">{{ PHASE_LABELS[segment.type] }}</span>
           <span v-else class="mono">{{ segment.weeks }}</span>
         </button>
+      </div>
+
+      <!-- Deuxième étage : la trajectoire des volumes, sur le même axe que les phases. -->
+      <div v-if="weekBars.length === layout.totalWeeks" class="relative">
+        <UiWeekBars :weeks="weekBars" :volume-height="44" :load-height="14" gap="gap-0" />
+        <div class="pointer-events-none absolute inset-0">
+          <span
+            v-for="mark in layout.races"
+            :key="mark.race.id"
+            class="absolute inset-y-0 w-px -translate-x-1/2"
+            :class="mark.race.priority === 'A' ? 'bg-accent' : 'bg-line-strong'"
+            :style="{ left: `${mark.positionPct}%` }"
+          />
+        </div>
       </div>
 
       <div v-if="layout.dated" class="relative h-[58px]">
