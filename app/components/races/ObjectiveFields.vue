@@ -56,18 +56,27 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
 </script>
 
 <template>
-  <div class="flex flex-col gap-3">
-    <div class="grid grid-cols-4 gap-3">
-      <label class="flex flex-col gap-[6px]">
+  <div class="flex flex-col gap-2">
+    <!-- Sous-grille : libellés, champs et aides s'alignent d'une colonne à
+         l'autre, même quand un libellé passe sur deux lignes. -->
+    <div
+      class="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] grid-rows-[auto_auto_auto] gap-x-3 gap-y-[6px]"
+    >
+      <label class="row-span-3 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">Objectif <UiInfoHint term="objectif" /></span>
         <select v-model="mode" class="input">
           <option value="temps">Chrono cible</option>
           <option value="record" :disabled="recordS === null">Battre mon record</option>
         </select>
+        <span />
       </label>
 
       <template v-if="mode === 'temps'">
-        <label v-for="level in LEVELS" :key="level.key" class="flex flex-col gap-[6px]">
+        <label
+          v-for="level in LEVELS"
+          :key="level.key"
+          class="row-span-3 grid grid-rows-subgrid gap-y-[6px]"
+        >
           <span class="label text-[10.5px]">
             {{ level.label }}
             <span
@@ -85,11 +94,26 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
           />
           <span class="text-[11.5px] text-text-muted">{{ level.hint }}</span>
         </label>
+
+        <!-- Action secondaire, jamais un bouton plein à côté d'« Enregistrer » (§ 8). -->
+        <div class="row-span-3 grid grid-rows-subgrid gap-y-[6px]">
+          <span />
+          <button
+            type="button"
+            class="btn btn-ghost"
+            :disabled="proposed === null"
+            aria-label="Proposer les trois niveaux depuis ma projection"
+            @click="proposeFromProjection"
+          >
+            Proposer
+          </button>
+          <span />
+        </div>
       </template>
 
-      <div v-else class="col-span-3 flex flex-col gap-[6px]">
+      <div v-else class="col-span-4 row-span-3 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">Référence à battre</span>
-        <span class="mono text-[15px]">{{ formatDuration(recordS) }}</span>
+        <span class="mono self-center text-[15px]">{{ formatDuration(recordS) }}</span>
         <span class="text-[11.5px] text-text-muted">
           Ton meilleur résultat représentatif sur la distance. La confiance devient la probabilité
           de faire mieux.
@@ -97,24 +121,23 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
       </div>
     </div>
 
-    <div class="flex items-baseline gap-3">
-      <button
-        v-if="mode === 'temps'"
-        type="button"
-        class="text-[13px] text-accent underline decoration-dotted underline-offset-2"
-        :disabled="proposed === null"
-        :class="proposed === null && 'cursor-not-allowed opacity-50 no-underline'"
-        @click="proposeFromProjection"
-      >
-        Proposer depuis ma projection
-      </button>
-      <span v-if="recordS === null" class="text-[12px] text-text-muted">
+    <p class="text-[12px] text-text-muted">
+      <template v-if="mode === 'temps' && proposed === null">
+        « Proposer » remplit les trois niveaux depuis les bornes de ta projection : il attend une
+        date de course.
+      </template>
+      <template v-else-if="mode === 'temps'">
+        « Proposer » remplit les trois niveaux depuis les bornes de ta projection. Le réaliste seul
+        est obligatoire.
+      </template>
+      <template v-if="recordS === null">
         « Battre mon record » attend un résultat représentatif sur cette distance : tu n'en as pas
         encore.
-      </span>
-      <span v-if="misordered" class="text-[12px] text-warn">
-        Ambition, réaliste et plancher vont du plus rapide au plus lent.
-      </span>
-    </div>
+      </template>
+    </p>
+
+    <p v-if="misordered" class="text-[12px] text-warn">
+      Ambition, réaliste et plancher vont du plus rapide au plus lent.
+    </p>
   </div>
 </template>

@@ -104,24 +104,36 @@ function formatSignedDistance(meters: number): string {
 
       <span class="flex flex-wrap items-baseline gap-2 text-[12.5px] text-text-dim">
         {{ PHASE_LABELS[week.phaseType] ?? week.phaseType }}
-        <span v-if="week.light" class="pill text-[10px]">allégée</span>
+        <span v-if="week.light" class="pill text-[10px]">allégée, barre en gris</span>
         <span v-if="week.test" class="pill text-[10px]">test</span>
         <span v-if="week.comebackRatio !== null" class="pill text-[10px]">
           reprise {{ Math.round(week.comebackRatio * 100) }} %
         </span>
       </span>
 
-      <span class="mono text-[12.5px]">
-        {{ formatDistance(week.targetRunM) }} visés
-        <template v-if="week.summary?.actualRunM !== null && week.summary">
-          · {{ formatDistance(week.summary.actualRunM) }} courus ({{
-            formatSignedDistance(week.summary.runGapM!)
-          }})
-        </template>
+      <!-- La pastille reprend la couleur exacte de la barre : la bulle se lit
+           sans légende à côté du graphe. -->
+      <span class="mono flex items-start gap-2 text-[12.5px]">
+        <span
+          class="mt-[4px] size-[9px] shrink-0 rounded-[2px]"
+          :class="week.light ? 'bg-line-strong' : 'bg-accent/70'"
+        />
+        <span>
+          {{ formatDistance(week.targetRunM) }} visés
+          <template v-if="week.summary?.actualRunM !== null && week.summary">
+            · {{ formatDistance(week.summary.actualRunM) }} courus ({{
+              formatSignedDistance(week.summary.runGapM!)
+            }})
+          </template>
+        </span>
       </span>
 
-      <span v-if="week.summary && week.summary.loadUa > 0" class="mono text-[12px] text-text-dim">
-        {{ week.summary.loadUa }} UA · {{ loadBreakdown(week.summary) }}
+      <span
+        v-if="week.summary && week.summary.loadUa > 0"
+        class="mono flex items-start gap-2 text-[12px] text-text-dim"
+      >
+        <span class="mt-[4px] size-[9px] shrink-0 rounded-[2px] bg-ok/70" />
+        <span>{{ week.summary.loadUa }} UA · {{ loadBreakdown(week.summary) }}</span>
       </span>
 
       <span v-if="week.summary" class="mono text-[12px] text-text-dim">

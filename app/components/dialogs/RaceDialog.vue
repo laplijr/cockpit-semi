@@ -178,8 +178,9 @@ async function remove() {
       </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-3">
-      <label class="flex flex-col gap-[6px]">
+    <!-- Sous-grille : un libellé sur deux lignes ne décale plus son champ. -->
+    <div class="grid grid-cols-3 grid-rows-[auto_auto_auto_auto] gap-x-3 gap-y-[6px]">
+      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">
           Nom
           <span v-if="changed('name', race.name)" class="text-text-muted line-through">
@@ -188,7 +189,7 @@ async function remove() {
         </span>
         <input v-model="form.name" type="text" class="input" />
       </label>
-      <label class="flex flex-col gap-[6px]">
+      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">
           Date
           <span v-if="changed('date', race.date)" class="mono text-text-muted line-through">
@@ -197,7 +198,7 @@ async function remove() {
         </span>
         <input v-model="form.date" type="date" class="input mono" />
       </label>
-      <label class="flex flex-col gap-[6px]">
+      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">
           Distance
           <span
@@ -213,7 +214,7 @@ async function remove() {
           </option>
         </select>
       </label>
-      <label class="flex flex-col gap-[6px]">
+      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">
           Priorité
           <span v-if="changed('priority', race.priority)" class="text-text-muted line-through">
@@ -226,11 +227,11 @@ async function remove() {
           <option value="C">C — course test</option>
         </select>
       </label>
-      <label class="flex flex-col gap-[6px]">
+      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">D+ (m)</span>
         <input v-model.number="form.elevationGainM" type="number" class="input mono" />
       </label>
-      <label class="flex flex-col gap-[6px]">
+      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">Température attendue (°C)</span>
         <input v-model.number="form.expectedTempC" type="number" class="input mono" />
       </label>
