@@ -346,7 +346,19 @@ Deux fois le même défaut : une tuile prend la hauteur de son contenu au lieu d
 - [x] **L'état à vide est vérifié par les tests de composant, pas contre une base vidée** : le bac à sable a refusé le `truncate` de la base de développement. `tests/app/dial-gabarit.test.ts` monte le cadran Course A sans course et vérifie le gabarit — classe `dial`, tiret, échelle en creux, renvoi vers Courses ; la classe `dial` (plancher de 157 px, mesuré sur la rangée chargée) est vérifiée dans le navigateur. À rejouer contre une base vide au prochain `pnpm db:seed`.
 - [x] Fini : lint, typecheck, tests, build verts ; § 8 relu ; commit « P5.21 — tuiles de même taille ».
 
-P5.5, P6 et P7 (dont les itinéraires GPX) : voir § 9, à transformer en cases au moment d'attaquer la phase.
+P5.5 — Itinéraires GPX pour un évènement
+
+- [x] `server/domain/routes` : types (`RouteKind`, `GeoPoint`, `RouteTarget`, `RouteTrace`, tolérances du § 9), mesure d'une trace (distance haversine, D+ une fois le bruit d'altitude filtré, virages), validation (± 10 % de la cible, D+ ≤ 10 m/km, boucle fermée à 50 m), classement par D+ puis par virages, cibles depuis le plan actif, lecture et écriture du GPX sans bibliothèque.
+- [x] `server/infra/routing/openrouteservice.ts` : géocodage, `round_trip` avec graine, aller simple, profil `foot-walking`, clé `NUXT_ORS_API_KEY` côté serveur. Le parseur GeoJSON est séparé du réseau pour être testé.
+- [x] Schéma : `race.start_address`, table `race_route` (§ 4), migration `0017` générée et appliquée.
+- [x] `server/application/generate-routes.ts` : trois graines par boucle, une trace pour l'aller, classement puis remplacement des variantes de la course. La course est chargée par la route d'API, pas par le cas d'usage, pour qu'il reste testable hors Nitro.
+- [x] API : `GET`/`POST /api/races/:id/routes`, `GET /api/routes/:id` qui rend le GPX en pièce jointe.
+- [x] UI : bouton fantôme carré « Itinéraires sur place » dans la ligne de la course, fenêtre `RacesRouteWindow` (adresse du logement, arrivée par défaut à J−1, une ligne par sortie avec tracé SVG, distance, D+, virages, « Télécharger le GPX » et « Autre variante »), champ « Adresse de la ligne de départ » dans le dialog Course. Aucun ajout au cockpit.
+- [x] Tests : `tests/domain/routes.test.ts` (18 cas sur des GPX et des réponses ORS enregistrées, aucun appel réseau), `tests/domain/routes-flow.test.ts` (le cas d'usage complet contre un service de routage simulé), `tests/app/route-path.test.ts` et `tests/app/route-window.test.ts`.
+- [x] **Ce qui n'a pas pu être vérifié : la génération réelle.** `NUXT_ORS_API_KEY` n'est pas renseignée, et OpenRouteService exige une clé même en offre gratuite. Vérifié dans le navigateur : la fenêtre s'ouvre depuis la ligne de la course, l'arrivée se pré-remplit à J−1, et « Générer » répond « Clé OpenRouteService absente : renseigne NUXT_ORS_API_KEY » — l'app continue de fonctionner sans elle. À rejouer contre le vrai service avec une clé (compte gratuit sur openrouteservice.org, variable documentée dans `.env.example`).
+- [x] Fini : lint, typecheck, tests, build verts ; commit « P5.5 — itinéraires GPX ».
+
+P6 et P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
 
 ## 0. Données réelles de départ (à seeder en P1)
 

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="OpenRouteService" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Boucle 5 km — calle Mayor</name>
+    <trkseg>
+      <trkpt lat="40.415500" lon="-3.707400"><ele>650.0</ele></trkpt>
+      <trkpt lat="40.418307" lon="-3.707400"><ele>652.0</ele></trkpt>
+      <trkpt lat="40.421114" lon="-3.707400"><ele>654.0</ele></trkpt>
+      <trkpt lat="40.423922" lon="-3.707400"><ele>656.0</ele></trkpt>
+      <trkpt lat="40.426729" lon="-3.707400"><ele>658.0</ele></trkpt>
+      <trkpt lat="40.426729" lon="-3.703713"><ele>660.0</ele></trkpt>
+      <trkpt lat="40.426729" lon="-3.700026"><ele>662.0</ele></trkpt>
+      <trkpt lat="40.426729" lon="-3.696339"><ele>664.0</ele></trkpt>
+      <trkpt lat="40.426729" lon="-3.692652"><ele>666.0</ele></trkpt>
+      <trkpt lat="40.423922" lon="-3.692652"><ele>664.0</ele></trkpt>
+      <trkpt lat="40.421114" lon="-3.692652"><ele>662.0</ele></trkpt>
+      <trkpt lat="40.418307" lon="-3.692652"><ele>660.0</ele></trkpt>
+      <trkpt lat="40.415500" lon="-3.692652"><ele>658.0</ele></trkpt>
+      <trkpt lat="40.415500" lon="-3.696339"><ele>656.0</ele></trkpt>
+      <trkpt lat="40.415500" lon="-3.700026"><ele>654.0</ele></trkpt>
+      <trkpt lat="40.415500" lon="-3.703713"><ele>652.0</ele></trkpt>
+      <trkpt lat="40.415500" lon="-3.707400"><ele>650.0</ele></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

@@ -13,6 +13,8 @@ export default defineNuxtConfig({
     cronSecret: '',
     /** Clé de l'API Claude, pour l'Imprévu et la recherche de course (§ 6). */
     anthropicApiKey: '',
+    /** Clé OpenRouteService, pour les itinéraires GPX ; serveur uniquement (§ 9). */
+    orsApiKey: '',
   },
   app: {
     head: {

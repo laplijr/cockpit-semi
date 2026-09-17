@@ -12,6 +12,7 @@ const WIDTHS: Record<string, number> = {
   course: 760,
   exercice: 640,
   bloc: 880,
+  itineraires: 880,
 }
 
 const TITLES: Record<string, string> = {
@@ -22,6 +23,7 @@ const TITLES: Record<string, string> = {
   course: 'Course',
   exercice: 'Exercice',
   bloc: 'Bloc',
+  itineraires: 'Itinéraires',
 }
 
 async function onSessionSaved() {
@@ -82,6 +84,11 @@ async function onDecided() {
       <DialogsBlockDialog
         v-else-if="ui.modal === 'bloc' && ui.modalTargetId"
         :phase-id="ui.modalTargetId"
+      />
+
+      <RacesRouteWindow
+        v-else-if="ui.modal === 'itineraires' && ui.modalTargetId"
+        :race-id="ui.modalTargetId"
       />
     </ShellAppModal>
   </Teleport>

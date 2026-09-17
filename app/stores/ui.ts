@@ -7,6 +7,7 @@ export const MODAL_IDS = [
   'exercice',
   'proposition',
   'bloc',
+  'itineraires',
 ] as const
 
 /** Cadrans du cockpit qui ouvrent un détail (§ 8). */

@@ -48,6 +48,12 @@ const ICONS = {
   info: [circle(12, 12, 9), path('M12 11v5'), path('M12 8h.01')],
   wand: [path('M4 20 14.5 9.5'), path('M16 3v5M13.5 5.5h5'), path('M19.5 12v3M18 13.5h3')],
   strava: [path('M8 3l6 12h-4l-2-4-2 4H2z'), path('M14 15l3 6 3-6h-2l-1 2-1-2z')],
+  route: [
+    circle(6, 18, 2.5),
+    circle(18, 6, 2.5),
+    path('M6 15.5C6 11 9 11 12 11s6 0 6-2.5'),
+    path('M15.5 6H9'),
+  ],
 } satisfies Record<string, Shape[]>
 
 export type IconName = keyof typeof ICONS

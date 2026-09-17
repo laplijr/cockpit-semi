@@ -30,6 +30,7 @@ import {
   SegmentMode,
   type RaceIncident,
 } from '../../domain/races/race'
+import { RouteKind } from '../../domain/routes/route'
 import { Sport } from '../../domain/shared/sport'
 
 export {
@@ -49,6 +50,7 @@ export {
   RacePriority,
   RaceSource,
   RaceStatus,
+  RouteKind,
   SegmentMode,
   Sport,
 }
@@ -70,6 +72,7 @@ export const pauseTypeEnum = pgEnum('pause_type', enumValues(PauseType))
 export const proposalStatusEnum = pgEnum('proposal_status', enumValues(ProposalStatus))
 export const proposalTriggerEnum = pgEnum('proposal_trigger', enumValues(ProposalTrigger))
 export const unplannedStatusEnum = pgEnum('unplanned_status', enumValues(UnplannedStatus))
+export const routeKindEnum = pgEnum('route_kind', enumValues(RouteKind))
 
 /** Conserve les types littéraux de l'énumération pour que Drizzle les propage. */
 function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], ...T[keyof T][]] {
@@ -128,8 +131,41 @@ export const race = pgTable('race', {
   /** Faux quand le chrono ne reflète pas la forme : il ne calibre alors pas le VDOT. */
   representative: boolean('representative').notNull().default(true),
   incident: jsonb('incident').$type<RaceIncident>(),
+  /** Adresse de la ligne de départ : arrivée de l'itinéraire logement → départ. */
+  startAddress: text('start_address'),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/**
+ * Une variante d'itinéraire générée pour une course : une boucle à la distance
+ * d'une séance sur place, ou l'aller vers la ligne de départ (§ 4). Une ligne
+ * par variante conservée ; le GPX est stocké tel qu'il sera téléchargé.
+ */
+export const raceRoute = pgTable('race_route', {
+  id: serial('id').primaryKey(),
+  raceId: integer('race_id')
+    .notNull()
+    .references(() => race.id, { onDelete: 'cascade' }),
+  /** Adresse du logement, telle que saisie. */
+  address: text('address').notNull(),
+  lat: real('lat').notNull(),
+  lon: real('lon').notNull(),
+  /** Séance visée ; nulle pour l'aller vers la ligne de départ. */
+  sessionId: integer('session_id').references(() => session.id, { onDelete: 'cascade' }),
+  date: date('date').notNull(),
+  code: text('code'),
+  kind: routeKindEnum('kind').notNull(),
+  /** Distance visée, nulle pour un aller dont la longueur est subie. */
+  targetDistanceM: real('target_distance_m').notNull().default(0),
+  seed: integer('seed').notNull(),
+  distanceM: real('distance_m').notNull(),
+  elevationGainM: integer('elevation_gain_m').notNull(),
+  turns: integer('turns').notNull(),
+  /** Rang dans le classement des variantes : 0 = la meilleure. */
+  rank: integer('rank').notNull().default(0),
+  gpx: text('gpx').notNull(),
+  generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 /**
@@ -419,3 +455,5 @@ export type UnplannedEventRow = typeof unplannedEvent.$inferSelect
 export type NewUnplannedEventRow = typeof unplannedEvent.$inferInsert
 export type RaceLookup = typeof raceLookup.$inferSelect
 export type NewRaceLookup = typeof raceLookup.$inferInsert
+export type RaceRoute = typeof raceRoute.$inferSelect
+export type NewRaceRoute = typeof raceRoute.$inferInsert
