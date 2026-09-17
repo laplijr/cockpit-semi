@@ -1,5 +1,5 @@
 import { distanceBetween } from './geometry'
-import { ROUTE_TOLERANCE, RouteKind, type RouteTarget, type RouteTrace } from './route'
+import { ROUTE_TOLERANCE, type RouteTarget, type RouteTrace } from './route'
 
 export enum RouteRejection {
   TooShort = 'trop_courte',
@@ -9,30 +9,23 @@ export enum RouteRejection {
 }
 
 /**
- * Une trace proposée doit tenir la distance visée à ± 10 %, rester roulante
- * (D+ ≤ 10 m/km) et, pour une boucle, revenir à son point de départ (§ 9).
- * La fonction rend la liste des raisons, pas un booléen : l'écran dit pourquoi
- * une variante a été écartée.
+ * Une boucle proposée doit tenir la distance de la séance à ± 10 %, rester
+ * roulante (D+ ≤ 10 m/km) et revenir à son point de départ (§ 9). La fonction
+ * rend la liste des raisons, pas un booléen : l'écran dit pourquoi une variante
+ * a été écartée.
  */
 export function rejectionsOf(trace: RouteTrace, target: RouteTarget): RouteRejection[] {
   const rejections: RouteRejection[] = []
 
-  if (target.distanceM > 0) {
-    const low = target.distanceM * (1 - ROUTE_TOLERANCE.distancePct)
-    const high = target.distanceM * (1 + ROUTE_TOLERANCE.distancePct)
-    if (trace.distanceM < low) rejections.push(RouteRejection.TooShort)
-    if (trace.distanceM > high) rejections.push(RouteRejection.TooLong)
-  }
+  const low = target.distanceM * (1 - ROUTE_TOLERANCE.distancePct)
+  const high = target.distanceM * (1 + ROUTE_TOLERANCE.distancePct)
+  if (trace.distanceM < low) rejections.push(RouteRejection.TooShort)
+  if (trace.distanceM > high) rejections.push(RouteRejection.TooLong)
 
-  /**
-   * Le relief et la fermeture ne jugent que les boucles : l'aller vers la ligne
-   * de départ est subi, il n'y a pas de variante plus plate à choisir.
-   */
-  if (target.kind === RouteKind.Loop) {
-    const maxGain = (trace.distanceM / 1000) * ROUTE_TOLERANCE.elevationPerKmM
-    if (trace.elevationGainM > maxGain) rejections.push(RouteRejection.TooHilly)
-    if (!isClosed(trace)) rejections.push(RouteRejection.NotClosed)
-  }
+  const maxGain = (trace.distanceM / 1000) * ROUTE_TOLERANCE.elevationPerKmM
+  if (trace.elevationGainM > maxGain) rejections.push(RouteRejection.TooHilly)
+
+  if (!isClosed(trace)) rejections.push(RouteRejection.NotClosed)
 
   return rejections
 }
@@ -51,7 +44,7 @@ function isClosed(trace: RouteTrace): boolean {
 /**
  * À distance tenue, la meilleure variante est la plus plate ; à D+ égal, celle
  * qui tourne le moins (§ 9). Les traces invalides restent en queue plutôt que
- * de disparaître : sans réseau ni variante valide, mieux vaut la moins mauvaise.
+ * de disparaître : sans variante valide, mieux vaut la moins mauvaise.
  */
 export function rankVariants<T extends RouteTrace>(traces: T[], target: RouteTarget): T[] {
   return [...traces].sort((a, b) => {

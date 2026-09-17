@@ -1,11 +1,3 @@
-import type { IsoDate } from '../plan/calendar'
-
-/** Une boucle repart de son point de départ ; un aller mène ailleurs (§ 4). */
-export enum RouteKind {
-  Loop = 'boucle',
-  Outbound = 'aller',
-}
-
 export interface GeoPoint {
   lat: number
   lon: number
@@ -13,16 +5,17 @@ export interface GeoPoint {
   elevationM?: number
 }
 
-/** Ce qu'il faut tracer : une sortie du plan, ou l'aller vers la ligne de départ. */
+/**
+ * Ce qu'il faut tracer : une séance à venir, depuis l'adresse d'où on part.
+ * L'itinéraire sert l'entraînement — on part de chez soi ou d'où l'on est, et
+ * on revient au même point.
+ */
 export interface RouteTarget {
-  /** Séance visée ; nulle pour l'aller logement → départ. */
-  sessionId: number | null
-  date: IsoDate
-  /** Code de la séance, que l'écran traduit ; nul pour l'aller. */
-  code: string | null
-  /** Distance visée en mètres ; nulle pour l'aller, dont la longueur est subie. */
+  sessionId: number
+  date: string
+  /** Code de la séance, que l'écran traduit. */
+  code: string
   distanceM: number
-  kind: RouteKind
 }
 
 /** Une trace mesurée, indépendante de sa source (GPX lu ou service appelé). */

@@ -26,6 +26,7 @@ const form = reactive({
   profile: athlete.value?.profile ?? null,
   avatar: athlete.value?.avatar ?? null,
   weightKg: athlete.value?.weightKg ?? null,
+  homeAddress: athlete.value?.homeAddress ?? '',
   maxHr: athlete.value?.maxHr ?? null,
   availableDays: [...(athlete.value?.constraints?.availableDays ?? [])],
   longRunDay: athlete.value?.constraints?.longRunDay ?? 7,
@@ -106,6 +107,7 @@ async function save() {
         profile: form.profile,
         avatar: form.avatar,
         weightKg: form.weightKg,
+        homeAddress: form.homeAddress.trim() || null,
         maxHr: form.maxHr,
         startWeeklyVolumeM: form.startWeeklyVolumeM,
         peakWeeklyVolumeM: form.peakWeeklyVolumeM,
@@ -195,6 +197,16 @@ async function logout() {
           <span class="label text-[10.5px]">Âge</span>
           <span class="mono text-[15px]">{{ athlete?.age }} ans</span>
         </div>
+        <!-- Point de départ des boucles proposées depuis une séance (§ 9, P5.5). -->
+        <label class="flex flex-col gap-[6px]">
+          <span class="label text-[10.5px]">Adresse de départ des sorties</span>
+          <input
+            v-model="form.homeAddress"
+            type="text"
+            class="input"
+            placeholder="12 rue de la Paix, Vannes"
+          />
+        </label>
       </div>
 
       <label class="flex flex-col gap-[6px] border-t border-line-soft pt-3">

@@ -47,7 +47,6 @@ const form = reactive({
   objectiveMode: (race.value?.objectiveMode ?? 'temps') as string,
   elevationGainM: race.value?.elevationGainM ?? null,
   expectedTempC: race.value?.expectedTempC ?? null,
-  startAddress: race.value?.startAddress ?? '',
   notes: race.value?.notes ?? '',
 })
 
@@ -129,7 +128,6 @@ async function save() {
         objectifPlancherS: levels.value.floorS,
         elevationGainM: form.elevationGainM,
         expectedTempC: form.expectedTempC,
-        startAddress: form.startAddress.trim() || null,
         notes: form.notes.trim() || null,
       },
     })
@@ -236,11 +234,6 @@ async function remove() {
       <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">Température attendue (°C)</span>
         <input v-model.number="form.expectedTempC" type="number" class="input mono" />
-      </label>
-      <!-- Arrivée de l'itinéraire logement → départ (§ 9, P5.5). -->
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
-        <span class="label text-[10.5px]">Adresse de la ligne de départ</span>
-        <input v-model="form.startAddress" type="text" class="input" />
       </label>
     </div>
 

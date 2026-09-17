@@ -3,8 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { traceFrom } from '~~/server/domain/routes/geometry'
 import { parseGpx, toGpx } from '~~/server/domain/routes/gpx'
-import { RouteKind, type RouteTarget } from '~~/server/domain/routes/route'
-import { routeTargets } from '~~/server/domain/routes/targets'
+import type { RouteTarget } from '~~/server/domain/routes/route'
 import {
   RouteRejection,
   isValid,
@@ -12,17 +11,15 @@ import {
   rejectionsOf,
 } from '~~/server/domain/routes/validate'
 import { pointsOf } from '~~/server/infra/routing/openrouteservice'
-import { Sport } from '~~/server/domain/shared/sport'
 
 /** Traces réelles enregistrées : aucun appel réseau en CI (§ 10). */
 const fixture = (name: string) => readFileSync(join('tests/fixtures/routes', name), 'utf8')
 
-const loop = (distanceM: number): RouteTarget => ({
+const target = (distanceM: number): RouteTarget => ({
   sessionId: 1,
   date: '2027-04-03',
   code: 'EF',
   distanceM,
-  kind: RouteKind.Loop,
 })
 
 describe('lecture et écriture d’un GPX', () => {
@@ -61,41 +58,28 @@ describe('mesure d’une trace', () => {
   })
 })
 
-describe('validation d’une trace (§ 9)', () => {
-  it('accepte une boucle plate à la distance visée', () => {
+describe('validation d’une boucle (§ 9)', () => {
+  it('accepte une boucle plate à la distance de la séance', () => {
     const trace = traceFrom(parseGpx(fixture('loop-madrid.gpx')))
-    expect(isValid(trace, loop(5000))).toBe(true)
+    expect(isValid(trace, target(5000))).toBe(true)
   })
 
   it('tolère 10 % d’écart, pas davantage', () => {
     const trace = traceFrom(parseGpx(fixture('loop-madrid.gpx')))
 
-    expect(isValid(trace, loop(4600))).toBe(true)
-    expect(rejectionsOf(trace, loop(4000))).toContain(RouteRejection.TooLong)
-    expect(rejectionsOf(trace, loop(6000))).toContain(RouteRejection.TooShort)
+    expect(isValid(trace, target(4600))).toBe(true)
+    expect(rejectionsOf(trace, target(4000))).toContain(RouteRejection.TooLong)
+    expect(rejectionsOf(trace, target(6000))).toContain(RouteRejection.TooShort)
   })
 
   it('refuse une boucle qui monte plus de 10 m par kilomètre', () => {
     const trace = traceFrom(parseGpx(fixture('loop-madrid-hilly.gpx')))
-    expect(rejectionsOf(trace, loop(5000))).toContain(RouteRejection.TooHilly)
+    expect(rejectionsOf(trace, target(5000))).toContain(RouteRejection.TooHilly)
   })
 
-  it('refuse une boucle qui ne revient pas à son départ', () => {
+  it('refuse une trace qui ne revient pas à son départ', () => {
     const points = parseGpx(fixture('loop-madrid.gpx')).slice(0, 12)
-    expect(rejectionsOf(traceFrom(points), loop(3750))).toContain(RouteRejection.NotClosed)
-  })
-
-  it('ne juge ni le relief ni la fermeture d’un aller : il est subi', () => {
-    const points = parseGpx(fixture('loop-madrid-hilly.gpx')).slice(0, 9)
-    const leg: RouteTarget = {
-      sessionId: null,
-      date: '2027-04-04',
-      code: null,
-      distanceM: 0,
-      kind: RouteKind.Outbound,
-    }
-
-    expect(isValid(traceFrom(points), leg)).toBe(true)
+    expect(rejectionsOf(traceFrom(points), target(3750))).toContain(RouteRejection.NotClosed)
   })
 })
 
@@ -105,7 +89,7 @@ describe('classement des variantes (§ 9)', () => {
     const flatAndStraight = { points: [], distanceM: 5000, elevationGainM: 10, turns: 4 }
     const hilly = { points: [], distanceM: 5000, elevationGainM: 40, turns: 2 }
 
-    const ranked = rankVariants([hilly, flat, flatAndStraight], loop(5000))
+    const ranked = rankVariants([hilly, flat, flatAndStraight], target(5000))
     expect(ranked).toEqual([flatAndStraight, flat, hilly])
   })
 
@@ -113,44 +97,7 @@ describe('classement des variantes (§ 9)', () => {
     const valid = traceFrom(parseGpx(fixture('loop-madrid.gpx')))
     const tooShort = { points: valid.points, distanceM: 2000, elevationGainM: 0, turns: 1 }
 
-    expect(rankVariants([tooShort, valid], loop(5000))).toEqual([valid, tooShort])
-  })
-})
-
-describe('cibles d’un séjour de course (§ 9)', () => {
-  const sessions = [
-    { id: 1, date: '2027-04-01', sport: Sport.Running, code: 'EF', distanceM: 8000 },
-    { id: 2, date: '2027-04-03', sport: Sport.Running, code: 'EF', distanceM: 6000 },
-    { id: 3, date: '2027-04-03', sport: Sport.Strength, code: 'full', distanceM: 0 },
-    { id: 4, date: '2027-04-04', sport: Sport.Running, code: 'droites', distanceM: 2000 },
-  ]
-
-  it('ne retient que les sorties de course entre l’arrivée et la course', () => {
-    const targets = routeTargets({
-      sessions,
-      arrivalDate: '2027-04-03',
-      raceDate: '2027-04-04',
-      hasStartAddress: false,
-    })
-
-    expect(targets.map((target) => target.sessionId)).toEqual([2, 4])
-  })
-
-  it('ajoute l’aller vers la ligne de départ quand l’adresse est connue', () => {
-    const targets = routeTargets({
-      sessions,
-      arrivalDate: '2027-04-03',
-      raceDate: '2027-04-04',
-      hasStartAddress: true,
-    })
-
-    expect(targets.at(-1)).toEqual({
-      sessionId: null,
-      date: '2027-04-04',
-      code: null,
-      distanceM: 0,
-      kind: RouteKind.Outbound,
-    })
+    expect(rankVariants([tooShort, valid], target(5000))).toEqual([valid, tooShort])
   })
 })
 

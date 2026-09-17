@@ -59,7 +59,6 @@ async function onCreated() {
               {{ head.label }}
               <UiInfoHint v-if="head.term" :term="head.term" />
             </th>
-            <th class="w-px" />
           </tr>
         </thead>
         <tbody>
@@ -103,22 +102,9 @@ async function onCreated() {
             <td class="mono py-[10px] text-text-dim">
               {{ race.confidencePct === null ? '—' : `${race.confidencePct} %` }}
             </td>
-            <!-- Action secondaire de la ligne : bouton fantôme carré, réduit à
-                 son icône, son intention dans le `title` (§ 8, P5.19). -->
-            <td class="py-[10px] pl-2">
-              <button
-                type="button"
-                class="btn btn-ghost size-9 p-0"
-                title="Itinéraires sur place"
-                aria-label="Itinéraires sur place"
-                @click.stop="ui.openModal('itineraires', race.id)"
-              >
-                <UiAppIcon name="route" :size="18" />
-              </button>
-            </td>
           </tr>
           <tr v-if="upcoming.length === 0">
-            <td colspan="9" class="py-3 text-text-muted">Aucune course planifiée.</td>
+            <td colspan="8" class="py-3 text-text-muted">Aucune course planifiée.</td>
           </tr>
         </tbody>
       </table>

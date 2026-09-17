@@ -127,6 +127,27 @@
       "when": 1789651324359,
       "tag": "0017_remarkable_bill_hollister",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789652505959,
+      "tag": "0018_shiny_mercury",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789652534468,
+      "tag": "0019_broken_ozymandias",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789652555036,
+      "tag": "0020_yielding_skrulls",
+      "breakpoints": true
     }
   ]
 }

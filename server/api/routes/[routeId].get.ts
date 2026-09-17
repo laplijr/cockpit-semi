@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { useDatabase } from '../../infra/db/client'
-import { raceRoute } from '../../infra/db/schema'
+import { route } from '../../infra/db/schema'
 
 const paramsSchema = z.object({ routeId: z.coerce.number().int().positive() })
 
@@ -9,11 +9,7 @@ const paramsSchema = z.object({ routeId: z.coerce.number().int().positive() })
 export default defineEventHandler(async (event) => {
   const { routeId } = await getValidatedRouterParams(event, paramsSchema.parse)
 
-  const [row] = await useDatabase()
-    .select()
-    .from(raceRoute)
-    .where(eq(raceRoute.id, routeId))
-    .limit(1)
+  const [row] = await useDatabase().select().from(route).where(eq(route.id, routeId)).limit(1)
 
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Itinéraire inconnu' })
 
@@ -22,7 +18,7 @@ export default defineEventHandler(async (event) => {
   return row.gpx
 })
 
-function fileName(row: { date: string; code: string | null; rank: number }): string {
-  const subject = (row.code ?? 'depart').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+function fileName(row: { date: string; code: string; rank: number }): string {
+  const subject = row.code.toLowerCase().replace(/[^a-z0-9]+/g, '-')
   return `cockpit-${row.date}-${subject}-${row.rank + 1}.gpx`
 }

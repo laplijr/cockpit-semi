@@ -19,6 +19,7 @@ const bodySchema = z.object({
   /** Data URL d'au plus 100 Ko : au-delà, l'écran refuse avant d'envoyer. */
   avatar: z.string().max(MAX_AVATAR_BYTES).nullable().default(null),
   weightKg: z.number().positive().nullable().default(null),
+  homeAddress: z.string().max(200).nullable().default(null),
   maxHr: z.number().int().positive().nullable().default(null),
   startWeeklyVolumeM: z.number().int().positive().nullable().default(null),
   peakWeeklyVolumeM: z.number().int().positive().nullable().default(null),

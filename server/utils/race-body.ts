@@ -23,8 +23,6 @@ export const raceFieldsSchema = z.object({
   objectifPlancherS: z.number().int().positive().nullable().default(null),
   elevationGainM: z.number().int().nullable().default(null),
   expectedTempC: z.number().nullable().default(null),
-  /** Ligne de départ : arrivée de l'itinéraire logement → départ (§ 9, P5.5). */
-  startAddress: z.string().nullable().default(null),
   notes: z.string().nullable().default(null),
 })
 

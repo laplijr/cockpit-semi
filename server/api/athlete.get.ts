@@ -22,6 +22,8 @@ export default defineEventHandler(async () => {
     /** Proposée seulement quand la FC max n'est pas mesurée (§ 9, P5.7). */
     suggestedMaxHr: age === null ? null : estimatedMaxHr(age),
     weightKg: row?.weightKg ?? null,
+    /** Adresse de départ des sorties : point de départ des itinéraires (§ 9, P5.5). */
+    homeAddress: row?.homeAddress ?? null,
     maxHr: row?.maxHr ?? null,
     startWeeklyVolumeM: row?.startWeeklyVolumeM ?? DEFAULT_START_VOLUME_M,
     peakWeeklyVolumeM: row?.peakWeeklyVolumeM ?? DEFAULT_PEAK_VOLUME_M,

@@ -1,0 +1,1 @@
+ALTER TABLE "race" DROP COLUMN "start_address";

@@ -159,6 +159,14 @@ const plannedMinutes = computed(() => {
           </table>
         </div>
 
+        <!-- Une sortie a besoin d'un parcours : il se demande ici, à la
+             distance de la séance, depuis l'adresse du profil (§ 9, P5.5). -->
+        <SessionsRouteSuggestion
+          v-if="session.sport === 'course' && session.prescription.totalDistanceM > 0"
+          :session-id="session.id"
+          :distance-m="session.prescription.totalDistanceM"
+        />
+
         <div v-if="history.length > 0" class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Les fois d'avant</span>
           <div

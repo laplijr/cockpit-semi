@@ -30,7 +30,7 @@ import {
   SegmentMode,
   type RaceIncident,
 } from '../../domain/races/race'
-import { RouteKind } from '../../domain/routes/route'
+import type { FuelPlan } from '../../domain/nutrition/fuel-plan'
 import { Sport } from '../../domain/shared/sport'
 
 export {
@@ -50,11 +50,18 @@ export {
   RacePriority,
   RaceSource,
   RaceStatus,
-  RouteKind,
   SegmentMode,
   Sport,
 }
-export type { AthleteConstraints, LookupField, Pain, PauseAllowances, RaceIncident, UnplannedEvent }
+export type {
+  AthleteConstraints,
+  FuelPlan,
+  LookupField,
+  Pain,
+  PauseAllowances,
+  RaceIncident,
+  UnplannedEvent,
+}
 
 export const sportEnum = pgEnum('sport', enumValues(Sport))
 export const athleteProfileEnum = pgEnum('athlete_profile', enumValues(AthleteProfile))
@@ -72,7 +79,6 @@ export const pauseTypeEnum = pgEnum('pause_type', enumValues(PauseType))
 export const proposalStatusEnum = pgEnum('proposal_status', enumValues(ProposalStatus))
 export const proposalTriggerEnum = pgEnum('proposal_trigger', enumValues(ProposalTrigger))
 export const unplannedStatusEnum = pgEnum('unplanned_status', enumValues(UnplannedStatus))
-export const routeKindEnum = pgEnum('route_kind', enumValues(RouteKind))
 
 /** Conserve les types littéraux de l'énumération pour que Drizzle les propage. */
 function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], ...T[keyof T][]] {
@@ -93,6 +99,8 @@ export const athlete = pgTable('athlete', {
   avatar: text('avatar'),
   weightKg: real('weight_kg'),
   maxHr: integer('max_hr'),
+  /** Adresse d'où partent les sorties : point de départ des itinéraires (§ 9, P5.5). */
+  homeAddress: text('home_address'),
   /** Jours de la semaine disponibles, 1 = lundi … 7 = dimanche. */
   availableDays: jsonb('available_days').$type<number[]>().notNull().default([]),
   /** Jours disponibles, jour de sortie longue, jours faciles (§ 5). */
@@ -131,33 +139,28 @@ export const race = pgTable('race', {
   /** Faux quand le chrono ne reflète pas la forme : il ne calibre alors pas le VDOT. */
   representative: boolean('representative').notNull().default(true),
   incident: jsonb('incident').$type<RaceIncident>(),
-  /** Adresse de la ligne de départ : arrivée de l'itinéraire logement → départ. */
-  startAddress: text('start_address'),
+  /** Ravito et hydratation, généré à J−7 et modifiable ; nul quand inutile (§ 4). */
+  fuelPlan: jsonb('fuel_plan').$type<FuelPlan>(),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
-
 /**
- * Une variante d'itinéraire générée pour une course : une boucle à la distance
- * d'une séance sur place, ou l'aller vers la ligne de départ (§ 4). Une ligne
- * par variante conservée ; le GPX est stocké tel qu'il sera téléchargé.
+ * Une variante d'itinéraire proposée pour une séance : une boucle à sa
+ * distance, depuis l'adresse d'où l'on part (§ 4). Une ligne par variante
+ * conservée ; le GPX est stocké tel qu'il sera téléchargé.
  */
-export const raceRoute = pgTable('race_route', {
+export const route = pgTable('route', {
   id: serial('id').primaryKey(),
-  raceId: integer('race_id')
+  sessionId: integer('session_id')
     .notNull()
-    .references(() => race.id, { onDelete: 'cascade' }),
-  /** Adresse du logement, telle que saisie. */
+    .references(() => session.id, { onDelete: 'cascade' }),
+  /** Adresse de départ, telle que saisie. */
   address: text('address').notNull(),
   lat: real('lat').notNull(),
   lon: real('lon').notNull(),
-  /** Séance visée ; nulle pour l'aller vers la ligne de départ. */
-  sessionId: integer('session_id').references(() => session.id, { onDelete: 'cascade' }),
   date: date('date').notNull(),
-  code: text('code'),
-  kind: routeKindEnum('kind').notNull(),
-  /** Distance visée, nulle pour un aller dont la longueur est subie. */
-  targetDistanceM: real('target_distance_m').notNull().default(0),
+  code: text('code').notNull(),
+  targetDistanceM: real('target_distance_m').notNull(),
   seed: integer('seed').notNull(),
   distanceM: real('distance_m').notNull(),
   elevationGainM: integer('elevation_gain_m').notNull(),
@@ -455,5 +458,5 @@ export type UnplannedEventRow = typeof unplannedEvent.$inferSelect
 export type NewUnplannedEventRow = typeof unplannedEvent.$inferInsert
 export type RaceLookup = typeof raceLookup.$inferSelect
 export type NewRaceLookup = typeof raceLookup.$inferInsert
-export type RaceRoute = typeof raceRoute.$inferSelect
-export type NewRaceRoute = typeof raceRoute.$inferInsert
+export type Route = typeof route.$inferSelect
+export type NewRoute = typeof route.$inferInsert

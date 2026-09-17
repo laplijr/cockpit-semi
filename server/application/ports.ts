@@ -4,8 +4,7 @@ import type { IsoDate } from '../domain/plan/calendar'
 import type { GeneratedPlan } from '../domain/plan/generate'
 import type { PlannedRace } from '../domain/plan/periodization'
 import type { PlanTrigger } from '../domain/plan/session'
-import type { GeoPoint, RouteKind } from '../domain/routes/route'
-import type { RouteSession } from '../domain/routes/targets'
+import type { GeoPoint, RouteTarget } from '../domain/routes/route'
 
 export type { Clock } from '../domain/shared/clock'
 
@@ -49,23 +48,14 @@ export interface PlanGateway {
   savePlan(plan: GeneratedPlan, trigger: PlanTrigger, parameters: PlanParameters): Promise<number>
 }
 
-export interface RouteRaceSnapshot {
-  id: number
-  name: string
-  date: IsoDate
-  /** Ligne de départ ; nulle tant qu'elle n'est pas saisie (§ 4). */
-  startAddress: string | null
-}
-
 /** Une variante prête à être enregistrée, mesurée et classée (§ 4). */
 export interface RouteVariant {
+  sessionId: number
   address: string
   lat: number
   lon: number
-  sessionId: number | null
   date: IsoDate
-  code: string | null
-  kind: RouteKind
+  code: string
   targetDistanceM: number
   seed: number
   distanceM: number
@@ -85,11 +75,12 @@ export interface RoutingService {
 }
 
 export interface RouteGateway {
-  loadRace(raceId: number): Promise<RouteRaceSnapshot | undefined>
-  /** Séances du plan actif, d'où sortent les cibles (§ 9). */
-  loadPlannedSessions(): Promise<RouteSession[]>
+  /** La séance visée, telle qu'elle se lit dans le plan actif. */
+  loadTarget(sessionId: number): Promise<RouteTarget | undefined>
+  /** Adresse de départ des sorties, saisie dans Profil ; nulle tant qu'elle manque. */
+  loadHomeAddress(): Promise<string | null>
   /** Une génération remplace la précédente : on ne cumule pas les variantes. */
-  replaceRoutes(raceId: number, variants: RouteVariant[]): Promise<void>
+  replaceRoutes(sessionId: number, variants: RouteVariant[]): Promise<void>
 }
 
 export interface PlanParameters extends Record<string, unknown> {
