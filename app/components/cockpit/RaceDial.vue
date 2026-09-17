@@ -35,7 +35,7 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
     @keydown.space.prevent="ui.openDial('course-a')"
   >
     <div class="flex items-baseline justify-between">
-      <span class="label">Course A · {{ race.name }}</span>
+      <span class="label"> Course A <UiInfoHint term="courseA" /> · {{ race.name }} </span>
       <span class="mono text-[11.5px] text-text-muted">{{ formatDate(race.date) }}</span>
     </div>
 

@@ -13,7 +13,9 @@ const preventionBlock = computed(() =>
   <div class="flex flex-col gap-4">
     <div class="tile">
       <div class="flex items-baseline gap-3">
-        <span class="label">La muscu suit les phases du plan course</span>
+        <span class="label">
+          La muscu suit les phases du plan course <UiInfoHint term="phaseMuscu" />
+        </span>
         <span class="mono text-[11.5px] text-text-muted">
           phase actuelle : {{ PHASE_LABELS[data?.phaseType ?? ''] ?? data?.phaseType }} ·
           {{ data?.strengthPhaseLabel }} · semaine {{ data?.weekInPhase }}
@@ -83,7 +85,9 @@ const preventionBlock = computed(() =>
               <span v-else-if="step.durationS" class="mono text-[12px] text-text-dim">
                 {{ formatMinutes(step.durationS / 60) }}
               </span>
-              <span v-if="step.superset" class="pill text-[10px]">superset</span>
+              <span v-if="step.superset" class="pill text-[10px]">
+                superset <UiInfoHint term="superset" />
+              </span>
               <span v-if="step.intensity" class="pill ml-auto">{{ step.intensity }}</span>
             </span>
             <span v-if="step.recoveryS || step.tempo" class="mono text-[11.5px] text-text-muted">
@@ -98,7 +102,7 @@ const preventionBlock = computed(() =>
 
     <div class="tile">
       <div class="flex items-baseline gap-3">
-        <span class="label">Exercices de prévention</span>
+        <span class="label">Exercices de prévention <UiInfoHint term="prevention" /></span>
         <span class="mono text-[11.5px] text-text-muted">
           en rotation à la fin de chaque séance chargée
         </span>

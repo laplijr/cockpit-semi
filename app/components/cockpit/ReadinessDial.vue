@@ -21,7 +21,7 @@ const state = computed(() => (data.value ? STATES[data.value.state] : null))
     @keydown.space.prevent="ui.openDial('forme')"
   >
     <div class="flex items-baseline justify-between">
-      <span class="label">Forme du jour</span>
+      <span class="label">Forme du jour <UiInfoHint term="formeDuJour" /></span>
       <span v-if="state" class="pill" :class="data!.state === 'pret' ? 'pill-done' : 'pill-warn'">
         {{ state.label }}
       </span>

@@ -198,7 +198,9 @@ async function logout() {
       </div>
 
       <label class="flex flex-col gap-[6px] border-t border-line-soft pt-3">
-        <span class="label text-[10.5px]">Profil physique</span>
+        <span class="label text-[10.5px]"
+          >Profil physique <UiInfoHint term="profilPhysique"
+        /></span>
         <select class="input" :value="form.profile ?? ''" @change="onProfileChange">
           <option value="">Au choix, non renseigné</option>
           <option v-for="item in PROFILES_BY_LOAD" :key="item" :value="item">
@@ -230,7 +232,7 @@ async function logout() {
       <div class="grid grid-cols-2 gap-4">
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">
-            Volume de départ (m / semaine)
+            Volume de départ (m / semaine) <UiInfoHint term="volumeDepart" />
             <span v-if="replaced" class="mono text-text-muted line-through">
               {{ replaced.start }}
             </span>
@@ -244,7 +246,7 @@ async function logout() {
         </label>
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">
-            Pic (m / semaine)
+            Pic (m / semaine) <UiInfoHint term="pic" />
             <span v-if="replaced" class="mono text-text-muted line-through">
               {{ replaced.peak }}
             </span>
@@ -289,7 +291,7 @@ async function logout() {
         </label>
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">
-            Courses par semaine
+            Courses par semaine <UiInfoHint term="coursesParSemaine" />
             <span v-if="replaced?.runs" class="mono text-text-muted line-through">
               {{ replaced.runs }}
             </span>
@@ -305,7 +307,9 @@ async function logout() {
 
       <div class="grid grid-cols-2 gap-4 border-t border-line-soft pt-3">
         <div class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Jours qui restent faciles</span>
+          <span class="label text-[10.5px]">
+            Jours qui restent faciles <UiInfoHint term="joursFaciles" />
+          </span>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="day in WEEKDAYS"

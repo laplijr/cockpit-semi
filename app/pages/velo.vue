@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SESSION_TERMS, glossaryTermFor } from '~/utils/glossary'
+
 const { data } = await useFetch('/api/library/cycling')
 
 const CONVERSION_RULES = [
@@ -44,7 +46,13 @@ const CONVERSION_RULES = [
     <div class="grid grid-cols-2 gap-4">
       <div v-for="type in data?.types ?? []" :key="type.code" class="tile">
         <div class="flex items-baseline gap-3">
-          <span class="display text-[20px] font-semibold">{{ type.label }}</span>
+          <span class="display text-[20px] font-semibold">
+            {{ type.label }}
+            <UiInfoHint
+              v-if="glossaryTermFor(SESSION_TERMS, type.code)"
+              :term="glossaryTermFor(SESSION_TERMS, type.code)!"
+            />
+          </span>
           <span v-if="type.onPainOnly" class="pill pill-warn">sur douleur</span>
           <span class="pill ml-auto">RPE {{ type.expectedRpe }}</span>
         </div>
@@ -57,7 +65,7 @@ const CONVERSION_RULES = [
             </span>
           </div>
           <div class="flex flex-col">
-            <span class="label text-[10px]">Puissance</span>
+            <span class="label text-[10px]">Puissance <UiInfoHint term="ftp" /></span>
             <span class="mono text-[15px]">{{ type.ftpRange }}</span>
           </div>
           <div class="flex flex-col">

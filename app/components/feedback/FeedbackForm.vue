@@ -102,7 +102,9 @@ async function save() {
     </div>
 
     <div v-if="isTest" class="tile" style="border-color: rgba(242, 162, 58, 0.35)">
-      <span class="label text-[10.5px]">Distance couverte en 20 minutes (m)</span>
+      <span class="label text-[10.5px]">
+        Distance couverte en 20 minutes (m) <UiInfoHint term="test20" />
+      </span>
       <input v-model.number="testDistanceM" type="number" class="input mono" placeholder="4000" />
       <p class="text-[12px] text-text-muted">
         Cette distance devient ton VDOT courant et régénère le plan. Laisse vide si le test n'a pas
@@ -124,12 +126,14 @@ async function save() {
     <FeedbackStrengthSets v-if="isStrength" ref="strengthSets" :session="session" :rpe="form.rpe" />
 
     <div class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Effort perçu — RPE {{ form.rpe }}</span>
+      <span class="label text-[10.5px]">
+        Effort perçu — RPE {{ form.rpe }} <UiInfoHint term="rpe" />
+      </span>
       <input v-model.number="form.rpe" type="range" min="1" max="10" class="w-full accent-accent" />
     </div>
 
     <div class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Sensations</span>
+      <span class="label text-[10.5px]">Sensations <UiInfoHint term="sensations" /></span>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="item in SENSATIONS"
@@ -145,12 +149,14 @@ async function save() {
     </div>
 
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Sommeil la nuit dernière (h)</span>
+      <span class="label text-[10.5px]">
+        Sommeil la nuit dernière (h) <UiInfoHint term="sommeil" />
+      </span>
       <input v-model.number="form.sleepHours" type="number" step="0.5" class="input mono" />
     </label>
 
     <div class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Douleur</span>
+      <span class="label text-[10.5px]">Douleur <UiInfoHint term="douleur" /></span>
       <div v-if="watchZones.length > 0" class="flex flex-wrap gap-2">
         <button
           v-for="zone in watchZones"

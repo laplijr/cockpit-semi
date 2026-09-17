@@ -16,7 +16,7 @@ const label = computed(() => (props.isFloor ? 'Plancher' : 'VDOT'))
     @keydown.space.prevent="ui.openDial('vdot')"
   >
     <div class="flex items-baseline justify-between">
-      <span class="label">{{ label }}</span>
+      <span class="label"> {{ label }} <UiInfoHint :term="isFloor ? 'plancher' : 'vdot'" /> </span>
       <span v-if="isFloor" class="pill pill-warn">estimation basse</span>
     </div>
 

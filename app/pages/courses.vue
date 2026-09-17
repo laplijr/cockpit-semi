@@ -1,6 +1,20 @@
 <script setup lang="ts">
+import type { GlossaryTerm } from '~/utils/glossary'
+
 const ui = useUiStore()
 const plan = usePlanStore()
+
+/** Seuls les mots de métier portent une icône : Course, Date et Distance n'en ont pas (§ 8). */
+const RACE_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
+  { label: 'Course' },
+  { label: 'Date' },
+  { label: 'Distance' },
+  { label: 'Prio', term: 'priorite' },
+  { label: 'Objectif', term: 'objectif' },
+  { label: 'Projection', term: 'projection' },
+  { label: 'Écart', term: 'ecart' },
+  { label: 'Confiance', term: 'confiance' },
+]
 const { data: races, refresh } = await useFetch('/api/races')
 
 const upcoming = computed(() => (races.value ?? []).filter((race) => race.status === 'planifiee'))
@@ -28,20 +42,12 @@ async function onCreated() {
         <thead>
           <tr class="text-left">
             <th
-              v-for="head in [
-                'Course',
-                'Date',
-                'Distance',
-                'Prio',
-                'Objectif',
-                'Projection',
-                'Écart',
-                'Confiance',
-              ]"
-              :key="head"
+              v-for="head in RACE_COLUMNS"
+              :key="head.label"
               class="label pb-2 text-[10px] font-semibold"
             >
-              {{ head }}
+              {{ head.label }}
+              <UiInfoHint v-if="head.term" :term="head.term" />
             </th>
           </tr>
         </thead>

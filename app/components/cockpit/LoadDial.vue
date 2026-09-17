@@ -15,7 +15,7 @@ const missingDays = computed(() => Math.max(0, 28 - (data.value?.historyDays ?? 
     @keydown.space.prevent="ui.openDial('charge')"
   >
     <div class="flex items-baseline justify-between">
-      <span class="label">Charge combinée</span>
+      <span class="label">Charge combinée <UiInfoHint term="chargeCombinee" /></span>
       <span
         v-if="data?.ratio"
         class="pill"

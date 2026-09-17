@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SESSION_TERMS, ZONE_TERMS, glossaryTermFor } from '~/utils/glossary'
+
 const { data } = await useFetch('/api/library/running')
 </script>
 
@@ -27,14 +29,17 @@ const { data } = await useFetch('/api/library/running')
         </thead>
         <tbody>
           <tr v-for="zone in data?.zones ?? []" :key="zone.key" class="border-t border-line-soft">
-            <td class="py-[6px]">{{ zone.label }}</td>
+            <td class="py-[6px]">
+              {{ zone.label }}
+              <UiInfoHint :term="glossaryTermFor(ZONE_TERMS, zone.key)!" />
+            </td>
             <td class="mono py-[6px]">{{ formatPace(zone.paceSecPerKm) }}/km</td>
             <td class="mono py-[6px] text-text-muted">
               {{ formatPace(zone.range.fastSecPerKm) }} – {{ formatPace(zone.range.slowSecPerKm) }}
             </td>
           </tr>
           <tr class="border-t border-line-soft">
-            <td class="py-[6px]">Allure semi</td>
+            <td class="py-[6px]">Allure semi <UiInfoHint term="allureSemi" /></td>
             <td class="mono py-[6px]">{{ formatPace(data?.halfPaceSecPerKm) }}/km</td>
             <td class="mono py-[6px] text-text-muted">projection sur 21,1 km</td>
           </tr>
@@ -50,8 +55,16 @@ const { data } = await useFetch('/api/library/running')
     <div class="grid grid-cols-2 gap-4">
       <div v-for="type in data?.types ?? []" :key="type.code" class="tile">
         <div class="flex items-baseline gap-3">
-          <span class="display text-[20px] font-semibold">{{ type.label }}</span>
-          <span v-if="type.key" class="pill bg-accent/15 text-accent">séance clé</span>
+          <span class="display text-[20px] font-semibold">
+            {{ type.label }}
+            <UiInfoHint
+              v-if="glossaryTermFor(SESSION_TERMS, type.code)"
+              :term="glossaryTermFor(SESSION_TERMS, type.code)!"
+            />
+          </span>
+          <span v-if="type.key" class="pill bg-accent/15 text-accent">
+            séance clé <UiInfoHint term="seanceCle" />
+          </span>
           <span class="pill ml-auto">RPE {{ type.expectedRpe }}</span>
         </div>
 
@@ -67,7 +80,7 @@ const { data } = await useFetch('/api/library/running')
             </span>
           </div>
           <div v-if="type.quota.maxShareOfWeeklyVolume" class="flex flex-col">
-            <span class="label text-[10px]">Quota</span>
+            <span class="label text-[10px]">Quota <UiInfoHint term="quota" /></span>
             <span class="mono text-[15px]">
               {{ Math.round(type.quota.maxShareOfWeeklyVolume * 100) }} %
             </span>

@@ -1,5 +1,23 @@
 <script setup lang="ts">
+import type { GlossaryTerm } from '~/utils/glossary'
+
 const { data } = await useFetch('/api/progression')
+
+const VDOT_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
+  { label: 'Date' },
+  { label: 'Origine' },
+  { label: 'VDOT', term: 'vdot' },
+  { label: 'Projection semi', term: 'projection' },
+]
+
+const KEY_SESSION_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
+  { label: 'Date' },
+  { label: 'Séance', term: 'seanceCle' },
+  { label: 'Distance' },
+  { label: 'RPE prévu', term: 'rpe' },
+  { label: 'RPE réel' },
+  { label: 'Statut' },
+]
 
 const ORIGIN_LABELS: Record<string, string> = {
   course: 'Course',
@@ -21,7 +39,7 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
   <div class="flex flex-col gap-4">
     <section class="grid grid-cols-3 gap-4">
       <div class="tile">
-        <span class="label">Forme mesurée</span>
+        <span class="label">Forme mesurée <UiInfoHint term="vdot" /></span>
         <span class="display text-[32px] leading-none font-bold">
           {{ data?.vdot.at(-1)?.vdot.toFixed(1).replace('.', ',') ?? '—' }}
         </span>
@@ -32,7 +50,7 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
       </div>
 
       <div class="tile">
-        <span class="label">Adhérence</span>
+        <span class="label">Adhérence <UiInfoHint term="adherence" /></span>
         <span class="display text-[32px] leading-none font-bold">
           {{ data?.adherence === null ? '—' : `${data?.adherence} %` }}
         </span>
@@ -53,12 +71,9 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
       <table class="w-full text-[13px]">
         <thead>
           <tr class="text-left">
-            <th
-              v-for="head in ['Date', 'Origine', 'VDOT', 'Projection semi']"
-              :key="head"
-              class="label pb-2 text-[10px]"
-            >
-              {{ head }}
+            <th v-for="head in VDOT_COLUMNS" :key="head.label" class="label pb-2 text-[10px]">
+              {{ head.label }}
+              <UiInfoHint v-if="head.term" :term="head.term" />
             </th>
           </tr>
         </thead>
@@ -78,7 +93,7 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
 
     <div class="tile">
       <div class="flex items-baseline gap-3">
-        <span class="label">Volume visé et charge par semaine</span>
+        <span class="label">Volume visé et charge par semaine <UiInfoHint term="ua" /></span>
         <span class="mono text-[11.5px] text-text-muted">24 premières semaines</span>
       </div>
       <div class="flex h-[140px] items-end gap-1">
@@ -111,11 +126,12 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
         <thead>
           <tr class="text-left">
             <th
-              v-for="head in ['Date', 'Séance', 'Distance', 'RPE prévu', 'RPE réel', 'Statut']"
-              :key="head"
+              v-for="head in KEY_SESSION_COLUMNS"
+              :key="head.label"
               class="label pb-2 text-[10px]"
             >
-              {{ head }}
+              {{ head.label }}
+              <UiInfoHint v-if="head.term" :term="head.term" />
             </th>
           </tr>
         </thead>
