@@ -21,7 +21,7 @@ describe('carte de navigation', () => {
     const libs = NAV_GROUPS.find((group) => group.title === 'Bibliothèques')
     expect(libs?.items.map((item) => item.to)).toEqual([
       '/course-a-pied',
-      '/muscu',
+      '/renforcement',
       '/velo',
       '/nutrition',
     ])

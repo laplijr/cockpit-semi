@@ -84,7 +84,7 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
             {{ level.label }}
             <span
               v-if="replaced && replaced[level.key] !== null"
-              class="mono text-text-muted line-through"
+              class="mono text-text-dim line-through"
             >
               {{ durationToText(replaced[level.key]) }}
             </span>
@@ -95,7 +95,7 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
             class="input mono"
             :placeholder="level.key === 'realisticS' ? '1:38:00' : ''"
           />
-          <span class="text-[11.5px] text-text-muted">{{ level.hint }}</span>
+          <span class="text-[11.5px] text-text-dim">{{ level.hint }}</span>
         </label>
 
         <!-- Action secondaire, jamais un bouton plein à côté d'« Enregistrer » (§ 8). -->
@@ -118,7 +118,7 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
       <div v-else class="col-span-4 row-span-3 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">Référence à battre</span>
         <span class="mono self-center text-[15px]">{{ formatDuration(recordS) }}</span>
-        <span class="text-[11.5px] text-text-muted">
+        <span class="text-[11.5px] text-text-dim">
           Ton meilleur résultat représentatif sur la distance. La confiance devient la probabilité
           de faire mieux.
         </span>

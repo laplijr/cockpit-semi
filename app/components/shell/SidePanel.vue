@@ -19,7 +19,7 @@ const dialog = useDialogFocus()
       <div class="flex items-start gap-3">
         <div class="flex min-w-0 flex-col gap-1">
           <h2 class="heading">{{ title }}</h2>
-          <span v-if="subtitle" class="mono text-[11.5px] text-text-muted">{{ subtitle }}</span>
+          <span v-if="subtitle" class="mono text-[11.5px] text-text-dim">{{ subtitle }}</span>
         </div>
         <button
           type="button"

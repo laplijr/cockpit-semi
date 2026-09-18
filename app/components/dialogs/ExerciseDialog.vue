@@ -32,7 +32,7 @@ const lastLoadKg = computed(() => data.value?.lastLoadsKg?.[props.exerciseId] ??
   <div v-if="exercise" class="flex flex-col gap-4">
     <div class="flex items-baseline gap-3">
       <span class="display text-[22px] font-semibold">{{ exercise.label }}</span>
-      <span class="mono text-[11.5px] text-text-muted">
+      <span class="mono text-[11.5px] text-text-dim">
         {{ exercise.sets }} × {{ exercise.reps }}{{ exercise.isometric ? '″' : '' }}
       </span>
       <span v-if="exercise.lowerBody" class="pill ml-auto">jambes en charge</span>
@@ -56,22 +56,22 @@ const lastLoadKg = computed(() => data.value?.lastLoadsKg?.[props.exerciseId] ??
           {{ exercise.progression.fromSets }} × {{ exercise.progression.fromReps }} →
           {{ exercise.progression.toSets }} × {{ exercise.progression.toReps }}
         </span>
-        <span class="text-[12px] text-text-muted">
+        <span class="text-[12px] text-text-dim">
           sur {{ exercise.progression.weeks }} semaines
         </span>
       </div>
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Dernière charge tenue</span>
         <span class="mono text-[20px]">{{ formatLoad(lastLoadKg) }}</span>
-        <span v-if="lastLoadKg === null" class="text-[12px] text-text-muted">
+        <span v-if="lastLoadKg === null" class="text-[12px] text-text-dim">
           Elle apparaîtra après la première séance enregistrée.
         </span>
       </div>
     </div>
 
-    <p v-if="exercise.lowerBody" class="text-[13px] text-text-muted">
-      Cet exercice charge les jambes : il est retiré du plan quand une pause interdit la muscu
-      jambes.
+    <p v-if="exercise.lowerBody" class="text-[13px] text-text-dim">
+      Cet exercice charge les jambes : il est retiré du plan quand une pause interdit le
+      renforcement des jambes.
     </p>
   </div>
 </template>

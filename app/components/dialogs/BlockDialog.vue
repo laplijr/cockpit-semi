@@ -59,7 +59,7 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
       <span class="display text-[22px] font-semibold">
         {{ PHASE_LABELS[phase.type] ?? phase.type }}
       </span>
-      <span class="mono text-[11.5px] text-text-muted">
+      <span class="mono text-[11.5px] text-text-dim">
         semaines {{ phase.startWeek }} à {{ phase.endWeek }} · {{ weeks.length }} semaines
         <template v-if="dated && weeks.length > 0">
           · {{ formatDate(weeks[0]!.startDate) }} – {{ formatDate(weeks.at(-1)!.endDate) }}
@@ -78,8 +78,8 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
             :key="week.id"
             class="border-t border-line-soft first:border-t-0"
           >
-            <td class="mono py-[6px] w-14 text-text-muted">S{{ week.index }}</td>
-            <td v-if="dated" class="mono py-[6px] w-28 text-text-muted">
+            <td class="mono py-[6px] w-14 text-text-dim">S{{ week.index }}</td>
+            <td v-if="dated" class="mono py-[6px] w-28 text-text-dim">
               {{ formatDate(week.startDate) }}
             </td>
             <td class="py-[6px]">
@@ -108,23 +108,23 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
         <span class="label text-[10.5px]">Séances clés <UiInfoHint term="seanceCle" /></span>
         <span v-for="item in keySessions" :key="item.code" class="text-[13px] text-text-dim">
           {{ SESSION_LABELS[item.code] ?? item.code }}
-          <span class="mono text-text-muted">× {{ item.count }}</span>
+          <span class="mono text-text-dim">× {{ item.count }}</span>
         </span>
-        <span v-if="keySessions.length === 0" class="text-[13px] text-text-muted">
+        <span v-if="keySessions.length === 0" class="text-[13px] text-text-dim">
           Aucune séance clé dans ce bloc.
         </span>
       </div>
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Vélo</span>
         <span class="mono text-[17px]">{{ formatMinutes(cycling.total) }}</span>
-        <span class="text-[12px] text-text-muted">
+        <span class="text-[12px] text-text-dim">
           sur tout le bloc · {{ formatMinutes(cycling.peak) }} au plus fort
         </span>
       </div>
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Musculation</span>
+        <span class="label text-[10.5px]">Renforcement</span>
         <span class="mono text-[17px]">{{ strength.total }} séances</span>
-        <span class="text-[12px] text-text-muted">
+        <span class="text-[12px] text-text-dim">
           sur tout le bloc · {{ strength.peak }} par semaine au plus fort
         </span>
       </div>
@@ -138,7 +138,7 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
         @click="ui.openModal('course', closingRace.id)"
       >
         <span class="display text-[17px] font-semibold">{{ closingRace.name }}</span>
-        <span class="mono text-[12px] text-text-muted">
+        <span class="mono text-[12px] text-text-dim">
           {{ formatDateWithYear(closingRace.date) }} · {{ formatDistance(closingRace.distanceM) }} ·
           priorité {{ closingRace.priority }}
         </span>

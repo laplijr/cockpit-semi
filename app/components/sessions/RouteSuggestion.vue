@@ -58,7 +58,7 @@ async function suggest() {
   <div class="tile bg-surface-inset">
     <div class="flex items-baseline gap-3">
       <span class="label text-[10.5px]">Itinéraire</span>
-      <span class="mono text-[11.5px] text-text-muted">
+      <span class="mono text-[11.5px] text-text-dim">
         boucle de {{ formatDistance(distanceM) }} au départ de l'adresse
       </span>
     </div>
@@ -83,7 +83,7 @@ async function suggest() {
 
     <p v-if="error" class="text-[12px] text-warn">{{ error }}</p>
 
-    <p v-else-if="!variant" class="text-[12px] text-text-muted">
+    <p v-else-if="!variant" class="text-[12px] text-text-dim">
       Aucune boucle proposée. L'adresse du profil est reprise par défaut.
     </p>
 
@@ -103,14 +103,14 @@ async function suggest() {
             <span v-if="hilly" class="pill pill-warn text-[10px]">vallonnée</span>
           </span>
           <!-- Le service vise la distance sans la tenir : l'écart se dit. -->
-          <span class="mono text-[11.5px]" :class="offTarget ? 'text-warn' : 'text-text-muted'">
+          <span class="mono text-[11.5px]" :class="offTarget ? 'text-warn' : 'text-text-dim'">
             {{ gapLabel }} · {{ variant.turns }} virages · variante
             {{ (shown % routes.length) + 1 }} / {{ routes.length }}
           </span>
           <button
             v-if="routes.length > 1"
             type="button"
-            class="mono self-start text-[11.5px] text-text-muted hover:text-text"
+            class="mono self-start text-[11.5px] text-text-dim hover:text-text"
             @click="shown = shown + 1"
           >
             Voir la variante suivante

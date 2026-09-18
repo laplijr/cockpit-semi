@@ -1,59 +1,45 @@
 <script setup lang="ts">
-import { PROFILE_LABELS } from '~~/server/domain/athlete/profile'
-
-const route = useRoute()
 const ui = useUiStore()
 const proposals = usePropositionsStore()
 const plan = usePlanStore()
 
 const { data: athlete } = await useFetch('/api/athlete')
 
-const profileLabel = computed(() =>
-  athlete.value?.profile ? (PROFILE_LABELS[athlete.value.profile] ?? null) : null,
-)
+const menuOpen = ref(false)
 
-/** Identité de la barre : âge et profil, quand ils sont renseignés. */
-const identity = computed(() =>
-  [athlete.value?.age ? `${athlete.value.age} ans` : null, profileLabel.value]
-    .filter(Boolean)
-    .join(' · '),
-)
+const today = computed(() => formatDateWithYear(plan.today))
 
-const title = computed(() => navItemFor(route.path)?.label ?? 'Cockpit')
-
-/** Le plan est chargé par la coque (`app/layouts/default.vue`) avant ce rendu. */
-const context = computed(() => {
-  if (!plan.loaded) return ''
-  const date = formatDateWithYear(plan.today)
-  if (!plan.plan) return `${date} · aucun plan actif`
+const weekLine = computed(() => {
+  if (!plan.loaded || !plan.plan) return null
   const week = plan.currentWeek
-  if (!week) return date
-  return `${date} · semaine ${week.index} · ${PHASE_LABELS[week.phaseType] ?? week.phaseType}`
+  if (!week) return null
+  return {
+    index: week.index,
+    phase: PHASE_LABELS[week.phaseType] ?? week.phaseType,
+  }
 })
+
+function go(path: string) {
+  menuOpen.value = false
+  navigateTo(path)
+}
 </script>
 
 <template>
   <header class="flex h-(--spacing-topbar) items-center gap-4 border-b border-line-soft px-6">
-    <div class="flex min-w-[260px] flex-col gap-px">
-      <span class="text-sm font-semibold">{{ title }}</span>
-      <span class="mono text-[11.5px] text-text-muted">{{ context }}</span>
-    </div>
+    <div class="flex-1" />
 
     <button
       type="button"
-      class="flex h-9 max-w-[560px] flex-1 items-center gap-[10px] rounded-md border border-line bg-surface-inset px-3 text-[13px] text-text-muted hover:border-line-strong"
+      class="flex h-9 w-[440px] items-center gap-[10px] rounded-md border border-line bg-surface-inset px-3 text-[13px] text-text-dim hover:border-line-strong"
       @click="ui.openPanel('imprevu')"
     >
       <UiAppIcon name="pen" class="text-icon" />
-      <span>Un imprévu ? « 1 h de squash », « pas dispo vendredi »…</span>
+      <span>Signaler un imprévu ou une indisponibilité</span>
       <span class="mono ml-auto rounded-sm border border-line px-[5px] py-px text-[11px]">⌘K</span>
     </button>
 
-    <div class="ml-auto flex items-center gap-[10px]">
-      <button type="button" class="btn btn-ghost" @click="ui.openPanel('pause')">
-        <UiAppIcon name="pause" />
-        Pause / blessure
-      </button>
+    <div class="flex flex-1 items-center justify-end gap-5">
       <button
         type="button"
         class="relative inline-flex text-text-dim hover:text-text"
@@ -69,21 +55,70 @@ const context = computed(() => {
         </span>
       </button>
 
-      <button
-        type="button"
-        class="flex items-center gap-2 rounded-md py-1 pr-1 pl-2 hover:bg-surface-inset"
-        @click="navigateTo('/profil')"
-      >
-        <span class="flex min-w-0 flex-col items-end gap-px">
-          <span class="text-[13px] font-semibold">{{ athlete?.firstName ?? 'Profil' }}</span>
-          <span v-if="identity" class="mono text-[10.5px] text-text-muted">{{ identity }}</span>
-        </span>
-        <img
-          :src="athlete?.avatar ?? avatarDataUrl(athlete?.firstName)"
-          alt=""
-          class="size-7 rounded-full"
-        />
-      </button>
+      <span class="h-5 w-px bg-line" />
+
+      <div class="relative">
+        <button
+          type="button"
+          class="flex rounded-full hover:opacity-80"
+          aria-label="Compte"
+          aria-haspopup="menu"
+          :aria-expanded="menuOpen"
+          @click="menuOpen = !menuOpen"
+        >
+          <img
+            v-if="athlete?.avatar || athlete?.firstName"
+            :src="athlete.avatar ?? avatarDataUrl(athlete.firstName)"
+            alt=""
+            class="size-7 rounded-full"
+          />
+          <span v-else class="size-7 rounded-full bg-surface-muted" />
+        </button>
+
+        <template v-if="menuOpen">
+          <div class="fixed inset-0 z-40" @click="menuOpen = false" />
+          <div
+            class="absolute top-full right-0 z-50 mt-1 w-64 rounded-md border border-line bg-surface-raised"
+            role="menu"
+          >
+            <div class="flex flex-col gap-[10px] p-[10px]">
+              <div
+                class="border border-line border-l-[3px] border-l-accent bg-surface-inset px-[10px] py-2"
+              >
+                <div class="mono text-[10px] tracking-[0.06em] text-text-dim uppercase">
+                  {{ today }}
+                </div>
+                <template v-if="weekLine">
+                  <div class="text-[13px] font-medium">Semaine {{ weekLine.index }}</div>
+                  <div class="text-[11px] text-accent">{{ weekLine.phase }}</div>
+                </template>
+                <div v-else class="text-[11px] text-text-dim">Aucun plan actif</div>
+              </div>
+            </div>
+
+            <div class="flex flex-col border-t border-line py-1">
+              <button
+                type="button"
+                class="flex items-center gap-2 px-3 py-2 text-left text-[13px] text-text-dim hover:bg-surface-muted hover:text-text"
+                role="menuitem"
+                @click="go('/profil')"
+              >
+                <UiAppIcon name="user" class="text-icon" />
+                Profil
+              </button>
+              <button
+                type="button"
+                class="flex items-center gap-2 px-3 py-2 text-left text-[13px] text-text-dim hover:bg-surface-muted hover:text-text"
+                role="menuitem"
+                @click="go('/connexions')"
+              >
+                <UiAppIcon name="plug" class="text-icon" />
+                Connexions
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
     </div>
   </header>
 </template>

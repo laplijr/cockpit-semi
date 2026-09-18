@@ -154,7 +154,7 @@ async function remove() {
   <div v-if="race" class="flex flex-col gap-4">
     <div class="flex items-baseline gap-3">
       <span class="display text-[22px] font-semibold">{{ race.name }}</span>
-      <span class="mono text-[11.5px] text-text-muted">{{ formatLongDate(race.date) }}</span>
+      <span class="mono text-[11.5px] text-text-dim">{{ formatLongDate(race.date) }}</span>
       <span class="pill ml-auto"
         >{{ PRIORITY_MEANING[form.priority] ? '' : '' }}priorité {{ form.priority }}</span
       >
@@ -164,7 +164,7 @@ async function remove() {
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Projection</span>
         <span class="mono text-[20px]">{{ formatDuration(race.projectionS) }}</span>
-        <span v-if="race.projectionIsFloor" class="text-[12px] text-text-muted">
+        <span v-if="race.projectionIsFloor" class="text-[12px] text-text-dim">
           calculée sur le plancher
         </span>
       </div>
@@ -183,7 +183,7 @@ async function remove() {
       <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">
           Nom
-          <span v-if="changed('name', race.name)" class="text-text-muted line-through">
+          <span v-if="changed('name', race.name)" class="text-text-dim line-through">
             {{ race.name }}
           </span>
         </span>
@@ -192,7 +192,7 @@ async function remove() {
       <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">
           Date
-          <span v-if="changed('date', race.date)" class="mono text-text-muted line-through">
+          <span v-if="changed('date', race.date)" class="mono text-text-dim line-through">
             {{ formatDate(race.date) }}
           </span>
         </span>
@@ -201,10 +201,7 @@ async function remove() {
       <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">
           Distance
-          <span
-            v-if="changed('distanceM', race.distanceM)"
-            class="mono text-text-muted line-through"
-          >
+          <span v-if="changed('distanceM', race.distanceM)" class="mono text-text-dim line-through">
             {{ formatDistance(race.distanceM) }}
           </span>
         </span>
@@ -217,7 +214,7 @@ async function remove() {
       <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
         <span class="label text-[10.5px]">
           Priorité
-          <span v-if="changed('priority', race.priority)" class="text-text-muted line-through">
+          <span v-if="changed('priority', race.priority)" class="text-text-dim line-through">
             {{ race.priority }}
           </span>
         </span>
@@ -248,7 +245,7 @@ async function remove() {
     <div v-if="race.objectiveMode === 'record'" class="tile bg-surface-inset">
       <span class="label text-[10.5px]">Record à battre <UiInfoHint term="confiance" /></span>
       <span class="mono text-[17px]">{{ formatDuration(race.recordS) }}</span>
-      <span class="text-[12px] text-text-muted">
+      <span class="text-[12px] text-text-dim">
         {{ race.recordName }} · {{ race.recordDate ? formatDate(race.recordDate) : '—' }} ·
         confiance {{ race.confidencePct === null ? '—' : `${race.confidencePct} %` }}
       </span>
@@ -261,12 +258,12 @@ async function remove() {
         <div v-for="level in OBJECTIVE_LEVELS" :key="level.key" class="flex flex-col">
           <span class="label text-[10px]">{{ level.label }}</span>
           <span class="mono text-[17px]">{{ formatDuration(race[level.field]) }}</span>
-          <span class="mono text-[12px] text-text-muted">
+          <span class="mono text-[12px] text-text-dim">
             {{ race[level.confidence] === null ? '—' : `${race[level.confidence]} %` }}
           </span>
         </div>
       </div>
-      <span class="text-[12px] text-text-muted">
+      <span class="text-[12px] text-text-dim">
         Du plus ambitieux au plus sûr : la confiance monte avec le temps qu'on s'accorde.
       </span>
     </div>
@@ -279,7 +276,7 @@ async function remove() {
       @generated="refreshRaces()"
     />
 
-    <p class="text-[13px] text-text-muted">{{ PRIORITY_MEANING[form.priority] }}</p>
+    <p class="text-[13px] text-text-dim">{{ PRIORITY_MEANING[form.priority] }}</p>
 
     <p v-if="regenerates" class="text-[13px] text-warn">
       Date, distance ou priorité : enregistrer régénérera le plan.
@@ -301,7 +298,7 @@ async function remove() {
       <button
         v-else
         type="button"
-        class="ml-auto text-[13px] text-text-muted hover:text-text"
+        class="ml-auto text-[13px] text-text-dim hover:text-text"
         @click="confirmingDelete = true"
       >
         Supprimer la course

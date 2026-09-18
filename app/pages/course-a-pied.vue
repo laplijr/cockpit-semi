@@ -2,6 +2,12 @@
 import { SESSION_TERMS, ZONE_TERMS, glossaryTermFor } from '~/utils/glossary'
 
 const { data } = await useFetch('/api/library/running')
+const ui = useUiStore()
+
+/** La structure tient sur une ligne : ce que contient la séance, pas son détail. */
+function structureOf(steps: { label: string; repeats?: number }[]): string {
+  return steps.map((step) => `${step.repeats ? `${step.repeats} × ` : ''}${step.label}`).join(' · ')
+}
 </script>
 
 <template>
@@ -9,7 +15,7 @@ const { data } = await useFetch('/api/library/running')
     <div class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">Allures de référence</span>
-        <span class="mono text-[11.5px] text-text-muted">
+        <span class="mono text-[11.5px] text-text-dim">
           {{ data?.vdotIsFloor ? 'Plancher' : 'VDOT' }}
           {{ data?.vdot?.toFixed(1).replace('.', ',') }} ·
           {{ formatDistance(data?.weeklyVolumeM ?? 0) }} cette semaine
@@ -34,79 +40,62 @@ const { data } = await useFetch('/api/library/running')
               <UiInfoHint :term="glossaryTermFor(ZONE_TERMS, zone.key)!" />
             </td>
             <td class="mono py-[6px]">{{ formatPace(zone.paceSecPerKm) }}/km</td>
-            <td class="mono py-[6px] text-text-muted">
+            <td class="mono py-[6px] text-text-dim">
               {{ formatPace(zone.range.fastSecPerKm) }} – {{ formatPace(zone.range.slowSecPerKm) }}
             </td>
           </tr>
           <tr class="border-t border-line-soft">
             <td class="py-[6px]">Allure semi <UiInfoHint term="allureSemi" /></td>
             <td class="mono py-[6px]">{{ formatPace(data?.halfPaceSecPerKm) }}/km</td>
-            <td class="mono py-[6px] text-text-muted">projection sur 21,1 km</td>
+            <td class="mono py-[6px] text-text-dim">projection sur 21,1 km</td>
           </tr>
         </tbody>
       </table>
 
-      <p v-if="data?.vdotIsFloor" class="text-[13px] text-text-muted">
-        Ces allures viennent d'une estimation basse. Elles seront revues à la hausse dès le premier
-        test 20′.
+      <p v-if="data?.vdotIsFloor" class="text-[13px] text-text-dim">
+        Estimation basse, revue au premier test 20′.
       </p>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
-      <div v-for="type in data?.types ?? []" :key="type.code" class="tile">
-        <div class="flex items-baseline gap-3">
-          <span class="display text-[20px] font-semibold">
+    <!-- Une fiche : nom, valeur dominante, structure sur une ligne, réglette
+         de phases. Le reste — RPE, quota, note — passe au survol (§ 8, P6.35). -->
+    <div class="grid grid-cols-3 gap-4">
+      <button
+        v-for="type in data?.types ?? []"
+        :key="type.code"
+        type="button"
+        class="tile tile-action text-left"
+        @click="ui.openLibrarySession('course', type.code)"
+      >
+        <span class="flex items-baseline gap-2">
+          <span class="display truncate text-[17px] font-semibold">
             {{ type.label }}
             <UiInfoHint
               v-if="glossaryTermFor(SESSION_TERMS, type.code)"
               :term="glossaryTermFor(SESSION_TERMS, type.code)!"
             />
           </span>
-          <span v-if="type.key" class="pill bg-accent/15 text-accent">
-            séance clé <UiInfoHint term="seanceCle" />
-          </span>
-          <span class="pill ml-auto">RPE {{ type.expectedRpe }}</span>
-        </div>
-
-        <div class="flex flex-wrap gap-x-6 gap-y-1">
-          <div class="flex flex-col">
-            <span class="label text-[10px]">Allure</span>
-            <span class="mono text-[15px]">{{ formatPace(type.paceSecPerKm) }}/km</span>
-          </div>
-          <div class="flex flex-col">
-            <span class="label text-[10px]">Volume</span>
-            <span class="mono text-[15px]">
-              {{ formatDistance(type.prescription.totalDistanceM) }}
-            </span>
-          </div>
-          <div v-if="type.quota.maxShareOfWeeklyVolume" class="flex flex-col">
-            <span class="label text-[10px]">Quota <UiInfoHint term="quota" /></span>
-            <span class="mono text-[15px]">
-              {{ Math.round(type.quota.maxShareOfWeeklyVolume * 100) }} %
-            </span>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-1 border-t border-line-soft pt-2">
-          <span class="label text-[10px]">Structure</span>
           <span
-            v-for="step in type.prescription.steps"
-            :key="step.label"
-            class="mono text-[12px] text-text-dim"
-          >
-            {{ step.repeats ? `${step.repeats} × ` : '' }}{{ step.label }}
-            <template v-if="step.distanceM"> · {{ formatDistance(step.distanceM) }}</template>
-            <template v-if="step.paceSecPerKm"> · {{ formatPace(step.paceSecPerKm) }}/km</template>
-            <template v-if="step.recoveryS"> · récup {{ step.recoveryS }}″</template>
-          </span>
-        </div>
+            v-if="type.key"
+            class="ml-auto h-[6px] w-[6px] shrink-0 rounded-full bg-accent"
+            title="Séance clé"
+          />
+        </span>
 
-        <div class="flex flex-wrap gap-1">
-          <span v-for="phase in type.allowedPhases" :key="phase" class="pill text-[10.5px]">
-            {{ PHASE_LABELS[phase] ?? phase }}
-          </span>
-        </div>
-      </div>
+        <span class="mono text-[24px] leading-none">{{ formatPace(type.paceSecPerKm) }}/km</span>
+
+        <span
+          class="mono truncate text-[12px] text-text-dim"
+          :title="structureOf(type.prescription.steps)"
+        >
+          {{ formatDistance(type.prescription.totalDistanceM) }} ·
+          {{ structureOf(type.prescription.steps) }}
+        </span>
+
+        <span class="mt-auto block pt-1">
+          <UiPhaseRail :allowed="type.allowedPhases" />
+        </span>
+      </button>
     </div>
   </div>
 </template>

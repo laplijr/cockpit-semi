@@ -2,17 +2,18 @@
 const ui = useUiStore()
 const { data, status } = useFetch('/api/readiness', { lazy: true, server: false })
 
-const STATES = {
-  pret: { label: 'Prêt', tone: 'text-ok' },
-  vigilance: { label: 'Vigilance', tone: 'text-warn' },
-  repos: { label: 'Repos', tone: 'text-text-dim' },
+/** L'état passe dans la couleur du chiffre : la pastille qui le nommait sort (§ 8, P6.35). */
+const TONES = {
+  pret: 'text-ok',
+  vigilance: 'text-warn',
+  repos: 'text-text-dim',
 } as const
 
-const state = computed(() => (data.value ? STATES[data.value.state] : null))
+const tone = computed(() => (data.value ? TONES[data.value.state] : 'text-text-dim'))
 
 /** Les trois états du § 5, dans l'ordre du score : repos, vigilance, prêt. */
 const SEGMENTS = [
-  { key: 'repos', from: 0, to: 40, tone: 'bg-text-muted' },
+  { key: 'repos', from: 0, to: 40, tone: 'bg-text-dim' },
   { key: 'vigilance', from: 40, to: 65, tone: 'bg-warn' },
   { key: 'pret', from: 65, to: 100, tone: 'bg-ok' },
 ] as const
@@ -22,34 +23,30 @@ const SEGMENTS = [
   <div v-if="isLoading(status)" class="tile dial" aria-busy="true">
     <div class="flex items-baseline justify-between">
       <span class="label">Forme du jour <UiInfoHint term="formeDuJour" /></span>
-      <UiSkeleton variant="block" :height="22" width="72px" />
     </div>
     <UiSkeleton variant="number" />
+    <UiSkeleton :height="15" width="72px" />
     <UiSkeleton variant="block" :height="14" />
   </div>
 
-  <div
+  <button
     v-else
-    class="tile dial tile-action"
-    role="button"
-    :tabindex="0"
+    type="button"
+    class="tile dial tile-action text-left"
     @click="ui.openDial('forme')"
-    @keydown.enter.prevent="ui.openDial('forme')"
-    @keydown.space.prevent="ui.openDial('forme')"
   >
-    <div class="flex items-baseline justify-between">
+    <span class="flex items-baseline justify-between gap-2">
       <span class="label">Forme du jour <UiInfoHint term="formeDuJour" /></span>
-      <span v-if="state" class="pill" :class="data!.state === 'pret' ? 'pill-done' : 'pill-warn'">
-        {{ state.label }}
-      </span>
-    </div>
+    </span>
 
-    <span class="display text-[44px] leading-none font-bold" :class="state?.tone">
+    <span class="display text-[56px] leading-none font-bold" :class="tone">
       {{ data?.score ?? '—' }}
     </span>
 
-    <!-- L'échelle remplace la ligne grise : trois segments et le repère du score. -->
-    <div class="relative h-[14px]">
+    <span class="mono text-[11.5px] text-text-dim">sur 100</span>
+
+    <!-- L'échelle situe le chiffre : trois segments et le repère du score. -->
+    <span class="relative block h-[14px]">
       <span
         v-for="segment in SEGMENTS"
         :key="segment.key"
@@ -62,6 +59,6 @@ const SEGMENTS = [
         class="absolute top-0 h-[13px] w-[2px] rounded-sm bg-text"
         :style="{ left: `${Math.min(100, Math.max(0, data.score))}%` }"
       />
-    </div>
-  </div>
+    </span>
+  </button>
 </template>

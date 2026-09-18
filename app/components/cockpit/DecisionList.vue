@@ -17,7 +17,9 @@ const hidden = computed(() => proposals.groups.length - visible.value.length)
 
 /**
  * La ligne nomme son sujet : quelle séance, quel jour, et ce qu'on lui fait.
- * L'identifiant de règle est celui du moteur, pas celui de la décision.
+ * Depuis P6.35 ce titre complet passe au survol — la ligne, elle, montre la
+ * cible en trois mots et le delta. L'identifiant de règle est celui du moteur,
+ * pas celui de la décision.
  */
 function titleOf(group: ProposalGroup): string {
   const standalone = EFFECT_TITLES[group.effect]
@@ -36,6 +38,26 @@ function titleOf(group: ProposalGroup): string {
   return `${group.targets.length} séances${sport} ${action}s`
 }
 
+/** La cible en trois mots : quelle séance, quel jour — ou combien, et de quel sport. */
+function targetOf(group: ProposalGroup): string {
+  const [first] = group.targets
+
+  if (group.targets.length === 0) return EFFECT_TITLES[group.effect] ?? 'Plan'
+  if (group.targets.length === 1) {
+    return `${SESSION_LABELS[first!.code] ?? first!.code} ${formatDate(first!.date)}`
+  }
+
+  const sports = new Set(group.targets.map((target) => target.sport))
+  const sport = sports.size === 1 ? ` ${SHORT_SPORT_LABELS[first!.sport] ?? first!.sport}` : ''
+  return `${group.targets.length} séances${sport}`
+}
+
+/** L'icône du sport visé ; un groupe qui mêle les sports n'en a pas. */
+function sportOf(group: ProposalGroup): string | null {
+  const sports = new Set(group.targets.map((target) => target.sport))
+  return sports.size === 1 ? [...sports][0]! : null
+}
+
 async function apply() {
   applying.value = true
   try {
@@ -50,91 +72,99 @@ async function apply() {
 <template>
   <!-- Trois lignes : c'est la borne de « À décider », donc sa hauteur pleine. -->
   <div v-if="!proposals.loaded" class="tile" aria-busy="true">
-    <div class="flex items-baseline gap-3">
+    <div class="flex min-h-[32px] items-center gap-3">
       <span class="label">À décider</span>
-      <UiSkeleton width="88px" />
     </div>
+    <UiSkeleton :height="38" width="56px" />
     <div
       v-for="row in limit || 3"
       :key="row"
-      class="flex items-start gap-3 border-t border-line-soft py-[10px] first:border-t-0"
+      class="flex items-center gap-3 border-t border-line-soft py-[8px] first:border-t-0"
     >
-      <UiSkeleton variant="block" :height="14" width="14px" class="mt-1" />
-      <div class="flex flex-1 flex-col gap-px">
-        <UiSkeleton :height="19" width="70%" />
-        <UiSkeleton :height="17" width="45%" />
-      </div>
+      <UiSkeleton variant="block" :height="14" width="14px" />
+      <UiSkeleton :height="19" width="46%" />
+      <UiSkeleton :height="18" width="88px" class="ml-auto" />
     </div>
     <UiSkeleton :height="18" width="140px" />
   </div>
 
   <div v-else class="tile">
-    <div class="flex items-baseline gap-3">
+    <!-- L'action est en haut à droite et n'apparaît qu'une fois une ligne
+         cochée ; la rangée garde sa hauteur pour que la tuile ne bouge pas
+         (§ 8, P6.35). -->
+    <div class="flex min-h-[32px] items-center gap-3">
       <span class="label">À décider</span>
-      <span class="mono text-[11.5px] text-text-muted">
-        {{ proposals.pendingCount }} en attente
-      </span>
-    </div>
-
-    <p v-if="proposals.pendingCount === 0" class="text-[13px] text-text-muted">
-      Rien à décider. Les propositions apparaissent après un retour de séance.
-    </p>
-
-    <div
-      v-for="group in visible"
-      :key="group.key"
-      class="flex items-start gap-3 border-t border-line-soft py-[10px] first:border-t-0"
-    >
-      <input
-        type="checkbox"
-        class="mt-1 accent-accent"
-        :checked="proposals.selected.includes(group.key)"
-        @change="proposals.toggle(group.key)"
-      />
-      <button
-        type="button"
-        class="flex min-w-0 flex-1 flex-col gap-px text-left"
-        @click="ui.openModal('proposition', group.ids[0]!)"
-      >
-        <span class="flex items-baseline gap-2">
-          <span class="truncate text-[13.5px]">{{ titleOf(group) }}</span>
-          <span class="mono shrink-0 text-[10.5px] text-text-faint">{{ group.ruleId }}</span>
-        </span>
-        <span v-if="group.before && group.after" class="mono text-[12px]">
-          <span class="text-text-muted line-through">{{ group.before }}</span>
-          <span class="mx-1 text-text-muted">→</span>
-          <span class="text-text-dim">{{ group.after }}</span>
-        </span>
-        <span v-else class="mono text-[12px] text-text-muted">
-          {{ group.ids.length }} ajustements différents
-        </span>
-      </button>
-      <button
-        type="button"
-        class="shrink-0 text-[12.5px] text-text-muted hover:text-text"
-        @click="proposals.refuseGroup(group.key)"
-      >
-        Refuser
-      </button>
-    </div>
-
-    <div class="flex items-center gap-4">
       <button
         v-if="proposals.selected.length > 0"
         type="button"
-        class="btn"
+        class="btn ml-auto"
         :disabled="applying"
         @click="apply"
       >
         Appliquer {{ proposals.selected.length }}
       </button>
-      <NuxtLink
-        v-if="hidden > 0"
-        to="/propositions"
-        class="text-[12.5px] text-text-muted hover:text-text"
-      >
-        {{ hidden === 1 ? "Voir l'autre décision" : `Voir les ${hidden} autres` }}
-      </NuxtLink>
     </div>
+
+    <!-- Le compteur est le chiffre de la tuile : il dit d'un coup combien de
+         décisions attendent (§ 8, P6.35). -->
+    <span
+      class="display text-[38px] leading-none font-bold"
+      :class="proposals.pendingCount === 0 && 'text-text-dim'"
+    >
+      {{ proposals.pendingCount }}
+    </span>
+
+    <p v-if="proposals.pendingCount === 0" class="text-[13px] text-text-dim">Rien à décider.</p>
+
+    <!-- Une ligne = une cible en trois mots et son delta. Le titre complet et
+         l'identifiant de règle passent au survol. -->
+    <div
+      v-for="group in visible"
+      :key="group.key"
+      class="flex items-center gap-3 border-t border-line-soft py-[8px] first:border-t-0"
+    >
+      <input
+        type="checkbox"
+        class="accent-accent"
+        :checked="proposals.selected.includes(group.key)"
+        :aria-label="titleOf(group)"
+        @change="proposals.toggle(group.key)"
+      />
+      <button
+        type="button"
+        class="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-baseline gap-3 text-left"
+        :title="`${titleOf(group)} · ${group.ruleId}`"
+        @click="ui.openModal('proposition', group.ids[0]!)"
+      >
+        <span class="flex min-w-0 items-baseline gap-2">
+          <UiAppIcon
+            v-if="sportOf(group)"
+            :name="sportStyle(sportOf(group)!).icon"
+            :size="14"
+            :class="['shrink-0 self-center', sportStyle(sportOf(group)!).tone]"
+          />
+          <span class="truncate text-[13.5px]">{{ targetOf(group) }}</span>
+        </span>
+
+        <!-- Le delta est un texte du moteur, parfois long : il tronque de son
+             côté plutôt que d'écraser la cible (§ 8, P6.35). -->
+        <span v-if="group.before && group.after" class="mono truncate text-right text-[12.5px]">
+          <span class="text-text-dim line-through">{{ group.before }}</span>
+          <span class="mx-1 text-text-dim">→</span>
+          <span>{{ group.after }}</span>
+        </span>
+        <span v-else class="mono truncate text-right text-[12.5px] text-text-dim">
+          {{ group.ids.length }} ajustements
+        </span>
+      </button>
+    </div>
+
+    <NuxtLink
+      v-if="hidden > 0"
+      to="/propositions"
+      class="mono text-[12px] text-text-dim hover:text-text"
+    >
+      {{ hidden === 1 ? '+ 1 autre' : `+ ${hidden} autres` }}
+    </NuxtLink>
   </div>
 </template>

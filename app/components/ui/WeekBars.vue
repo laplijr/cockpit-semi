@@ -97,7 +97,7 @@ function formatSignedDistance(meters: number): string {
 
       <span class="flex items-baseline gap-2">
         <span class="label text-[10px]">Semaine {{ week.index }}</span>
-        <span class="mono text-[10.5px] text-text-muted">
+        <span class="mono text-[10.5px] text-text-dim">
           {{ formatDate(week.startDate) }} – {{ formatDate(week.endDate) }}
         </span>
       </span>
@@ -143,7 +143,7 @@ function formatSignedDistance(meters: number): string {
         sur
         {{ week.summary.sessionsPlanned }}
       </span>
-      <span v-else class="text-[12px] text-text-muted">Semaine à venir, rien d'enregistré.</span>
+      <span v-else class="text-[12px] text-text-dim">Semaine à venir, rien d'enregistré.</span>
     </UiHoverBubble>
   </div>
 </template>

@@ -67,7 +67,7 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
         <span class="display text-[32px] leading-none font-bold">
           {{ data?.vdot.at(-1)?.vdot.toFixed(1).replace('.', ',') ?? '—' }}
         </span>
-        <span class="mono text-[11.5px] text-text-muted">
+        <span class="mono text-[11.5px] text-text-dim">
           {{ data?.vdot.length ?? 0 }} point{{ (data?.vdot.length ?? 0) > 1 ? 's' : '' }} ·
           {{ data?.vdot.at(-1)?.isFloor ? 'plancher' : 'mesure' }}
         </span>
@@ -78,25 +78,20 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
         <span class="display text-[32px] leading-none font-bold">
           {{ data?.adherence === null ? '—' : `${data?.adherence} %` }}
         </span>
-        <span class="mono text-[11.5px] text-text-muted">séances prévues réalisées</span>
       </div>
 
       <div class="tile">
-        <span class="label">Propositions acceptées</span>
+        <span class="label"
+          >Propositions acceptées <UiInfoHint term="propositionsAcceptees"
+        /></span>
         <span class="display text-[32px] leading-none font-bold">
           {{ data?.acceptanceRate === null ? '—' : `${data?.acceptanceRate} %` }}
         </span>
-        <span class="mono text-[11.5px] text-text-muted">parmi celles décidées</span>
       </div>
     </section>
 
     <div class="tile">
-      <div class="flex items-baseline gap-3">
-        <span class="label">VDOT et projection sur semi</span>
-        <span class="mono text-[11.5px] text-text-muted">
-          la courbe donne la trajectoire, la table les points
-        </span>
-      </div>
+      <span class="label">VDOT et projection sur semi</span>
 
       <UiSeriesChart :points="vdotCurve" :height="140" />
 
@@ -126,11 +121,11 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
     <div class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">Volume visé et charge par semaine <UiInfoHint term="ua" /></span>
-        <span class="mono text-[11.5px] text-text-muted">24 premières semaines</span>
+        <span class="mono text-[11.5px] text-text-dim">24 premières semaines</span>
       </div>
       <UiWeekBars :weeks="visibleWeeks" />
 
-      <span class="mono text-[11px] text-text-muted">
+      <span class="mono text-[11px] text-text-dim">
         Barre haute : volume visé. Barre basse : charge enregistrée, en unités arbitraires.
       </span>
     </div>
@@ -140,10 +135,9 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
       <div class="tile">
         <div class="flex items-baseline gap-3">
           <span class="label">Calibration du ressenti <UiInfoHint term="calibration" /></span>
-          <span class="mono text-[11.5px] text-text-muted">RPE vécu moins RPE prescrit</span>
         </div>
 
-        <p v-if="(data?.rpeCalibration.length ?? 0) === 0" class="text-[13px] text-text-muted">
+        <p v-if="(data?.rpeCalibration.length ?? 0) === 0" class="text-[13px] text-text-dim">
           Aucun ressenti sur la période.
         </p>
 
@@ -156,17 +150,14 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
           <span class="mono ml-auto text-[13px]" :class="Math.abs(row.bias) >= 0.5 && 'text-warn'">
             {{ row.bias > 0 ? '+' : '' }}{{ formatDecimal(row.bias) }}
           </span>
-          <span class="mono w-[70px] text-right text-[11.5px] text-text-faint">
+          <span class="mono w-[70px] text-right text-[11.5px] text-text-dim">
             {{ row.samples }} séance{{ row.samples > 1 ? 's' : '' }}
           </span>
         </div>
       </div>
 
       <div class="tile">
-        <div class="flex items-baseline gap-3">
-          <span class="label">Récupération</span>
-          <span class="mono text-[11.5px] text-text-muted">sommeil déclaré et jours sans rien</span>
-        </div>
+        <span class="label">Récupération <UiInfoHint term="recuperation" /></span>
 
         <div class="grid grid-cols-3 gap-3">
           <div class="flex flex-col">
@@ -178,7 +169,7 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
                   : `${formatDecimal(data?.recovery.sleepMeanH, 1)} h`
               }}
             </span>
-            <span class="mono text-[10.5px] text-text-faint">
+            <span class="mono text-[10.5px] text-text-dim">
               {{ data?.recovery.samples.nights }} nuits
             </span>
           </div>
@@ -194,7 +185,7 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
                   : `${Math.round((data?.recovery.shortNightShare ?? 0) * 100)} %`
               }}
             </span>
-            <span class="mono text-[10.5px] text-text-faint">
+            <span class="mono text-[10.5px] text-text-dim">
               {{ data?.recovery.shortNights }} sous 6 h
             </span>
           </div>
@@ -203,19 +194,14 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
             <span class="mono text-[17px]">
               {{ formatDecimal(data?.recovery.restDaysPerWeek, 1) }}
             </span>
-            <span class="mono text-[10.5px] text-text-faint">par semaine</span>
+            <span class="mono text-[10.5px] text-text-dim">par semaine</span>
           </div>
         </div>
       </div>
     </section>
 
     <div v-if="(data?.strengthLoads.length ?? 0) > 0" class="tile">
-      <div class="flex items-baseline gap-3">
-        <span class="label">Charges tenues en muscu</span>
-        <span class="mono text-[11.5px] text-text-muted">
-          la plus lourde série de chaque séance
-        </span>
-      </div>
+      <span class="label">Charges tenues en renforcement <UiInfoHint term="chargeMuscu" /></span>
 
       <div class="grid grid-cols-3 gap-4">
         <div
@@ -258,7 +244,7 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
             <td class="mono py-[6px]">{{ formatDate(item.date) }}</td>
             <td class="py-[6px]">{{ SESSION_LABELS[item.code] ?? item.code }}</td>
             <td class="mono py-[6px] text-text-dim">{{ formatDistance(item.distanceM) }}</td>
-            <td class="mono py-[6px] text-text-muted">{{ item.expectedRpe ?? '—' }}</td>
+            <td class="mono py-[6px] text-text-dim">{{ item.expectedRpe ?? '—' }}</td>
             <td
               class="mono py-[6px]"
               :class="
@@ -276,7 +262,7 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
             </td>
           </tr>
           <tr v-if="(data?.keySessions.length ?? 0) === 0">
-            <td colspan="6" class="py-3 text-text-muted">
+            <td colspan="6" class="py-3 text-text-dim">
               Aucune séance clé encore planifiée ou réalisée.
             </td>
           </tr>

@@ -63,11 +63,6 @@ export default defineEventHandler(async () => {
     efforts: EFFORT_LABELS,
     recoveryByEffort: EFFORT_RECOVERY_S,
     restFactor: STRENGTH_DOSES[strengthPhase].restFactor,
-    phasePlan: Object.values(PhaseType).map((type) => ({
-      type,
-      strengthPhase: strengthPhaseFor(type, 1),
-      sessions: STRENGTH_PER_PHASE[type].length,
-    })),
     exercises: STRENGTH_EXERCISES,
     lastLoadsKg,
     sessions: Object.values(STRENGTH_SESSION_TYPES).map((type) => ({

@@ -18,7 +18,7 @@ const OBJECTIVE_LEVELS = [
 const SPORTS = [
   { key: 'course', label: 'Course' },
   { key: 'velo', label: 'Vélo' },
-  { key: 'muscu', label: 'Muscu' },
+  { key: 'muscu', label: 'Renforcement' },
   { key: 'autre', label: 'Autre' },
 ] as const
 
@@ -56,7 +56,7 @@ const title = computed(
           <span class="display text-[32px] font-bold">
             {{ load?.ratio ? load.ratio.ratio.toFixed(2).replace('.', ',') : '—' }}
           </span>
-          <span class="mono text-[12px] text-text-muted">
+          <span class="mono text-[12px] text-text-dim">
             repère {{ load?.reference.low }}–{{ load?.reference.high }}
           </span>
         </div>
@@ -80,7 +80,7 @@ const title = computed(
         </div>
       </div>
 
-      <p class="text-[13px] text-text-muted">
+      <p class="text-[13px] text-text-dim">
         La charge se compte en unités arbitraires : RPE × durée en minutes, pour tous les sports. Le
         ratio compare les sept derniers jours à la moyenne des vingt-et-un précédents, sans
         recouvrement. C'est un repère, jamais une décision à lui seul.
@@ -103,7 +103,7 @@ const title = computed(
           >
             {{ cause }}
           </span>
-          <span v-if="!readiness?.causes.length" class="text-[13px] text-text-muted">
+          <span v-if="!readiness?.causes.length" class="text-[13px] text-text-dim">
             Aucun signal particulier.
           </span>
         </div>
@@ -114,7 +114,7 @@ const title = computed(
         <p class="text-[13px] text-text-dim">{{ readiness?.suggestion }}</p>
       </div>
 
-      <p class="text-[13px] text-text-muted">
+      <p class="text-[13px] text-text-dim">
         Le score pèse le sommeil déclaré pour 35 %, l'écart de RPE des trois dernières séances pour
         30 %, les sensations pour 20 % et le ratio de charge pour 15 %. Prêt au-dessus de 65,
         vigilance entre 40 et 64, repos en dessous.
@@ -128,7 +128,7 @@ const title = computed(
           <span class="display text-[32px] font-bold">
             {{ vdot === null ? '—' : vdot.toFixed(1).replace('.', ',') }}
           </span>
-          <span v-if="library?.vdotIsFloor" class="text-[12px] text-text-muted">
+          <span v-if="library?.vdotIsFloor" class="text-[12px] text-text-dim">
             Plancher déduit du meilleur segment continu, pas une mesure.
           </span>
         </div>
@@ -154,7 +154,7 @@ const title = computed(
             <span class="mono text-[15px]">{{ formatPace(zone.paceSecPerKm) }}</span>
           </div>
         </div>
-        <span class="mono text-[12px] text-text-muted">
+        <span class="mono text-[12px] text-text-dim">
           Allure semi : {{ formatPace(library?.halfPaceSecPerKm) }}/km
         </span>
       </div>
@@ -167,7 +167,7 @@ const title = computed(
           <span class="display text-[32px] font-bold text-accent">
             J−{{ daysUntil(raceA.date, plan.today) }}
           </span>
-          <span class="mono text-[12px] text-text-muted">{{ formatLongDate(raceA.date) }}</span>
+          <span class="mono text-[12px] text-text-dim">{{ formatLongDate(raceA.date) }}</span>
         </div>
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Objectif</span>
@@ -178,7 +178,7 @@ const title = computed(
             </template>
             <template v-else>{{ formatDuration(raceA.objectifS) }}</template>
           </span>
-          <span v-if="raceA.objectiveMode === 'record'" class="text-[12px] text-text-muted">
+          <span v-if="raceA.objectiveMode === 'record'" class="text-[12px] text-text-dim">
             record · {{ raceA.recordName }} ·
             {{ raceA.recordDate ? formatDate(raceA.recordDate) : '—' }}
           </span>
@@ -186,7 +186,7 @@ const title = computed(
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Projection</span>
           <span class="mono text-[20px]">{{ formatDuration(raceA.projectionS) }}</span>
-          <span class="mono text-[12px] text-text-muted">
+          <span class="mono text-[12px] text-text-dim">
             {{ formatDuration(raceA.projectionLowS) }} – {{ formatDuration(raceA.projectionHighS) }}
           </span>
         </div>
@@ -198,7 +198,7 @@ const title = computed(
           <span class="mono text-[20px]">
             {{ raceA.confidencePct === null ? '—' : `${raceA.confidencePct} %` }}
           </span>
-          <span class="text-[12px] text-text-muted">
+          <span class="text-[12px] text-text-dim">
             <template v-if="raceA.confidencePct === null">
               Sans objectif ni référence à battre, il n'y a rien à estimer.
             </template>
@@ -213,14 +213,14 @@ const title = computed(
           <span class="mono text-[20px]">
             {{ raceA.elevationGainM === null ? '—' : `${raceA.elevationGainM} m` }}
           </span>
-          <span class="text-[12px] text-text-muted">une demi-seconde par mètre</span>
+          <span class="text-[12px] text-text-dim">une demi-seconde par mètre</span>
         </div>
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Température attendue</span>
           <span class="mono text-[20px]">
             {{ raceA.expectedTempC === null ? '—' : `${raceA.expectedTempC} °C` }}
           </span>
-          <span class="text-[12px] text-text-muted">1,5 % par degré au-dessus de 18</span>
+          <span class="text-[12px] text-text-dim">1,5 % par degré au-dessus de 18</span>
         </div>
       </div>
 
@@ -234,18 +234,18 @@ const title = computed(
           <div v-for="level in OBJECTIVE_LEVELS" :key="level.label" class="flex flex-col">
             <span class="label text-[10px]">{{ level.label }}</span>
             <span class="mono text-[17px]">{{ formatDuration(raceA[level.field]) }}</span>
-            <span class="mono text-[12px] text-text-muted">
+            <span class="mono text-[12px] text-text-dim">
               {{ raceA[level.confidence] === null ? '—' : `${raceA[level.confidence]} %` }}
             </span>
           </div>
         </div>
-        <span class="text-[12px] text-text-muted">
+        <span class="text-[12px] text-text-dim">
           Du plus ambitieux au plus sûr : plus le chrono s'accorde de temps, plus la confiance
           monte. Un seul des trois est « l'objectif » — le réaliste.
         </span>
       </div>
 
-      <p class="text-[13px] text-text-muted">
+      <p class="text-[13px] text-text-dim">
         La projection part de ton VDOT du jour, y ajoute le gain attendu d'ici la course — 0,4 VDOT
         par tranche de huit semaines d'entraînement, rien pour les semaines en pause — puis corrige
         du dénivelé et de la chaleur. L'intervalle vient de la variabilité de tes tests ; la

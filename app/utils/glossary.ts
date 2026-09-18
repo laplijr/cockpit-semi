@@ -59,7 +59,7 @@ export const GLOSSARY = {
   },
   ua: {
     title: 'UA (unité arbitraire)',
-    text: 'Charge = RPE × durée en minutes. Elle met course, vélo et musculation sur la même échelle.',
+    text: 'Charge = RPE × durée en minutes. Elle met course, vélo et renforcement sur la même échelle.',
   },
   ratioCharge: {
     title: 'Ratio 7 j / 21 j',
@@ -71,7 +71,7 @@ export const GLOSSARY = {
   },
   chargeCombinee: {
     title: 'Charge combinée',
-    text: 'Somme des charges course, vélo et musculation. Le cadran en affiche le ratio 7 j / 21 j, indisponible avant 28 jours de données.',
+    text: 'Somme des charges course, vélo et renforcement. Le cadran en affiche le ratio 7 j / 21 j, indisponible avant 28 jours de données.',
   },
   formeDuJour: {
     title: 'Forme du jour',
@@ -104,6 +104,30 @@ export const GLOSSARY = {
   adherence: {
     title: 'Adhérence',
     text: 'Part des séances prévues effectivement réalisées. Elle dit si le plan est tenable, pas s’il est bon.',
+  },
+  propositionsAcceptees: {
+    title: 'Propositions acceptées',
+    text: "Part des propositions acceptées parmi celles qui ont été décidées. Les propositions encore en attente n'entrent pas dans le calcul.",
+  },
+  recuperation: {
+    title: 'Récupération',
+    text: "Sommeil déclaré et jours sans aucune séance, ramenés à la semaine. Ces mesures ne jugent aucune séance : elles disent si le corps a eu le temps d'encaisser.",
+  },
+  chargeMuscu: {
+    title: 'Charge tenue',
+    text: 'La série la plus lourde de chaque séance, exercice par exercice. Un point par séance : la courbe dit si la charge monte.',
+  },
+  reperesMacro: {
+    title: 'Repères macro',
+    text: 'Glucides et protéines exprimés par kilo de poids de corps et par jour. Ils suivent le type de journée, pas la séance prise isolément.',
+  },
+  regleApprise: {
+    title: 'Règle apprise',
+    text: 'Habitude acceptée, appliquée ensuite par le moteur sous un identifiant R100 ou au-delà. Elle déplace ou adoucit, jamais ne dépasse une règle de sécurité.',
+  },
+  regletteDePhases: {
+    title: 'Réglette de phases',
+    text: "Les sept phases du cycle, dans l'ordre : base, développement, spécifique, vitesse, affûtage, récupération, relance. Les segments allumés sont ceux où la séance se pose.",
   },
   quota: {
     title: 'Quota',
@@ -174,8 +198,8 @@ export const GLOSSARY = {
     text: 'Vélo en côte ou gros braquet à 50–60 tours par minute. Elle recrute les fibres de force sans impact au sol.',
   },
   phaseMuscu: {
-    title: 'Phase muscu',
-    text: 'Orientation de la musculation, dérivée de la phase du plan course : adaptation, force, force-puissance, entretien, légère, mobilité.',
+    title: 'Phase de renforcement',
+    text: 'Orientation du renforcement, dérivée de la phase du plan course : adaptation, force, force-puissance, entretien, légère, mobilité.',
   },
   superset: {
     title: 'Superset',

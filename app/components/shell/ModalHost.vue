@@ -11,6 +11,8 @@ const WIDTHS: Record<string, number> = {
   proposition: 760,
   course: 760,
   exercice: 640,
+  'seance-muscu': 640,
+  'seance-biblio': 880,
   bloc: 880,
 }
 
@@ -21,6 +23,8 @@ const TITLES: Record<string, string> = {
   proposition: 'Proposition',
   course: 'Course',
   exercice: 'Exercice',
+  'seance-muscu': 'Séance de renforcement',
+  'seance-biblio': 'Séance',
   bloc: 'Bloc',
 }
 
@@ -71,6 +75,17 @@ async function onDecided() {
       <DialogsExerciseDialog
         v-else-if="ui.modal === 'exercice' && ui.modalExerciseId"
         :exercise-id="ui.modalExerciseId"
+      />
+
+      <DialogsStrengthSessionDialog
+        v-else-if="ui.modal === 'seance-muscu' && ui.modalStrengthCode"
+        :code="ui.modalStrengthCode"
+      />
+
+      <DialogsLibrarySessionDialog
+        v-else-if="ui.modal === 'seance-biblio' && ui.modalLibrary"
+        :sport="ui.modalLibrary.sport"
+        :code="ui.modalLibrary.code"
       />
 
       <DialogsProposalDialog

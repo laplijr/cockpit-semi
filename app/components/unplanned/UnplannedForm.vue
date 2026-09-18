@@ -25,7 +25,7 @@ const SCOPE_LABELS: Record<string, string> = {
   tout: 'Tout',
   course: 'Course à pied',
   velo: 'Vélo',
-  muscu: 'Musculation',
+  muscu: 'Renforcement',
 }
 
 const text = ref('')
@@ -90,7 +90,7 @@ function remove(index: number) {
       />
     </label>
 
-    <p class="text-[12px] text-text-muted">
+    <p class="text-[12px] text-text-dim">
       Seules la date du jour et tes séances prévues accompagnent ce texte. Aucun réalisé, aucun
       ressenti ne quitte le serveur.
     </p>
@@ -120,7 +120,7 @@ function remove(index: number) {
             <span class="display text-[16px] font-semibold">{{ item.label }}</span>
             <button
               type="button"
-              class="ml-auto text-text-muted hover:text-text"
+              class="ml-auto text-text-dim hover:text-text"
               aria-label="Retirer"
               @click="remove(index)"
             >

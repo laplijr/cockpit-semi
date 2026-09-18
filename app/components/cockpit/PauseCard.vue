@@ -23,7 +23,7 @@ async function resume() {
     <div class="flex items-center gap-2">
       <UiAppIcon name="pause" class="text-warn" />
       <span class="label">Pause en cours · jour {{ pause.day }}</span>
-      <span class="mono ml-auto text-[11.5px] text-text-muted">
+      <span class="mono ml-auto text-[11.5px] text-text-dim">
         depuis le {{ formatDate(pause.startDate) }}
       </span>
     </div>
@@ -37,15 +37,15 @@ async function resume() {
           <UiAppIcon
             :name="item.allowed ? 'check' : 'close'"
             :size="14"
-            :class="item.allowed ? 'text-ok' : 'text-text-muted'"
+            :class="item.allowed ? 'text-ok' : 'text-text-dim'"
           />
-          <span :class="item.allowed ? 'text-text' : 'text-text-muted'">{{ item.label }}</span>
+          <span :class="item.allowed ? 'text-text' : 'text-text-dim'">{{ item.label }}</span>
         </li>
       </ul>
       <p
         v-for="condition in pause.allowances.conditions ?? []"
         :key="condition"
-        class="text-[12px] text-text-muted"
+        class="text-[12px] text-text-dim"
       >
         {{ condition }}
       </p>

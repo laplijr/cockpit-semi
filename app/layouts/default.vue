@@ -34,6 +34,7 @@ onBeforeUnmount(() => {
     <div class="flex min-w-0 flex-1 flex-col">
       <ShellTopBar />
       <main class="flex flex-1 flex-col gap-4 px-6 pt-5 pb-7">
+        <ShellPageHeader />
         <slot />
       </main>
     </div>

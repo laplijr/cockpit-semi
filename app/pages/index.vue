@@ -97,12 +97,9 @@ async function onResume() {
       <div v-else class="tile">
         <div class="flex items-baseline gap-3">
           <span class="label">Aujourd'hui</span>
-          <span class="mono text-[11.5px] text-text-muted">{{ formatLongDate(plan.today) }}</span>
-          <span v-if="plan.currentWeek" class="mono ml-auto text-[11.5px] text-text-muted">
-            semaine {{ plan.currentWeek.index }} ·
-            {{ PHASE_LABELS[plan.currentWeek.phaseType] ?? plan.currentWeek.phaseType }} ·
-            {{ formatDistance(plan.currentWeek.targetRunM) }} visés
-          </span>
+          <!-- La semaine est déjà dans la barre du haut et dans la tuile
+               Semaine : elle ne se redit pas ici (§ 8, P6.35). -->
+          <span class="mono text-[11.5px] text-text-dim">{{ formatLongDate(plan.today) }}</span>
         </div>
 
         <template v-if="plan.awaitingResumption">
@@ -117,24 +114,41 @@ async function onResume() {
           </p>
         </template>
         <template v-else-if="plan.todaySessions.length > 0">
-          <CockpitSessionRow
+          <CockpitTodaySession
             v-for="session in plan.todaySessions"
             :key="session.id"
             :session="session"
-            actionable
           />
         </template>
-        <p v-else class="text-[13px] text-text-muted">Repos aujourd'hui.</p>
+        <p v-else class="text-[13px] text-text-dim">Repos aujourd'hui.</p>
 
-        <div v-if="plan.tomorrowSessions.length > 0" class="border-t border-line-soft pt-3">
+        <!-- Demain tient sur une ligne : icône de sport, nom, deux chiffres,
+             et le conseil nutrition en pastille (§ 8, P6.35). -->
+        <div
+          v-if="plan.tomorrowSessions.length > 0"
+          class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line-soft pt-3"
+        >
           <span class="label text-[10.5px]">Demain</span>
-          <CockpitSessionRow
+          <span
             v-for="session in plan.tomorrowSessions"
             :key="session.id"
-            :session="session"
-            muted
-          />
-          <CockpitNutritionHint />
+            class="flex items-center gap-2"
+          >
+            <UiAppIcon
+              :name="sportStyle(session.sport).icon"
+              :size="15"
+              :class="sportStyle(session.sport).tone"
+              :title="SPORT_LABELS[session.sport] ?? session.sport"
+            />
+            <span class="text-[13px]">{{ SESSION_LABELS[session.code] ?? session.code }}</span>
+            <span class="mono text-[12px] text-text-dim">
+              <template v-if="session.prescription.totalDistanceM > 0">
+                {{ formatDistance(session.prescription.totalDistanceM) }} ·
+              </template>
+              {{ formatMinutes(prescribedMinutes(session.prescription)) }}
+            </span>
+          </span>
+          <CockpitNutritionHint class="ml-auto" />
         </div>
       </div>
 

@@ -10,7 +10,7 @@ export function allowanceRows(pause: { allowances: Allowances }) {
   return [
     { label: 'Course à pied', allowed: allowances.running },
     { label: 'Vélo', allowed: allowances.cycling },
-    { label: 'Muscu haut du corps', allowed: allowances.upperBodyStrength },
-    { label: 'Muscu jambes', allowed: allowances.legStrength },
+    { label: 'Renforcement haut du corps', allowed: allowances.upperBodyStrength },
+    { label: 'Renforcement jambes', allowed: allowances.legStrength },
   ]
 }

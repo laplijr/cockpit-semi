@@ -20,14 +20,15 @@ const protocolDay = computed(() =>
 </script>
 
 <template>
-  <p v-if="!isLoading(status) && protocolDay" class="mono text-[11.5px] text-text-dim">
-    <UiAppIcon name="nutri" :size="13" class="mr-1 inline text-accent" />
-    {{ raceWeek!.race.name }} à J−{{ protocolDay.daysBefore }} · {{ protocolDay.headline }} ·
+  <!-- Le conseil du lendemain est une pastille, pas un paragraphe (§ 8, P6.35). -->
+  <span v-if="!isLoading(status) && protocolDay" class="pill gap-1 text-accent">
+    <UiAppIcon name="nutri" :size="12" />
+    J−{{ protocolDay.daysBefore }} ·
     {{
       protocolDay.carbsG
         ? formatRange(protocolDay.carbsG, 'g')
         : formatRange(protocolDay.carbsGPerKg, 'g/kg')
     }}
     de glucides
-  </p>
+  </span>
 </template>

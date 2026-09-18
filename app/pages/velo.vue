@@ -2,21 +2,23 @@
 import { SESSION_TERMS, glossaryTermFor } from '~/utils/glossary'
 
 const { data } = await useFetch('/api/library/cycling')
+const ui = useUiStore()
 
+/**
+ * Trois paragraphes de règles devenus quatre lignes « si … → … » (§ 8, P6.35) :
+ * une règle de conversion est une table de décision, pas de la prose.
+ */
 const CONVERSION_RULES = [
-  {
-    title: 'Charge égale',
-    body: 'Même RPE × durée à ± 10 %, pas une règle de durée : une sortie longue de 1 h 30 à RPE 5 devient un Z2 de 2 h 30 à RPE 3.',
-  },
-  {
-    title: 'Fatigue n’est pas douleur',
-    body: 'La fatigue allège la séance ou la ramène en Z2. La douleur, elle, convertit la séance de course : sweet spot pour un seuil, Z2 pour le reste.',
-  },
-  {
-    title: 'Jamais la sortie longue',
-    body: 'La sortie longue course n’est convertie qu’en cas de douleur : le semi se gagne sur l’impact et la durée en course.',
-  },
+  { when: 'Séance convertie', then: 'même RPE × durée, à ± 10 %' },
+  { when: 'Fatigue', then: 'séance allégée ou ramenée en Z2' },
+  { when: 'Douleur sur un seuil', then: 'sweet spot' },
+  { when: 'Douleur, sortie longue exceptée', then: 'Z2' },
 ]
+
+/** La structure tient sur une ligne : ce que contient la séance, pas son détail. */
+function structureOf(steps: { label: string; repeats?: number }[]): string {
+  return steps.map((step) => `${step.repeats ? `${step.repeats} × ` : ''}${step.label}`).join(' · ')
+}
 </script>
 
 <template>
@@ -24,7 +26,7 @@ const CONVERSION_RULES = [
     <div class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">Les séances vélo du plan</span>
-        <span class="mono text-[11.5px] text-text-muted">
+        <span class="mono text-[11.5px] text-text-dim">
           phase actuelle : {{ PHASE_LABELS[data?.phaseType ?? ''] ?? data?.phaseType }} ·
           {{ data?.ridesThisWeek }} sortie{{ (data?.ridesThisWeek ?? 0) > 1 ? 's' : '' }} cette
           semaine · spécifique : ≤ {{ Math.round((data?.maxLoadShare ?? 0) * 100) }} % de la charge
@@ -43,69 +45,54 @@ const CONVERSION_RULES = [
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
-      <div v-for="type in data?.types ?? []" :key="type.code" class="tile">
-        <div class="flex items-baseline gap-3">
-          <span class="display text-[20px] font-semibold">
+    <!-- Une fiche : nom, valeur dominante, structure sur une ligne, réglette
+         de phases. La note passe au survol (§ 8, P6.35). -->
+    <div class="grid grid-cols-3 gap-4">
+      <button
+        v-for="type in data?.types ?? []"
+        :key="type.code"
+        type="button"
+        class="tile tile-action text-left"
+        @click="ui.openLibrarySession('velo', type.code)"
+      >
+        <span class="flex items-baseline gap-2">
+          <span class="display truncate text-[17px] font-semibold">
             {{ type.label }}
             <UiInfoHint
               v-if="glossaryTermFor(SESSION_TERMS, type.code)"
               :term="glossaryTermFor(SESSION_TERMS, type.code)!"
             />
           </span>
-          <span v-if="type.onPainOnly" class="pill pill-warn">sur douleur</span>
-          <span class="pill ml-auto">RPE {{ type.expectedRpe }}</span>
-        </div>
+          <span v-if="type.onPainOnly" class="pill pill-warn ml-auto shrink-0">sur douleur</span>
+        </span>
 
-        <div class="flex flex-wrap gap-x-6 gap-y-1">
-          <div class="flex flex-col">
-            <span class="label text-[10px]">Durée</span>
-            <span class="mono text-[15px]">
-              {{ formatMinutes(type.minDurationMin) }} – {{ formatMinutes(type.maxDurationMin) }}
-            </span>
-          </div>
-          <div class="flex flex-col">
-            <span class="label text-[10px]">Puissance <UiInfoHint term="ftp" /></span>
-            <span class="mono text-[15px]">{{ type.ftpRange }}</span>
-          </div>
-          <div class="flex flex-col">
-            <span class="label text-[10px]">Fréquence cardiaque</span>
-            <span class="mono text-[15px]">{{ type.hrRange }}</span>
-          </div>
-        </div>
+        <span class="mono text-[24px] leading-none">{{ type.ftpRange }}</span>
 
-        <div class="flex flex-col gap-1 border-t border-line-soft pt-2">
-          <span class="label text-[10px]">Structure</span>
-          <span
-            v-for="step in type.prescription.steps"
-            :key="step.label"
-            class="mono text-[12px] text-text-dim"
-          >
-            {{ step.repeats ? `${step.repeats} × ` : '' }}{{ step.label }}
-            <template v-if="step.durationS"> · {{ formatMinutes(step.durationS / 60) }} </template>
-            <template v-if="step.recoveryS">
-              · récup {{ Math.round(step.recoveryS / 60) }}′</template
-            >
-          </span>
-        </div>
+        <span
+          class="mono truncate text-[12px] text-text-dim"
+          :title="structureOf(type.prescription.steps)"
+        >
+          {{ formatMinutes(type.minDurationMin) }} – {{ formatMinutes(type.maxDurationMin) }} ·
+          {{ structureOf(type.prescription.steps) }}
+        </span>
 
-        <p class="text-[13px] text-text-muted">{{ type.note }}</p>
-
-        <div class="flex flex-wrap gap-1">
-          <span v-for="phase in type.allowedPhases" :key="phase" class="pill text-[10.5px]">
-            {{ PHASE_LABELS[phase] ?? phase }}
-          </span>
-        </div>
-      </div>
+        <span class="mt-auto block pt-1">
+          <UiPhaseRail :allowed="type.allowedPhases" />
+        </span>
+      </button>
     </div>
 
     <div class="tile">
       <span class="label">Règles de conversion course → vélo</span>
-      <div class="grid grid-cols-3 gap-6">
-        <div v-for="rule in CONVERSION_RULES" :key="rule.title" class="flex flex-col gap-1">
-          <span class="display text-[17px] font-semibold">{{ rule.title }}</span>
-          <span class="text-[13px] text-text-muted">{{ rule.body }}</span>
-        </div>
+      <div class="grid grid-cols-2 gap-x-8">
+        <span
+          v-for="rule in CONVERSION_RULES"
+          :key="rule.when"
+          class="flex items-baseline gap-2 border-t border-line-soft py-[7px] text-[13px]"
+        >
+          <span class="text-text-dim">{{ rule.when }}</span>
+          <span class="mono ml-auto shrink-0">→ {{ rule.then }}</span>
+        </span>
       </div>
     </div>
   </div>

@@ -19,7 +19,7 @@ const props = withDefaults(
 const SHAPES = {
   block: { height: 14, width: '100%', fill: 1 },
   line: { height: 16, width: '100%', fill: 0.62 },
-  number: { height: 44, width: '96px', fill: 0.72 },
+  number: { height: 56, width: '112px', fill: 0.72 },
 } as const
 
 const shape = computed(() => SHAPES[props.variant])

@@ -95,8 +95,15 @@ onBeforeUnmount(() => {
     @mouseleave="hide"
     @keydown.esc.stop="hide"
   >
-    <button
-      type="button"
+    <!--
+      Déclencheur en `span` et non en `button` : une tuile qui s'ouvre est
+      elle-même un `<button>` depuis P6.35, et le parseur HTML remonte un
+      bouton imbriqué hors de son parent — la tuile se démontait. Le rôle, le
+      focus et les touches restent ceux d'un bouton.
+    -->
+    <span
+      role="button"
+      tabindex="0"
       class="inline-flex"
       :class="triggerClass"
       :aria-label="label"
@@ -109,7 +116,7 @@ onBeforeUnmount(() => {
       @keydown.space.stop.prevent
     >
       <slot name="trigger" :open="open" />
-    </button>
+    </span>
 
     <Teleport to="body">
       <span

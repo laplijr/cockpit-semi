@@ -53,7 +53,7 @@ const days = computed(() => {
   <div v-else-if="week" class="tile">
     <div class="flex items-baseline gap-3">
       <span class="label">Semaine {{ week.index }}</span>
-      <span class="mono text-[11.5px] text-text-muted">
+      <span class="mono text-[11.5px] text-text-dim">
         {{ PHASE_LABELS[week.phaseType] ?? week.phaseType }} ·
         {{ formatDistance(week.targetRunM) }} visés
       </span>

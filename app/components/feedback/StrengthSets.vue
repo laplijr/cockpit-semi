@@ -77,12 +77,12 @@ defineExpose({ save })
     <div v-for="exercise in exercises" :key="exercise.exerciseId" class="flex flex-col gap-2">
       <span class="flex items-baseline gap-2">
         <span class="text-[13px]">{{ exercise.label }}</span>
-        <span class="mono text-[11.5px] text-text-muted">
+        <span class="mono text-[11.5px] text-text-dim">
           {{ exercise.sets }} × {{ exercise.targetReps }}
         </span>
         <span v-if="exercise.lastLoadKg !== null" class="mono ml-auto text-[12px]">
-          <span class="text-text-muted line-through">{{ formatLoad(exercise.lastLoadKg) }}</span>
-          <span class="mx-1 text-text-muted">→</span>
+          <span class="text-text-dim line-through">{{ formatLoad(exercise.lastLoadKg) }}</span>
+          <span class="mx-1 text-text-dim">→</span>
           <span class="text-accent">{{ formatLoad(exercise.suggestedLoadKg) }}</span>
         </span>
       </span>
@@ -92,7 +92,7 @@ defineExpose({ save })
         :key="row.index"
         class="grid grid-cols-[20px_1fr_1fr] items-center gap-2"
       >
-        <span class="mono text-[11.5px] text-text-muted">{{ row.index }}</span>
+        <span class="mono text-[11.5px] text-text-dim">{{ row.index }}</span>
         <label class="flex items-center gap-2">
           <span class="label text-[10px]">Rép.</span>
           <input v-model.number="row.reps" type="number" min="0" class="input mono" />

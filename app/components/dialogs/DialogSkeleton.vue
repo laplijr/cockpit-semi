@@ -13,6 +13,8 @@ const SHAPES: Record<ModalId, { columns: number; tiles: number; lines: number }>
   cadran: { columns: 2, tiles: 4, lines: 3 },
   proposition: { columns: 2, tiles: 2, lines: 1 },
   exercice: { columns: 2, tiles: 3, lines: 2 },
+  'seance-muscu': { columns: 1, tiles: 1, lines: 5 },
+  'seance-biblio': { columns: 4, tiles: 4, lines: 4 },
   bloc: { columns: 2, tiles: 4, lines: 2 },
   'nouvelle-course': { columns: 2, tiles: 2, lines: 3 },
 }

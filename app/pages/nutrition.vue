@@ -11,9 +11,8 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
     <!-- Sans le poids, les repères restent en g/kg : ils ne mentent pas. -->
     <div v-if="data.weightKg === null" class="tile border-dashed">
       <span class="label">Poids non renseigné</span>
-      <p class="text-[13px] text-text-muted">
-        Les repères s'affichent par kilo de poids de corps. Saisis ton poids dans Profil pour les
-        lire en grammes.
+      <p class="text-[13px] text-text-dim">
+        Poids manquant : saisis-le dans Profil pour lire des grammes.
       </p>
     </div>
 
@@ -21,14 +20,14 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
       <div v-for="(day, index) in data.days" :key="day.date" class="tile">
         <div class="flex items-baseline gap-3">
           <span class="label">{{ index === 0 ? "Aujourd'hui" : 'Demain' }}</span>
-          <span class="mono text-[11.5px] text-text-muted">{{ formatLongDate(day.date) }}</span>
+          <span class="mono text-[11.5px] text-text-dim">{{ formatLongDate(day.date) }}</span>
           <span class="pill ml-auto">{{ DAY_KIND_LABELS[day.kind] ?? day.kind }}</span>
         </div>
 
         <span class="display text-[30px] leading-none font-bold">
           {{ day.carbsG ? formatRange(day.carbsG, 'g') : formatRange(day.carbsGPerKg, 'g/kg') }}
         </span>
-        <span class="mono text-[11.5px] text-text-muted">
+        <span class="mono text-[11.5px] text-text-dim">
           de glucides sur la journée<template v-if="day.carbsG">
             · {{ formatRange(day.carbsGPerKg, 'g/kg') }}</template
           >
@@ -46,7 +45,7 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
               :class="sportStyle(session.sport).tone"
             />
             <span class="text-[13px]">{{ SESSION_LABELS[session.code] ?? session.code }}</span>
-            <span class="mono text-[11.5px] text-text-muted">
+            <span class="mono text-[11.5px] text-text-dim">
               {{ formatMinutes(session.durationMin) }}
             </span>
             <span v-if="session.fuel.carbsGPerHour" class="pill ml-auto">
@@ -54,12 +53,10 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
             </span>
             <span v-else class="pill ml-auto">eau seule</span>
           </span>
-          <span class="text-[12px] text-text-muted">{{ session.fuel.advice }}</span>
+          <span class="text-[12px] text-text-dim">{{ session.fuel.advice }}</span>
         </div>
 
-        <p v-if="day.sessions.length === 0" class="text-[12.5px] text-text-muted">
-          Aucune séance : les glucides suivent la journée, les protéines ne bougent pas.
-        </p>
+        <p v-if="day.sessions.length === 0" class="text-[12.5px] text-text-dim">Aucune séance.</p>
       </div>
     </section>
 
@@ -67,7 +64,7 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
     <section v-if="raceWeek" class="tile" style="border-color: rgba(242, 162, 58, 0.35)">
       <div class="flex items-baseline gap-3">
         <span class="label">Semaine de course · {{ raceWeek.race.name }}</span>
-        <span class="mono text-[11.5px] text-text-muted">
+        <span class="mono text-[11.5px] text-text-dim">
           {{ formatDate(raceWeek.race.date) }} · J−{{ raceWeek.daysToRace }}
         </span>
       </div>
@@ -85,7 +82,7 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
         </span>
         <div class="flex flex-col gap-px">
           <span class="text-[13px]">{{ day.headline }}</span>
-          <span v-for="detail in day.details" :key="detail" class="text-[12px] text-text-muted">
+          <span v-for="detail in day.details" :key="detail" class="text-[12px] text-text-dim">
             {{ detail }}
           </span>
         </div>
@@ -95,7 +92,7 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
     <section v-if="raceWeek?.fuelPlan" class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">Ravito et hydratation en course</span>
-        <span class="mono text-[11.5px] text-text-muted">
+        <span class="mono text-[11.5px] text-text-dim">
           projection {{ formatDuration(raceWeek.fuelPlan.durationS) }} ·
           {{ formatDistance(raceWeek.fuelPlan.distanceM) }}
           <template v-if="raceWeek.fuelPlan.tempC !== null">
@@ -153,18 +150,13 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
         </tbody>
       </table>
 
-      <p v-for="note in raceWeek.fuelPlan.notes" :key="note" class="text-[12.5px] text-text-muted">
+      <p v-for="note in raceWeek.fuelPlan.notes" :key="note" class="text-[12.5px] text-text-dim">
         {{ note }}
       </p>
     </section>
 
     <section class="tile">
-      <div class="flex items-baseline gap-3">
-        <span class="label">Repères par type de jour</span>
-        <span class="mono text-[11.5px] text-text-muted">
-          par kilo de poids de corps et par jour
-        </span>
-      </div>
+      <span class="label">Repères par type de jour <UiInfoHint term="reperesMacro" /></span>
 
       <table class="w-full text-[13px]">
         <thead>
@@ -188,19 +180,19 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
             <td class="py-[6px]">{{ DAY_KIND_LABELS[row.kind] ?? row.kind }}</td>
             <td class="mono py-[6px]">
               {{ formatRange(row.carbsGPerKg, 'g/kg') }}
-              <span v-if="row.carbsG" class="text-text-muted">
+              <span v-if="row.carbsG" class="text-text-dim">
                 · {{ formatRange(row.carbsG, 'g') }}
               </span>
             </td>
             <td class="mono py-[6px]">
               {{ formatRange(row.proteinGPerKg, 'g/kg') }}
-              <span v-if="row.proteinG" class="text-text-muted">
+              <span v-if="row.proteinG" class="text-text-dim">
                 · {{ formatRange(row.proteinG, 'g') }}
               </span>
             </td>
             <td class="mono py-[6px]">
               {{ formatRange(row.fatGPerKg, 'g/kg') }}
-              <span v-if="row.fatG" class="text-text-muted">
+              <span v-if="row.fatG" class="text-text-dim">
                 · {{ formatRange(row.fatG, 'g') }}
               </span>
             </td>
@@ -208,7 +200,7 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
         </tbody>
       </table>
 
-      <p class="text-[12.5px] text-text-muted">
+      <p class="text-[12.5px] text-text-dim">
         Le type de jour suit la séance la plus exigeante ; les protéines et les lipides ne bougent
         pas avec la charge. Demain est une
         {{ (DAY_KIND_LABELS[tomorrow?.kind ?? ''] ?? '').toLowerCase() }}.

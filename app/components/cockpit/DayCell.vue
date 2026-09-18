@@ -46,30 +46,37 @@ const ui = useUiStore()
         />
         <span
           class="display truncate text-[15px] font-semibold"
-          :class="session.status === 'sautee' && 'text-text-muted line-through'"
+          :class="session.status === 'sautee' && 'text-text-dim line-through'"
         >
           {{ SESSION_LABELS[session.code] ?? session.code }}
         </span>
-        <!-- La pastille suit l'icône : la troncature du nom ne doit jamais l'emporter. -->
+        <!-- Une séance clé se marque d'un point accent : la pastille disait le
+             même mot que la couleur (§ 8, P6.35). Le point suit l'icône, la
+             troncature du nom ne doit jamais l'emporter. -->
         <span
           v-if="session.key"
-          class="pill ml-auto shrink-0 bg-accent/15 px-[5px] text-[10px] text-accent"
-          :title="compact ? 'Séance clé' : undefined"
-        >
-          {{ compact ? 'C' : 'clé' }}
-        </span>
+          class="ml-auto h-[6px] w-[6px] shrink-0 rounded-full bg-accent"
+          title="Séance clé"
+        />
       </span>
-      <span class="mono pl-[19px] text-[11px] text-text-muted">
+      <span class="mono flex items-center gap-1 pl-[19px] text-[11px] text-text-dim">
         <!-- Une séance sans kilométrage se lit en durée : vélo et muscu. -->
         {{
           session.prescription.totalDistanceM > 0
             ? formatDistance(session.prescription.totalDistanceM)
             : formatMinutes(session.prescription.durationMin)
         }}
-        <template v-if="session.status === 'faite'"> · faite</template>
+        <!-- « · faite » devient une coche : le mot ne s'écrit plus (§ 8, P6.35). -->
+        <UiAppIcon
+          v-if="session.status === 'faite'"
+          name="check"
+          :size="12"
+          class="text-ok"
+          title="Faite"
+        />
       </span>
     </div>
 
-    <span v-if="sessions.length === 0" class="text-[12px] text-text-muted">repos</span>
+    <span v-if="sessions.length === 0" class="text-[12px] text-text-dim">repos</span>
   </div>
 </template>

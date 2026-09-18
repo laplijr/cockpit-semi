@@ -94,7 +94,7 @@ async function save() {
         Distance couverte en 20 minutes (m) <UiInfoHint term="test20" />
       </span>
       <input v-model.number="testDistanceM" type="number" class="input mono" placeholder="4000" />
-      <p class="text-[12px] text-text-muted">
+      <p class="text-[12px] text-text-dim">
         Cette distance devient ton VDOT courant et régénère le plan. Laisse vide si le test n'a pas
         été fait dans les conditions prévues.
       </p>

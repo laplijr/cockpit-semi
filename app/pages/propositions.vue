@@ -17,10 +17,10 @@ const STATUS_LABELS: Record<string, string> = {
     <div class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">Historique des décisions</span>
-        <span class="mono text-[11.5px] text-text-muted">{{ proposals.decided.length }}</span>
+        <span class="mono text-[11.5px] text-text-dim">{{ proposals.decided.length }}</span>
       </div>
 
-      <p v-if="proposals.decided.length === 0" class="text-[13px] text-text-muted">
+      <p v-if="proposals.decided.length === 0" class="text-[13px] text-text-dim">
         Aucune décision prise pour l'instant.
       </p>
 
@@ -31,8 +31,8 @@ const STATUS_LABELS: Record<string, string> = {
       >
         <span class="pill">{{ item.ruleId }}</span>
         <span class="mono text-[12.5px] text-text-dim">
-          <span class="text-text-muted line-through">{{ item.before }}</span>
-          <span class="mx-1 text-text-muted">→</span>{{ item.after }}
+          <span class="text-text-dim line-through">{{ item.before }}</span>
+          <span class="mx-1 text-text-dim">→</span>{{ item.after }}
         </span>
         <span class="pill ml-auto" :class="item.status === 'acceptee' ? 'pill-done' : ''">
           {{ STATUS_LABELS[item.status] ?? item.status }}

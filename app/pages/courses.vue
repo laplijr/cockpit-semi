@@ -30,24 +30,18 @@ async function onCreated() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex items-center">
-      <button type="button" class="btn ml-auto" @click="ui.openModal('nouvelle-course')">
-        Nouvelle course
-      </button>
-    </div>
-
-    <!-- La saison se lit avant la liste : c'est la page qui pilote le plan (§ 9, P5.16). -->
-    <RacesSeasonBoard
-      v-if="plan.plan"
-      :phases="plan.plan.phases"
-      :weeks="plan.plan.weeks"
-      :races="upcoming"
-      :today="plan.today"
-      :dated="!plan.awaitingResumption"
-    />
-
     <div class="tile">
-      <span class="label">Courses à venir</span>
+      <div class="flex items-center gap-3">
+        <span class="label">Courses à venir</span>
+        <button
+          type="button"
+          class="btn btn-ghost ml-auto h-7 px-[10px] text-[12px]"
+          @click="ui.openModal('nouvelle-course')"
+        >
+          <UiAppIcon name="plus" :size="14" />
+          Ajouter
+        </button>
+      </div>
       <table class="w-full text-[13px]">
         <thead>
           <tr class="text-left">
@@ -104,11 +98,21 @@ async function onCreated() {
             </td>
           </tr>
           <tr v-if="upcoming.length === 0">
-            <td colspan="8" class="py-3 text-text-muted">Aucune course planifiée.</td>
+            <td colspan="8" class="py-3 text-text-dim">Aucune course planifiée.</td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <!-- Le cap se lit après la liste : les courses sont l'objet de la page (§ 9). -->
+    <RacesSeasonBoard
+      v-if="plan.plan"
+      :phases="plan.plan.phases"
+      :weeks="plan.plan.weeks"
+      :races="upcoming"
+      :today="plan.today"
+      :dated="!plan.awaitingResumption"
+    />
 
     <div v-if="past.length > 0" class="tile">
       <span class="label">Courses passées</span>
@@ -119,7 +123,7 @@ async function onCreated() {
       >
         <div class="flex items-baseline gap-3">
           <span class="display text-[17px] font-semibold">{{ race.name }}</span>
-          <span class="mono text-[11.5px] text-text-muted">{{ formatDate(race.date) }}</span>
+          <span class="mono text-[11.5px] text-text-dim">{{ formatDate(race.date) }}</span>
           <span class="mono ml-auto text-[15px]">{{ formatDuration(race.resultatS) }}</span>
         </div>
         <span v-if="!race.representative" class="text-[12px] text-warn">

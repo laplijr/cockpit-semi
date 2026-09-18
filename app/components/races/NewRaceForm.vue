@@ -163,7 +163,7 @@ async function save() {
       <button type="button" class="btn btn-lg" :disabled="saving || !canSave" @click="save">
         Ajouter et régénérer le plan
       </button>
-      <span class="text-[13px] text-text-muted">
+      <span class="text-[13px] text-text-dim">
         Chaque valeur reste modifiable avant l'enregistrement.
       </span>
     </div>

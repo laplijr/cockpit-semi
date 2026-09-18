@@ -5,6 +5,8 @@ export const MODAL_IDS = [
   'cadran',
   'course',
   'exercice',
+  'seance-muscu',
+  'seance-biblio',
   'proposition',
   'bloc',
 ] as const
@@ -31,6 +33,10 @@ export const useUiStore = defineStore('ui', () => {
   const modalDial = ref<DialId | null>(null)
   /** Exercice visé : la bibliothèque muscu les identifie par un code, pas un entier. */
   const modalExerciseId = ref<string | null>(null)
+  /** Séance de la bibliothèque muscu visée, elle aussi par son code. */
+  const modalStrengthCode = ref<string | null>(null)
+  /** Séance des bibliothèques course et vélo : son sport et son code. */
+  const modalLibrary = ref<{ sport: 'course' | 'velo'; code: string } | null>(null)
 
   function openPanel(id: PanelId, targetId: number | null = null) {
     panel.value = id
@@ -42,33 +48,51 @@ export const useUiStore = defineStore('ui', () => {
     panelTargetId.value = null
   }
 
-  function openModal(id: ModalId, targetId: number | null = null) {
-    modal.value = id
-    modalTargetId.value = targetId
+  /** Toute ouverture repart d'une cible vide : chaque fenêtre vise à sa façon. */
+  function reset() {
+    modalTargetId.value = null
     modalDial.value = null
     modalExerciseId.value = null
+    modalStrengthCode.value = null
+    modalLibrary.value = null
+  }
+
+  function openModal(id: ModalId, targetId: number | null = null) {
+    reset()
+    modal.value = id
+    modalTargetId.value = targetId
   }
 
   function openExercise(exerciseId: string) {
+    reset()
     modal.value = 'exercice'
-    modalTargetId.value = null
-    modalDial.value = null
     modalExerciseId.value = exerciseId
+  }
+
+  /** Séance de la bibliothèque muscu : l'index ouvre son détail ici (§ 8, P6.35). */
+  function openStrengthSession(code: string) {
+    reset()
+    modal.value = 'seance-muscu'
+    modalStrengthCode.value = code
+  }
+
+  /** Fiche des bibliothèques course et vélo : la fiche ouvre son détail. */
+  function openLibrarySession(sport: 'course' | 'velo', code: string) {
+    reset()
+    modal.value = 'seance-biblio'
+    modalLibrary.value = { sport, code }
   }
 
   /** Les cadrans n'ont pas d'identifiant en base : ils se visent par leur nom. */
   function openDial(dial: DialId) {
+    reset()
     modal.value = 'cadran'
-    modalTargetId.value = null
     modalDial.value = dial
-    modalExerciseId.value = null
   }
 
   function closeModal() {
+    reset()
     modal.value = null
-    modalTargetId.value = null
-    modalDial.value = null
-    modalExerciseId.value = null
   }
 
   function closeTopLayer() {
@@ -86,11 +110,15 @@ export const useUiStore = defineStore('ui', () => {
     modalTargetId,
     modalDial,
     modalExerciseId,
+    modalStrengthCode,
+    modalLibrary,
     openPanel,
     closePanel,
     openModal,
     openDial,
     openExercise,
+    openStrengthSession,
+    openLibrarySession,
     closeModal,
     closeTopLayer,
   }

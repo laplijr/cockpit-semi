@@ -32,31 +32,30 @@ const line = computed(() => {
   <div v-if="loading" class="tile dial" aria-busy="true">
     <div class="flex items-baseline justify-between">
       <span class="label"><UiSkeleton :height="15" width="72px" /></span>
-      <UiSkeleton variant="block" :height="22" width="104px" />
     </div>
     <UiSkeleton variant="number" />
+    <UiSkeleton :height="15" width="72px" />
     <UiSkeleton variant="block" :height="14" />
   </div>
 
-  <div
-    v-else
-    class="tile dial tile-action"
-    role="button"
-    :tabindex="0"
-    @click="ui.openDial('vdot')"
-    @keydown.enter.prevent="ui.openDial('vdot')"
-    @keydown.space.prevent="ui.openDial('vdot')"
-  >
-    <div class="flex items-baseline justify-between">
-      <span class="label"> {{ label }} <UiInfoHint :term="isFloor ? 'plancher' : 'vdot'" /> </span>
-      <span v-if="isFloor" class="pill pill-warn">estimation basse</span>
-    </div>
+  <button v-else type="button" class="tile dial tile-action text-left" @click="ui.openDial('vdot')">
+    <span class="flex items-baseline justify-between gap-2">
+      <span class="label">{{ label }} <UiInfoHint :term="isFloor ? 'plancher' : 'vdot'" /></span>
+    </span>
 
-    <span class="display text-[44px] leading-none font-bold">
+    <!-- Une estimation basse se lit à la couleur du chiffre : la pastille sort (§ 8, P6.35). -->
+    <span
+      class="display text-[56px] leading-none font-bold"
+      :class="{ 'text-warn': isFloor, 'text-text-dim': vdot === null }"
+    >
       {{ vdot === null ? '—' : vdot.toFixed(1).replace('.', ',') }}
     </span>
 
-    <!-- L'échelle remplace la ligne grise : la tendance situe le chiffre. -->
+    <span class="mono text-[11.5px] text-text-dim">
+      {{ points.length }} point{{ points.length > 1 ? 's' : '' }}
+    </span>
+
+    <!-- L'échelle situe le chiffre : la tendance des points de forme. -->
     <svg v-if="line" viewBox="0 0 100 20" preserveAspectRatio="none" class="h-[14px] w-full">
       <polyline
         :points="line"
@@ -67,8 +66,8 @@ const line = computed(() => {
         stroke-linejoin="round"
       />
     </svg>
-    <span v-else class="mono text-[11.5px] text-text-muted">
-      un seul point de forme : la tendance vient au prochain test
+    <span v-else class="block h-[14px]">
+      <span class="mt-[6px] block h-px bg-line" />
     </span>
-  </div>
+  </button>
 </template>

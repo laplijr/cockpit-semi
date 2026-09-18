@@ -31,8 +31,8 @@ const error = ref('')
 const ALLOWANCE_LABELS: Record<keyof typeof form.allowances, string> = {
   running: 'Course à pied',
   cycling: 'Vélo',
-  upperBodyStrength: 'Muscu haut du corps',
-  legStrength: 'Muscu jambes',
+  upperBodyStrength: 'Renforcement haut du corps',
+  legStrength: 'Renforcement jambes',
 }
 
 async function declare() {
@@ -95,7 +95,7 @@ async function declare() {
     <label class="flex flex-col gap-[6px]">
       <span class="label text-[10.5px]">Reprise estimée</span>
       <input v-model="form.estimatedEndDate" type="date" class="input mono" />
-      <span class="text-[12px] text-text-muted">
+      <span class="text-[12px] text-text-dim">
         Laisse vide si tu ne sais pas : le plan repart alors en semaines non datées, et les séances
         apparaissent quand tu marques la reprise.
       </span>

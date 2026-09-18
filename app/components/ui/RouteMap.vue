@@ -82,7 +82,7 @@ onBeforeUnmount(() => {
     :style="{ height: `${height}px` }"
   />
 
-  <p v-else class="text-[12.5px] text-text-muted">
+  <p v-else class="text-[12.5px] text-text-dim">
     Une trace demande au moins deux points pour se dessiner.
   </p>
 </template>

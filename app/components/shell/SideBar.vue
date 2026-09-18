@@ -16,7 +16,7 @@ const route = useRoute()
 
     <nav v-for="group in NAV_GROUPS" :key="group.title" class="flex flex-col gap-[2px]">
       <span
-        class="px-[10px] pb-[6px] text-[10px] font-semibold tracking-[0.12em] text-text-faint uppercase"
+        class="px-[10px] pb-[6px] text-[10px] font-semibold tracking-[0.12em] text-text-dim uppercase"
       >
         {{ group.title }}
       </span>
@@ -41,7 +41,7 @@ const route = useRoute()
         <span>Strava</span>
         <span class="ml-auto inline-block size-2 rounded-full bg-line-strong" />
       </div>
-      <span class="mono text-[11px] text-text-muted">non connectée</span>
+      <span class="mono text-[11px] text-text-dim">non connectée</span>
     </div>
   </aside>
 </template>

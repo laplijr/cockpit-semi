@@ -37,7 +37,6 @@ function daysOf(week: { id: number; startDate: string }) {
   <div class="flex flex-col gap-4">
     <div class="flex items-center gap-3">
       <span class="label">Bloc de quatre semaines</span>
-      <span class="mono text-[11.5px] text-text-muted">lecture seule en P1</span>
       <div class="ml-auto flex gap-2">
         <button type="button" class="btn btn-ghost" :disabled="!canGoBack" @click="offset--">
           Précédent
@@ -51,7 +50,7 @@ function daysOf(week: { id: number; startDate: string }) {
     <div v-for="week in block" :key="week.id" class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">Semaine {{ week.index }}</span>
-        <span class="mono text-[11.5px] text-text-muted">
+        <span class="mono text-[11.5px] text-text-dim">
           <template v-if="!plan.awaitingResumption">
             {{ formatDate(week.startDate) }} – {{ formatDate(week.endDate) }} ·
           </template>
@@ -78,13 +77,10 @@ function daysOf(week: { id: number; startDate: string }) {
 
     <div v-if="plan.awaitingResumption" class="tile border-dashed">
       <span class="label">En attente de la reprise</span>
-      <p class="text-[13px] text-text-muted">
-        Les phases et les volumes sont calculés, mais les séances ne seront datées qu'une fois la
-        reprise marquée depuis le cockpit.
-      </p>
+      <p class="text-[13px] text-text-dim">Séances datées à la reprise.</p>
     </div>
 
-    <p v-else-if="block.length === 0" class="text-[13px] text-text-muted">
+    <p v-else-if="block.length === 0" class="text-[13px] text-text-dim">
       Aucun plan actif. Ajoute une course depuis Courses.
     </p>
   </div>

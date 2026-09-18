@@ -75,7 +75,7 @@ const plannedMinutes = computed(() => {
       <span class="display text-[22px] font-semibold">
         {{ SESSION_LABELS[session.code] ?? session.code }}
       </span>
-      <span class="mono text-[11.5px] text-text-muted">
+      <span class="mono text-[11.5px] text-text-dim">
         {{ formatLongDate(session.date) }} · {{ role }}
         <template v-if="week"> · semaine {{ week.index }}</template>
       </span>
@@ -106,7 +106,7 @@ const plannedMinutes = computed(() => {
                 {{ step.intensity }}
               </span>
             </span>
-            <span class="mono text-[12px] text-text-muted">
+            <span class="mono text-[12px] text-text-dim">
               <template v-if="step.distanceM">{{ formatDistance(step.distanceM) }}</template>
               <template v-if="step.durationS && !step.reps">
                 · {{ formatMinutes(step.durationS / 60) }}
@@ -118,7 +118,7 @@ const plannedMinutes = computed(() => {
               <template v-if="step.recoveryS"> · récup {{ step.recoveryS }}″</template>
               <template v-if="loads[step.exerciseId ?? '']">
                 ·
-                <span class="text-text-muted line-through">
+                <span class="text-text-dim line-through">
                   {{ formatLoad(loads[step.exerciseId!]!.lastLoadKg) }}
                 </span>
                 <span class="ml-1 text-accent">
@@ -126,7 +126,7 @@ const plannedMinutes = computed(() => {
                 </span>
               </template>
             </span>
-            <span v-if="step.note" class="text-[12px] text-text-muted">{{ step.note }}</span>
+            <span v-if="step.note" class="text-[12px] text-text-dim">{{ step.note }}</span>
           </div>
         </div>
 
@@ -135,14 +135,14 @@ const plannedMinutes = computed(() => {
           <table class="w-full text-[13px]">
             <tbody>
               <tr class="border-b border-line-soft">
-                <td class="py-[6px] text-text-muted">Durée</td>
+                <td class="py-[6px] text-text-dim">Durée</td>
                 <td class="mono py-[6px] text-right">{{ plannedMinutes }} min</td>
                 <td class="mono py-[6px] text-right">
                   {{ session.actualDurationMin ? `${session.actualDurationMin} min` : '—' }}
                 </td>
               </tr>
               <tr v-if="session.prescription.totalDistanceM > 0">
-                <td class="py-[6px] text-text-muted">Distance</td>
+                <td class="py-[6px] text-text-dim">Distance</td>
                 <td class="mono py-[6px] text-right">
                   {{ formatDistance(session.prescription.totalDistanceM) }}
                 </td>
@@ -151,7 +151,7 @@ const plannedMinutes = computed(() => {
                 </td>
               </tr>
               <tr class="border-t border-line-soft">
-                <td class="py-[6px] text-text-muted">RPE</td>
+                <td class="py-[6px] text-text-dim">RPE</td>
                 <td class="mono py-[6px] text-right">{{ session.prescription.expectedRpe }}</td>
                 <td class="mono py-[6px] text-right">{{ session.feedbackRpe ?? '—' }}</td>
               </tr>
@@ -174,7 +174,7 @@ const plannedMinutes = computed(() => {
             :key="item.id"
             class="flex items-baseline gap-3 border-t border-line-soft pt-2 first:border-t-0 first:pt-0"
           >
-            <span class="mono text-[12px] text-text-muted">{{ formatDate(item.date) }}</span>
+            <span class="mono text-[12px] text-text-dim">{{ formatDate(item.date) }}</span>
             <span class="mono text-[12.5px]">
               <template v-if="item.prescription.totalDistanceM > 0">
                 {{ formatDistance(item.actualDistanceM ?? item.prescription.totalDistanceM) }}

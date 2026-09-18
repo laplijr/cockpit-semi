@@ -119,12 +119,13 @@
   }
 
   /*
-   * Un cadran garde la hauteur de son gabarit — titre, grand chiffre, une
-   * ligne, échelle — même sans mesure : la rangée d'instruments ne se réduit
-   * pas quand il n'y a rien à lire. Mesurée à 1440 px sur la rangée chargée.
+   * Un cadran garde la hauteur de son gabarit — titre, chiffre à 56 px, une
+   * métadonnée, échelle — même sans mesure : la rangée d'instruments ne se
+   * réduit pas quand il n'y a rien à lire. Mesurée à 1440 px sur la rangée
+   * chargée (P6.35).
    */
   .dial {
-    min-height: 157px;
+    min-height: 160px;
   }
 
   .heading {

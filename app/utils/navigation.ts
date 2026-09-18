@@ -30,7 +30,7 @@ export const NAV_GROUPS: NavGroup[] = [
     title: 'Bibliothèques',
     items: [
       { label: 'Course à pied', to: '/course-a-pied', icon: 'run', phase: 'P1' },
-      { label: 'Muscu', to: '/muscu', icon: 'muscu', phase: 'P4' },
+      { label: 'Renforcement', to: '/renforcement', icon: 'muscu', phase: 'P4' },
       { label: 'Vélo', to: '/velo', icon: 'velo', phase: 'P4' },
       { label: 'Nutrition', to: '/nutrition', icon: 'nutri', phase: 'P6' },
     ],

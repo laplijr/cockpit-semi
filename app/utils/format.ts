@@ -179,7 +179,7 @@ export const PRIORITY_LABELS: Record<string, string> = { A: 'A', B: 'B', C: 'C' 
 export const SPORT_LABELS: Record<string, string> = {
   course: 'Course à pied',
   velo: 'Vélo',
-  muscu: 'Musculation',
+  muscu: 'Renforcement',
   autre: 'Autre',
 }
 
@@ -191,7 +191,7 @@ export const SPORT_STYLES: Record<
   course: { icon: 'run', tone: 'text-accent' },
   velo: { icon: 'velo', tone: 'text-cycling' },
   muscu: { icon: 'muscu', tone: 'text-ok' },
-  autre: { icon: 'gauge', tone: 'text-text-muted' },
+  autre: { icon: 'gauge', tone: 'text-text-dim' },
 }
 
 export function sportStyle(sport: string) {
@@ -222,11 +222,11 @@ export const EFFECT_TITLES: Record<string, string> = {
   course_redatee: 'Course redatée',
 }
 
-/** Noms de sport au singulier court, pour « 4 séances de muscu allégées ». */
+/** Noms de sport au singulier court, pour « 4 séances de renfo allégées ». */
 export const SHORT_SPORT_LABELS: Record<string, string> = {
   course: 'course',
   velo: 'vélo',
-  muscu: 'muscu',
+  muscu: 'renfo',
   autre: 'sport',
 }
 

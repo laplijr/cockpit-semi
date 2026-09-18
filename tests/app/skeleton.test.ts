@@ -11,7 +11,7 @@ describe('squelette de chargement (§ 8, P5.20)', () => {
 
   it('occupe la hauteur exacte demandée, pour que rien ne bouge à l’arrivée', async () => {
     const skeleton = await mountSuspended(Skeleton, { props: { variant: 'number' } })
-    expect(skeleton.get('span').attributes('style')).toContain('height: 44px')
+    expect(skeleton.get('span').attributes('style')).toContain('height: 56px')
   })
 
   it('est invisible aux lecteurs d’écran : il ne dit rien du contenu', async () => {

@@ -33,60 +33,53 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
   >
     <div class="flex items-baseline justify-between">
       <span class="label">Course A <UiInfoHint term="courseA" /></span>
-      <UiSkeleton width="64px" />
     </div>
     <UiSkeleton variant="number" />
-    <div class="flex items-center justify-between gap-4">
-      <UiSkeleton :height="22" width="164px" />
-      <UiSkeleton variant="block" :height="22" width="48px" />
-    </div>
+    <UiSkeleton :height="15" width="164px" />
     <UiSkeleton variant="block" :height="10" />
   </div>
 
-  <div
+  <button
     v-else-if="race"
-    class="tile dial tile-action"
+    type="button"
+    class="tile dial tile-action text-left"
     style="border-color: rgba(242, 162, 58, 0.35)"
-    role="button"
-    :tabindex="0"
     @click="ui.openDial('course-a')"
-    @keydown.enter.prevent="ui.openDial('course-a')"
-    @keydown.space.prevent="ui.openDial('course-a')"
   >
-    <div class="flex items-baseline justify-between">
-      <span class="label"> Course A <UiInfoHint term="courseA" /> · {{ race.name }} </span>
-      <span class="mono text-[11.5px] text-text-muted">{{ formatDate(race.date) }}</span>
-    </div>
+    <span class="flex items-baseline justify-between gap-2">
+      <span class="label truncate">Course A <UiInfoHint term="courseA" /> · {{ race.name }}</span>
+    </span>
 
-    <span class="display text-[44px] leading-none font-bold text-accent">J−{{ countdown }}</span>
+    <span class="display text-[56px] leading-none font-bold text-accent">J−{{ countdown }}</span>
 
-    <!-- Quatre informations : J−, objectif, projection, confiance (§ 8). -->
-    <div class="flex items-baseline gap-4">
-      <!-- Le niveau réaliste seul : les trois vivent dans le dialog (§ 9, P5.15). -->
-      <span class="mono text-[11.5px] text-text-muted">
-        <template v-if="race.objectiveToSet">objectif à fixer</template>
-        <template v-else-if="race.objectiveMode === 'record'">
-          record {{ formatDuration(race.recordS) }}
-        </template>
-        <template v-else>objectif {{ formatDuration(race.objectifS) }}</template>
-      </span>
-      <span class="mono text-[11.5px]">{{ formatDuration(race.projectionS) }}</span>
-      <span v-if="race.confidencePct !== null" class="pill ml-auto">
-        {{ race.confidencePct }} %
-      </span>
-      <span v-else-if="race.projectionIsFloor" class="pill pill-warn ml-auto">plancher</span>
-    </div>
+    <!-- Une seule métadonnée : l'objectif et sa projection. La confiance est
+         l'échelle, la date se lit dans le décompte (§ 8, P6.35). -->
+    <span class="mono text-[11.5px] text-text-dim">
+      <template v-if="race.objectiveToSet">objectif à fixer</template>
+      <template v-else-if="race.objectiveMode === 'record'">
+        record {{ formatDuration(race.recordS) }} →
+        <span :class="race.projectionIsFloor ? 'text-warn' : 'text-text'">
+          {{ formatDuration(race.projectionS) }}
+        </span>
+      </template>
+      <template v-else>
+        {{ formatDuration(race.objectifS) }} →
+        <span :class="race.projectionIsFloor ? 'text-warn' : 'text-text'">
+          {{ formatDuration(race.projectionS) }}
+        </span>
+      </template>
+    </span>
 
-    <!-- L'échelle remplace la ligne grise : la confiance situe le décompte. -->
-    <div class="relative h-[10px]">
+    <!-- L'échelle situe le décompte : la confiance de tenir l'objectif. -->
+    <span class="relative block h-[10px]">
       <span class="absolute inset-x-0 top-[4px] h-[3px] rounded-sm bg-accent-track" />
       <span
         v-if="race.confidencePct !== null"
         class="absolute top-[4px] h-[3px] rounded-sm bg-accent"
         :style="{ width: `${race.confidencePct}%` }"
       />
-    </div>
-  </div>
+    </span>
+  </button>
 
   <!-- Sans course, le cadran montre son gabarit : le tiret et l'échelle en
        creux disent qu'il y a une mesure à venir (§ 8, P5.21). -->
@@ -95,10 +88,10 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
       <span class="label">Course A <UiInfoHint term="courseA" /></span>
     </div>
 
-    <span class="display text-[44px] leading-none font-bold text-text-muted">—</span>
+    <span class="display text-[56px] leading-none font-bold text-text-dim">—</span>
 
     <div class="flex items-baseline gap-4">
-      <span class="text-[11.5px] text-text-muted">Aucune course à venir</span>
+      <span class="mono text-[11.5px] text-text-dim">aucune course à venir</span>
       <NuxtLink to="/courses" class="mono ml-auto text-[11.5px] text-accent">en ajouter</NuxtLink>
     </div>
 

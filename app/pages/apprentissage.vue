@@ -28,17 +28,14 @@ async function decide(id: number, status: string) {
     <section class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">À décider <UiInfoHint term="habitude" /></span>
-        <span class="mono text-[11.5px] text-text-muted">
+        <span class="mono text-[11.5px] text-text-dim">
           {{ pending.length }} habitude{{ pending.length > 1 ? 's' : '' }} détectée{{
             pending.length > 1 ? 's' : ''
           }}
         </span>
       </div>
 
-      <p v-if="pending.length === 0" class="text-[13px] text-text-muted">
-        Rien à décider. Les habitudes se détectent sur au moins cinq à huit occurrences : elles
-        arrivent après quelques semaines de réalisé.
-      </p>
+      <p v-if="pending.length === 0" class="text-[13px] text-text-dim">Aucune habitude détectée.</p>
 
       <div
         v-for="item in pending"
@@ -47,7 +44,7 @@ async function decide(id: number, status: string) {
       >
         <div class="flex min-w-0 flex-1 flex-col gap-px">
           <span class="text-[13.5px]">{{ item.statement }}</span>
-          <span class="mono text-[11.5px] text-text-muted">
+          <span class="mono text-[11.5px] text-text-dim">
             {{ HABIT_LABELS[item.type] ?? item.type }} · {{ item.matched }} cas sur
             {{ item.total }} · confiance {{ Math.round(item.confidence * 100) }} %
           </span>
@@ -62,7 +59,7 @@ async function decide(id: number, status: string) {
         </button>
         <button
           type="button"
-          class="shrink-0 text-[12.5px] text-text-muted hover:text-text"
+          class="shrink-0 text-[12.5px] text-text-dim hover:text-text"
           :disabled="busy === item.id"
           @click="decide(item.id, 'refusee')"
         >
@@ -73,17 +70,9 @@ async function decide(id: number, status: string) {
 
     <section class="grid grid-cols-2 gap-4">
       <div class="tile">
-        <div class="flex items-baseline gap-3">
-          <span class="label">Règles personnelles</span>
-          <span class="mono text-[11.5px] text-text-muted">
-            appliquées par le moteur en R100 et au-delà
-          </span>
-        </div>
+        <span class="label">Règles personnelles <UiInfoHint term="regleApprise" /></span>
 
-        <p v-if="applied.length === 0" class="text-[13px] text-text-muted">
-          Aucune règle apprise. Une habitude acceptée s'ajoute ici et ne peut que déplacer ou
-          adoucir : elle ne dépasse jamais une règle de sécurité.
-        </p>
+        <p v-if="applied.length === 0" class="text-[13px] text-text-dim">Aucune règle apprise.</p>
 
         <div
           v-for="item in applied"
@@ -92,14 +81,14 @@ async function decide(id: number, status: string) {
         >
           <div class="flex min-w-0 flex-1 flex-col gap-px">
             <span class="text-[13px]">{{ item.statement }}</span>
-            <span class="mono text-[11.5px] text-text-muted">
+            <span class="mono text-[11.5px] text-text-dim">
               {{ item.matched }} / {{ item.total }} · confiance
               {{ Math.round(item.confidence * 100) }} %
             </span>
           </div>
           <button
             type="button"
-            class="shrink-0 text-[12.5px] text-text-muted hover:text-text"
+            class="shrink-0 text-[12.5px] text-text-dim hover:text-text"
             :disabled="busy === item.id"
             @click="decide(item.id, 'detectee')"
           >
@@ -111,15 +100,12 @@ async function decide(id: number, status: string) {
       <div class="tile">
         <div class="flex items-baseline gap-3">
           <span class="label">Calibration <UiInfoHint term="calibration" /></span>
-          <span v-if="latest" class="mono text-[11.5px] text-text-muted">
+          <span v-if="latest" class="mono text-[11.5px] text-text-dim">
             semaine du {{ formatDate(latest.date) }}
           </span>
         </div>
 
-        <p v-if="!latest" class="text-[13px] text-text-muted">
-          Aucune mesure encore. La calibration se calcule chaque semaine sur les ressentis, les
-          décisions et les tests.
-        </p>
+        <p v-if="!latest" class="text-[13px] text-text-dim">Aucune mesure de calibration.</p>
 
         <template v-else>
           <div class="grid grid-cols-3 gap-3">
@@ -128,7 +114,7 @@ async function decide(id: number, status: string) {
               <span class="mono text-[17px]" :class="latest.rpeError > 0.5 && 'text-warn'">
                 {{ latest.rpeError > 0 ? '+' : '' }}{{ formatDecimal(latest.rpeError) }}
               </span>
-              <span class="mono text-[10.5px] text-text-faint">
+              <span class="mono text-[10.5px] text-text-dim">
                 {{ latest.samples.rpe }} séances
               </span>
             </div>
@@ -141,7 +127,7 @@ async function decide(id: number, status: string) {
                     : `${Math.round(latest.acceptanceRate * 100)} %`
                 }}
               </span>
-              <span class="mono text-[10.5px] text-text-faint">
+              <span class="mono text-[10.5px] text-text-dim">
                 {{ latest.samples.decisions }} décisions
               </span>
             </div>
@@ -150,7 +136,7 @@ async function decide(id: number, status: string) {
               <span class="mono text-[17px]">
                 {{ formatDecimal(latest.projectionGap) }}
               </span>
-              <span class="mono text-[10.5px] text-text-faint">
+              <span class="mono text-[10.5px] text-text-dim">
                 {{ latest.samples.tests }} test{{ latest.samples.tests > 1 ? 's' : '' }}
               </span>
             </div>
@@ -163,7 +149,7 @@ async function decide(id: number, status: string) {
                 :key="week.date"
                 class="border-t border-line-soft"
               >
-                <td class="mono py-[5px] text-text-muted">{{ formatDate(week.date) }}</td>
+                <td class="mono py-[5px] text-text-dim">{{ formatDate(week.date) }}</td>
                 <td class="mono py-[5px] text-right">
                   RPE {{ week.rpeError > 0 ? '+' : '' }}{{ formatDecimal(week.rpeError) }}
                 </td>
@@ -188,10 +174,10 @@ async function decide(id: number, status: string) {
         :key="item.id"
         class="flex items-baseline gap-3 border-t border-line-soft py-2 first:border-t-0"
       >
-        <span class="text-[13px] text-text-muted">{{ item.statement }}</span>
+        <span class="text-[13px] text-text-dim">{{ item.statement }}</span>
         <button
           type="button"
-          class="mono ml-auto text-[11.5px] text-text-muted hover:text-text"
+          class="mono ml-auto text-[11.5px] text-text-dim hover:text-text"
           :disabled="busy === item.id"
           @click="decide(item.id, 'detectee')"
         >

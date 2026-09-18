@@ -18,25 +18,33 @@ const session = (key: boolean): PlanSession => ({
 })
 
 describe('cellule de jour', () => {
-  it('marque la séance clé, comme la ligne du cockpit (§ 9, P5.12)', async () => {
-    const cell = await mountSuspended(DayCell, {
-      props: { label: 'mar', sessions: [session(true)] },
-    })
-    expect(cell.text()).toContain('clé')
+  const cell = (props: Record<string, unknown>) => mountSuspended(DayCell, { props })
+
+  it('marque la séance clé d’un point accent (§ 8, P6.35)', async () => {
+    const mounted = await cell({ label: 'mar', sessions: [session(true)] })
+
+    expect(mounted.find('.bg-accent').attributes('title')).toBe('Séance clé')
+    expect(mounted.text()).not.toContain('clé')
   })
 
-  it('réduit la pastille à sa lettre sur la page Semaine', async () => {
-    const cell = await mountSuspended(DayCell, {
-      props: { label: 'mar', sessions: [session(true)], compact: true },
-    })
-    expect(cell.text()).toContain('C')
-    expect(cell.text()).not.toContain('clé')
+  it('garde le même point sur la page Semaine, où la place manque', async () => {
+    const mounted = await cell({ label: 'mar', sessions: [session(true)], compact: true })
+
+    expect(mounted.find('.bg-accent').exists()).toBe(true)
+    expect(mounted.text()).not.toContain('C')
   })
 
   it('ne marque rien quand la séance n’est pas clé', async () => {
-    const cell = await mountSuspended(DayCell, {
-      props: { label: 'mar', sessions: [session(false)] },
-    })
-    expect(cell.text()).not.toContain('clé')
+    expect(
+      (await cell({ label: 'mar', sessions: [session(false)] })).find('.bg-accent').exists(),
+    ).toBe(false)
+  })
+
+  it('remplace « · faite » par une coche', async () => {
+    const done = { ...session(false), status: 'faite' }
+    const mounted = await cell({ label: 'mar', sessions: [done] })
+
+    expect(mounted.text()).not.toContain('faite')
+    expect(mounted.find('svg.text-ok').attributes('title')).toBe('Faite')
   })
 })

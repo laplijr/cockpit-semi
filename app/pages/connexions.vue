@@ -16,7 +16,7 @@ const { data } = await useFetch('/api/activities/latest')
       </p>
       <div class="flex flex-col gap-1 border-t border-line-soft pt-2">
         <span class="label text-[10px]">Ce que ça change</span>
-        <ul class="flex flex-col gap-1 text-[13px] text-text-muted">
+        <ul class="flex flex-col gap-1 text-[13px] text-text-dim">
           <li>
             Une séance se marque faite depuis le cockpit, ressenti compris, en une vingtaine de
             secondes.

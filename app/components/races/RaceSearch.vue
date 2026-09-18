@@ -79,10 +79,10 @@ async function search() {
       </button>
     </div>
 
-    <p class="text-[12px] text-text-muted">
+    <p class="text-[12px] text-text-dim">
       Seul le nom tapé quitte le serveur. Chaque valeur trouvée reste modifiable à droite.
     </p>
-    <p v-if="pending" class="text-[12px] text-text-muted">
+    <p v-if="pending" class="text-[12px] text-text-dim">
       La recherche lit plusieurs sources : compte jusqu'à deux minutes.
     </p>
 
@@ -106,7 +106,7 @@ async function search() {
             :href="source"
             target="_blank"
             rel="noreferrer"
-            class="text-[11.5px] text-text-muted underline hover:text-text"
+            class="text-[11.5px] text-text-dim underline hover:text-text"
           >
             {{ hostOf(source) }}
           </a>

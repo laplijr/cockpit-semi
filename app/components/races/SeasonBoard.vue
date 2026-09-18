@@ -70,10 +70,10 @@ function pillShift(positionPct: number): string {
           daysUntil(target.date, today)
         }}
       </span>
-      <span v-else class="mono text-[11.5px] text-text-muted">Aucune course A à venir.</span>
+      <span v-else class="mono text-[11.5px] text-text-dim">Aucune course A à venir.</span>
     </div>
 
-    <div class="flex flex-wrap gap-x-6 gap-y-1 text-[12.5px] text-text-muted">
+    <div class="flex flex-wrap gap-x-6 gap-y-1 text-[12.5px] text-text-dim">
       <span v-if="currentSegment && weekInPhase">
         <span class="text-text-dim">{{ PHASE_LABELS[currentSegment.type] }}</span>
         · semaine {{ weekInPhase.index }} sur {{ weekInPhase.total }} de la phase · semaine
@@ -103,7 +103,7 @@ function pillShift(positionPct: number): string {
               ? 'bg-accent text-on-accent'
               : index % 2 === 0
                 ? 'bg-surface-raised text-text-dim'
-                : 'bg-surface-inset text-text-muted'
+                : 'bg-surface-inset text-text-dim'
           "
           :style="{ width: `${segment.sharePct}%` }"
           :aria-label="`${PHASE_LABELS[segment.type] ?? segment.type}, ${segment.weeks} semaines`"
@@ -159,7 +159,7 @@ function pillShift(positionPct: number): string {
         <span
           v-for="tick in layout.ticks"
           :key="tick.label + tick.positionPct"
-          class="mono absolute top-0 text-[10px] text-text-faint"
+          class="mono absolute top-0 text-[10px] text-text-dim"
           :style="{ left: `${tick.positionPct}%`, transform: 'translateX(-50%)' }"
         >
           {{ tick.label }}

@@ -38,7 +38,7 @@ async function refuse() {
   <div v-if="proposal" class="flex flex-col gap-4">
     <div class="flex items-baseline gap-3">
       <span class="display text-[22px] font-semibold">Proposition {{ proposal.ruleId }}</span>
-      <span class="mono text-[11.5px] text-text-muted">
+      <span class="mono text-[11.5px] text-text-dim">
         déclenchée par {{ proposal.trigger }} ·
         {{ formatDate(proposal.createdAt.slice(0, 10)) }}
       </span>
@@ -48,8 +48,8 @@ async function refuse() {
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Ce qui change</span>
         <span class="mono text-[15px]">
-          <span class="text-text-muted line-through">{{ proposal.before }}</span>
-          <span class="mx-2 text-text-muted">→</span>{{ proposal.after }}
+          <span class="text-text-dim line-through">{{ proposal.before }}</span>
+          <span class="mx-2 text-text-dim">→</span>{{ proposal.after }}
         </span>
       </div>
       <div class="tile bg-surface-inset">
@@ -62,6 +62,6 @@ async function refuse() {
       <button type="button" class="btn" :disabled="busy" @click="accept">Appliquer</button>
       <button type="button" class="btn btn-ghost" :disabled="busy" @click="refuse">Refuser</button>
     </div>
-    <p v-else class="text-[13px] text-text-muted">Décision déjà prise : {{ proposal.status }}.</p>
+    <p v-else class="text-[13px] text-text-dim">Décision déjà prise : {{ proposal.status }}.</p>
   </div>
 </template>

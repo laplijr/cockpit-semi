@@ -8,6 +8,8 @@ import {
 } from '~~/server/domain/athlete/profile'
 
 const { clear: clearSession } = useUserSession()
+const ui = useUiStore()
+const plan = usePlanStore()
 const { data: athlete, refresh } = await useFetch('/api/athlete')
 
 const WEEKDAYS = [
@@ -189,7 +191,7 @@ async function logout() {
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">FC max (bpm)</span>
           <input v-model.number="form.maxHr" type="number" class="input mono" />
-          <span v-if="!form.maxHr && athlete?.suggestedMaxHr" class="text-[12px] text-text-muted">
+          <span v-if="!form.maxHr && athlete?.suggestedMaxHr" class="text-[12px] text-text-dim">
             Estimée à {{ athlete.suggestedMaxHr }} pour ton âge, tant qu'elle n'est pas mesurée.
           </span>
         </label>
@@ -220,14 +222,14 @@ async function logout() {
           </option>
         </select>
         <!-- Une seule ligne : les cinq descriptions ne se lisent qu'au profil choisi. -->
-        <span v-if="form.profile" class="text-[12px] text-text-muted">
+        <span v-if="form.profile" class="text-[12px] text-text-dim">
           {{ PROFILE_DESCRIPTIONS[form.profile] }} Pré-remplit
           {{ Math.round(defaultsFor(form.profile).startWeeklyVolumeM / 1000) }} à
           {{ Math.round(defaultsFor(form.profile).peakWeeklyVolumeM / 1000) }} km et
           {{ defaultsFor(form.profile).runsPerWeek }} courses par semaine, montée bornée à
           {{ defaultsFor(form.profile).maxWeeklyIncreasePct }} % par semaine.
         </span>
-        <span v-else class="text-[12px] text-text-muted">
+        <span v-else class="text-[12px] text-text-dim">
           Le profil pré-remplit le volume, le pic et le nombre de courses, et borne la montée
           hebdomadaire. Tout reste modifiable ensuite.
         </span>
@@ -236,7 +238,7 @@ async function logout() {
 
     <div class="tile">
       <span class="label">Volume de course</span>
-      <p class="text-[13px] text-text-muted">
+      <p class="text-[13px] text-text-dim">
         Le plan part du volume de départ, monte de
         {{ form.profile ? defaultsFor(form.profile).maxWeeklyIncreasePct : 10 }} % par semaine au
         maximum et plafonne au pic.
@@ -245,7 +247,7 @@ async function logout() {
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">
             Volume de départ (m / semaine) <UiInfoHint term="volumeDepart" />
-            <span v-if="replaced" class="mono text-text-muted line-through">
+            <span v-if="replaced" class="mono text-text-dim line-through">
               {{ replaced.start }}
             </span>
           </span>
@@ -259,7 +261,7 @@ async function logout() {
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">
             Pic (m / semaine) <UiInfoHint term="pic" />
-            <span v-if="replaced" class="mono text-text-muted line-through">
+            <span v-if="replaced" class="mono text-text-dim line-through">
               {{ replaced.peak }}
             </span>
           </span>
@@ -275,7 +277,7 @@ async function logout() {
 
     <div class="tile">
       <span class="label">Jours d'entraînement</span>
-      <p class="text-[13px] text-text-muted">
+      <p class="text-[13px] text-text-dim">
         Coche les jours où tu peux courir. Les jours disponibles disent
         <em>où</em> courir, pas <em>combien</em> de fois.
       </p>
@@ -304,7 +306,7 @@ async function logout() {
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">
             Courses par semaine <UiInfoHint term="coursesParSemaine" />
-            <span v-if="replaced?.runs" class="mono text-text-muted line-through">
+            <span v-if="replaced?.runs" class="mono text-text-dim line-through">
               {{ replaced.runs }}
             </span>
           </span>
@@ -338,11 +340,40 @@ async function logout() {
       </div>
     </div>
 
+    <!-- Déclarer une pause est une décision d'entraînement, au même titre que
+         le volume ou les jours : elle vit ici et non dans le menu du compte
+         (§ 8, P6.35). -->
+    <div class="tile">
+      <span class="label">Pause et blessure <UiInfoHint term="douleur" /></span>
+
+      <template v-if="plan.pause">
+        <span class="flex items-baseline gap-3">
+          <span class="display text-[24px] font-semibold">
+            Jour {{ plan.pause.day }}
+            <span class="text-text-dim">de pause</span>
+          </span>
+          <span v-if="plan.pause.zone" class="pill pill-warn ml-auto">{{ plan.pause.zone }}</span>
+        </span>
+        <span class="mono text-[12px] text-text-dim">
+          Ouverte le {{ formatDate(plan.pause.startDate) }} · la reprise se marque depuis le
+          cockpit.
+        </span>
+      </template>
+
+      <template v-else>
+        <span class="mono text-[12px] text-text-dim">Aucune pause en cours.</span>
+        <button type="button" class="btn btn-ghost self-start" @click="ui.openPanel('pause')">
+          <UiAppIcon name="pause" />
+          Déclarer une pause
+        </button>
+      </template>
+    </div>
+
     <div class="flex items-center gap-3">
       <button type="button" class="btn btn-lg" :disabled="saving || !canSave" @click="save">
         Enregistrer et régénérer le plan
       </button>
-      <span v-if="!canSave" class="text-[13px] text-text-muted">Choisis au moins trois jours.</span>
+      <span v-if="!canSave" class="text-[13px] text-text-dim">Choisis au moins trois jours.</span>
       <span v-else-if="saved" class="text-[13px] text-ok">Plan régénéré.</span>
       <button type="button" class="btn btn-ghost ml-auto" @click="logout">Se déconnecter</button>
     </div>

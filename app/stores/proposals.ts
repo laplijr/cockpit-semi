@@ -72,13 +72,6 @@ export const usePropositionsStore = defineStore('proposals', () => {
     await load()
   }
 
-  async function refuseGroup(key: string) {
-    for (const id of idsOf([key])) {
-      await request(`/api/proposals/${id}/refuse`, { method: 'POST' })
-    }
-    await load()
-  }
-
   async function refuse(id: number) {
     await request(`/api/proposals/${id}/refuse`, { method: 'POST' })
     await load()
@@ -99,6 +92,5 @@ export const usePropositionsStore = defineStore('proposals', () => {
     applySelected,
     applyOne,
     refuse,
-    refuseGroup,
   }
 })
