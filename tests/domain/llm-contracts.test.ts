@@ -9,6 +9,8 @@ import {
 } from '~~/server/domain/races/lookup'
 import { Sport } from '~~/server/domain/shared/sport'
 import { UnplannedKind } from '~~/server/domain/unplanned/events'
+import { MealEmphasis, MealKind, type MealSlot } from '~~/server/domain/nutrition/meal-timing'
+import { parseMeals } from '~~/server/infra/llm/meals'
 import { parseInterpretation } from '~~/server/infra/llm/unplanned'
 import { parseLookup } from '~~/server/infra/search/race-lookup'
 
@@ -86,5 +88,36 @@ describe('contrat de la recherche de course (§ 6)', () => {
     const broken = JSON.parse(fixture('race-lookup-madrid'))
     delete broken.registration
     expect(() => parseLookup(JSON.stringify(broken))).toThrow()
+  })
+})
+
+describe('contrat des repas du jour (§ 6, P6.4)', () => {
+  const slots: MealSlot[] = [
+    { kind: MealKind.Breakfast, hour: 6, emphasis: MealEmphasis.PreSession },
+    { kind: MealKind.Snack, hour: 10.5, emphasis: MealEmphasis.Recovery },
+    { kind: MealKind.Lunch, hour: 12.5, emphasis: MealEmphasis.Recovery },
+    { kind: MealKind.Dinner, hour: 20, emphasis: MealEmphasis.Normal },
+  ]
+
+  it('rend un repas par créneau, à l’heure et au rôle du moteur', () => {
+    const meals = parseMeals(fixture('meals-long-run'), slots)
+
+    expect(meals).toHaveLength(4)
+    expect(meals[0]).toMatchObject({
+      kind: MealKind.Breakfast,
+      hour: 6,
+      emphasis: MealEmphasis.PreSession,
+      name: "Flocons d'avoine au skyr",
+    })
+    expect(meals.at(-1)).toMatchObject({ hour: 20, emphasis: MealEmphasis.Normal })
+  })
+
+  it('refuse une liste qui ne recouvre pas les créneaux', () => {
+    expect(() => parseMeals(fixture('meals-long-run'), slots.slice(0, 3))).toThrow()
+  })
+
+  it('refuse une réponse illisible ou hors schéma', () => {
+    expect(() => parseMeals('pas du json', slots)).toThrow()
+    expect(() => parseMeals('{"meals":[{"kind":"diner"}]}', slots)).toThrow()
   })
 })

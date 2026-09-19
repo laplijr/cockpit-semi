@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const { data } = await useFetch('/api/nutrition')
 
+const ui = useUiStore()
+
 const today = computed(() => data.value?.days[0])
 const raceWeek = computed(() => data.value?.raceWeek ?? null)
 </script>
@@ -16,7 +18,14 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
     </div>
 
     <section class="grid grid-cols-2 gap-4">
-      <div v-for="(day, index) in data.days" :key="day.date" class="tile">
+      <!-- Ouvrir le jour ne génère rien : le détail porte le bouton (§ 1, P6.4). -->
+      <button
+        v-for="(day, index) in data.days"
+        :key="day.date"
+        type="button"
+        class="tile tile-action text-left"
+        @click="ui.openDay(day.date)"
+      >
         <div class="flex items-baseline gap-3">
           <span class="label">{{ index === 0 ? "Aujourd'hui" : 'Demain' }}</span>
           <span class="mono text-[11.5px] text-text-dim">{{ formatLongDate(day.date) }}</span>
@@ -56,7 +65,11 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
         </div>
 
         <p v-if="day.sessions.length === 0" class="text-[12.5px] text-text-dim">Aucune séance.</p>
-      </div>
+
+        <span class="mono text-[11.5px]" :class="day.mealPlan ? 'text-text-dim' : 'text-accent'">
+          {{ day.mealPlan ? `${day.mealPlan.length} repas proposés` : 'repas à demander' }}
+        </span>
+      </button>
     </section>
 
     <!-- Protocole : il n'apparaît qu'à J−7, quand il sert (§ 5). -->

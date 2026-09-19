@@ -37,6 +37,8 @@ export const useUiStore = defineStore('ui', () => {
   const modalStrengthCode = ref<string | null>(null)
   /** Séance des bibliothèques course et vélo : son sport et son code. */
   const modalLibrary = ref<{ sport: 'course' | 'velo'; code: string } | null>(null)
+  /** Jour visé quand la fenêtre ouverte est un jour de repos, sans séance (P6.4). */
+  const modalDate = ref<string | null>(null)
 
   function openPanel(id: PanelId, targetId: number | null = null) {
     panel.value = id
@@ -55,6 +57,7 @@ export const useUiStore = defineStore('ui', () => {
     modalExerciseId.value = null
     modalStrengthCode.value = null
     modalLibrary.value = null
+    modalDate.value = null
   }
 
   function openModal(id: ModalId, targetId: number | null = null) {
@@ -81,6 +84,13 @@ export const useUiStore = defineStore('ui', () => {
     reset()
     modal.value = 'seance-biblio'
     modalLibrary.value = { sport, code }
+  }
+
+  /** Un jour sans séance n'a rien à ouvrir : il ouvre le détail du jour (P6.4). */
+  function openDay(date: string) {
+    reset()
+    modal.value = 'seance'
+    modalDate.value = date
   }
 
   /** Les cadrans n'ont pas d'identifiant en base : ils se visent par leur nom. */
@@ -112,6 +122,7 @@ export const useUiStore = defineStore('ui', () => {
     modalExerciseId,
     modalStrengthCode,
     modalLibrary,
+    modalDate,
     openPanel,
     closePanel,
     openModal,
@@ -119,6 +130,7 @@ export const useUiStore = defineStore('ui', () => {
     openExercise,
     openStrengthSession,
     openLibrarySession,
+    openDay,
     closeModal,
     closeTopLayer,
   }

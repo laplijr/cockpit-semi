@@ -1,4 +1,5 @@
 import { and, asc, eq, gte } from 'drizzle-orm'
+import { readMealPlans } from '../infra/db/meal-plan-gateway'
 import {
   DAILY_TARGETS,
   dayKindOf,
@@ -27,7 +28,7 @@ export default defineEventHandler(async () => {
   const today = systemClock.today()
   const tomorrow = addDays(today, 1)
 
-  const [[profile], active, upcoming] = await Promise.all([
+  const [[profile], active, upcoming, meals] = await Promise.all([
     db.select({ weightKg: athlete.weightKg }).from(athlete).limit(1),
     loadActivePlanVersion(db),
     db
@@ -35,6 +36,8 @@ export default defineEventHandler(async () => {
       .from(race)
       .where(and(eq(race.status, RaceStatus.Planned), gte(race.date, today)))
       .orderBy(asc(race.date)),
+    /** Lecture seule : la page n'appelle jamais le modèle (§ 1, P6.4). */
+    readMealPlans(db, [today, tomorrow]),
   ])
 
   const weightKg = profile?.weightKg ?? null
@@ -64,7 +67,10 @@ export default defineEventHandler(async () => {
       fatGPerKg: targets.fatGPerKg,
       fatG: gramsFor(targets.fatGPerKg, weightKg),
     })),
-    days: [today, tomorrow].map((date) => dayOf(date, sessionsOn(date), raceOn(date), weightKg)),
+    days: [today, tomorrow].map((date) => ({
+      ...dayOf(date, sessionsOn(date), raceOn(date), weightKg),
+      mealPlan: meals.get(date)?.meals ?? null,
+    })),
     raceWeek:
       nextRace && daysToRace !== null && daysToRace <= PROTOCOL_DAYS
         ? {

@@ -68,6 +68,7 @@ function daysOf(week: { id: number; startDate: string }) {
           v-for="day in daysOf(week)"
           :key="day.date"
           :label="day.label"
+          :date="day.date"
           :sessions="day.sessions"
           :is-today="day.isToday"
           compact

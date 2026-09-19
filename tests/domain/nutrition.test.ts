@@ -7,6 +7,15 @@ import {
   tierOf,
   waterPerHour,
 } from '~~/server/domain/nutrition/fuel-plan'
+import {
+  DEFAULT_HOURS,
+  MealEmphasis,
+  MealKind,
+  defaultStartHour,
+  formatHour,
+  mealTiming,
+  type MealSlot,
+} from '~~/server/domain/nutrition/meal-timing'
 import { raceWeekProtocol } from '~~/server/domain/nutrition/race-week'
 import { trainingFuelFor } from '~~/server/domain/nutrition/training-fuel'
 import { RunSessionCode } from '~~/server/domain/running/session-types'
@@ -183,5 +192,93 @@ describe('protocole de la semaine de course (§ 9, P6)', () => {
     expect(withWeight.at(-1)!.carbsG).toEqual([560, 700])
     expect(without.at(-1)!.carbsG).toBeNull()
     expect(without.at(-1)!.details[0]).toContain('par kilo')
+  })
+})
+
+describe('horaires des repas (§ 9, P6.4)', () => {
+  const timed = (code: string, startHour: number, durationMin: number, key = false) => ({
+    ...run(code, durationMin, key),
+    startHour,
+  })
+
+  const at = (slots: MealSlot[], kind: MealKind) => slots.filter((slot) => slot.kind === kind)
+
+  it('garde trois repas et aucune collation le jour de repos', () => {
+    const slots = mealTiming([], DayKind.Rest)
+
+    expect(slots.map((slot) => slot.kind)).toEqual([
+      MealKind.Breakfast,
+      MealKind.Lunch,
+      MealKind.Dinner,
+    ])
+    expect(slots.every((slot) => slot.emphasis === MealEmphasis.Normal)).toBe(true)
+  })
+
+  it('pose une collation une heure et demie avant une séance clé de 18 h', () => {
+    const slots = mealTiming([timed(RunSessionCode.Vma, 18, 60, true)], DayKind.Quality)
+    const [snack] = at(slots, MealKind.Snack)
+
+    expect(snack?.hour).toBe(16.5)
+    expect(snack?.emphasis).toBe(MealEmphasis.PreSession)
+  })
+
+  it('avance le petit-déjeuner et renforce le déjeuner autour d’une sortie longue du matin', () => {
+    const slots = mealTiming([timed(RunSessionCode.LongRun, 8, 100)], DayKind.Long)
+
+    expect(at(slots, MealKind.Breakfast)[0]).toEqual({
+      kind: MealKind.Breakfast,
+      hour: 6,
+      emphasis: MealEmphasis.PreSession,
+    })
+    expect(at(slots, MealKind.Lunch)[0]?.emphasis).toBe(MealEmphasis.Recovery)
+  })
+
+  it('n’avance pas le petit-déjeuner quand la séance laisse le temps de le prendre', () => {
+    const slots = mealTiming([timed(RunSessionCode.Endurance, 9, 45)], DayKind.Easy)
+
+    expect(at(slots, MealKind.Breakfast)[0]?.hour).toBe(DEFAULT_HOURS.breakfast)
+  })
+
+  it('décale le dîner après une séance qui finit tard', () => {
+    const slots = mealTiming([timed(RunSessionCode.Seuil, 20, 75, true)], DayKind.Quality)
+
+    expect(at(slots, MealKind.Dinner)[0]).toEqual({
+      kind: MealKind.Dinner,
+      hour: 21.75,
+      emphasis: MealEmphasis.Recovery,
+    })
+  })
+
+  it('recharge tout de suite quand la séance du matin finit loin du déjeuner', () => {
+    const slots = mealTiming([timed(RunSessionCode.LongRun, 7, 120)], DayKind.Long)
+
+    expect(at(slots, MealKind.Snack)[0]).toEqual({
+      kind: MealKind.Snack,
+      hour: 9.5,
+      emphasis: MealEmphasis.Recovery,
+    })
+    expect(slots).toHaveLength(4)
+  })
+
+  it('rend les créneaux dans l’ordre de l’horloge, trois à cinq par jour', () => {
+    const slots = mealTiming(
+      [timed(RunSessionCode.LongRun, 7, 120), timed('legs', 18, 60)],
+      DayKind.Long,
+    )
+    const hours = slots.map((slot) => slot.hour)
+
+    expect(hours).toEqual([...hours].sort((a, b) => a - b))
+    expect(slots.length).toBeGreaterThanOrEqual(3)
+    expect(slots.length).toBeLessThanOrEqual(5)
+  })
+
+  it('écrit l’heure comme on la lit', () => {
+    expect(formatHour(7)).toBe('7 h')
+    expect(formatHour(16.5)).toBe('16 h 30')
+  })
+
+  it('fait partir la sortie longue le matin et le reste après le travail', () => {
+    expect(defaultStartHour({ code: RunSessionCode.LongRun })).toBe(9)
+    expect(defaultStartHour({ code: RunSessionCode.Vma })).toBe(18)
   })
 })

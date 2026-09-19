@@ -121,6 +121,10 @@ export const GLOSSARY = {
     title: 'Repères macro',
     text: 'Glucides, protéines et lipides par kilo de poids de corps et par jour. Le type de journée suit la séance la plus exigeante, et seuls les glucides bougent avec la charge.',
   },
+  repasDuJour: {
+    title: 'Repas du jour',
+    text: "Exemples de repas proposés pour ce jour, aux heures que les séances imposent. Ils ne sont générés qu'à la demande, et se régénèrent quand le plan du jour change.",
+  },
   regleApprise: {
     title: 'Règle apprise',
     text: 'Habitude acceptée, appliquée ensuite par le moteur sous un identifiant R100 ou au-delà. Elle déplace ou adoucit, jamais ne dépasse une règle de sécurité.',

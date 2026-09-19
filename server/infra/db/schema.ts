@@ -32,6 +32,7 @@ import {
 } from '../../domain/races/race'
 import { HabitStatus, HabitType } from '../../domain/learning/habit'
 import type { FuelPlan } from '../../domain/nutrition/fuel-plan'
+import type { Meal } from '../../domain/nutrition/meal'
 import { Sport } from '../../domain/shared/sport'
 
 export {
@@ -502,11 +503,33 @@ export const calibration = pgTable(
   (table) => [unique('calibration_date').on(table.date)],
 )
 
+/**
+ * Exemples de repas d'un jour, générés par le modèle à la demande (§ 6, P6.4).
+ * Une ligne par jour : absente, le jour n'a simplement rien à montrer. La clé
+ * des séances dit sur quoi la génération s'appuyait — le plan change, la
+ * proposition se régénère.
+ */
+export const mealPlan = pgTable(
+  'meal_plan',
+  {
+    id: serial('id').primaryKey(),
+    date: date('date').notNull(),
+    dayKind: text('day_kind').notNull(),
+    /** Séances du jour au moment de la génération, sous forme stable. */
+    sessionsKey: text('sessions_key').notNull(),
+    meals: jsonb('meals').$type<Meal[]>().notNull(),
+    generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [unique('meal_plan_date').on(table.date)],
+)
+
 export type Habit = typeof habit.$inferSelect
 export type NewHabit = typeof habit.$inferInsert
 export type CalibrationRow = typeof calibration.$inferSelect
 export type NewCalibrationRow = typeof calibration.$inferInsert
 export type RaceLookup = typeof raceLookup.$inferSelect
 export type NewRaceLookup = typeof raceLookup.$inferInsert
+export type MealPlan = typeof mealPlan.$inferSelect
+export type NewMealPlan = typeof mealPlan.$inferInsert
 export type Route = typeof route.$inferSelect
 export type NewRoute = typeof route.$inferInsert

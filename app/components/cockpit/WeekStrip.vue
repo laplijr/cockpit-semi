@@ -68,6 +68,7 @@ const days = computed(() => {
         v-for="day in days"
         :key="day.date"
         :label="day.label"
+        :date="day.date"
         :sessions="day.sessions"
         :is-today="day.isToday"
       />

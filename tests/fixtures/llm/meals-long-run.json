@@ -1,0 +1,24 @@
+{
+  "meals": [
+    {
+      "kind": "petit_dejeuner",
+      "name": "Flocons d'avoine au skyr",
+      "description": "80 g de flocons d'avoine, 150 g de skyr, une banane écrasée et une cuillère de miel."
+    },
+    {
+      "kind": "collation",
+      "name": "Pain et confiture",
+      "description": "Deux tartines de pain de mie avec de la confiture, un verre de lait et une compote."
+    },
+    {
+      "kind": "dejeuner",
+      "name": "Riz au poulet",
+      "description": "150 g de riz pesé cru, un blanc de poulet, des carottes fondantes et un yaourt."
+    },
+    {
+      "kind": "diner",
+      "name": "Pâtes au saumon",
+      "description": "120 g de pâtes pesées crues, un pavé de saumon, des épinards et un morceau de pain."
+    }
+  ]
+}

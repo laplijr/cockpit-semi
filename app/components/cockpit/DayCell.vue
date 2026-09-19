@@ -4,6 +4,7 @@ import type { PlanSession } from '~/stores/plan'
 withDefaults(
   defineProps<{
     label: string
+    date: string
     sessions: PlanSession[]
     isToday?: boolean
     compact?: boolean
@@ -77,6 +78,14 @@ const ui = useUiStore()
       </span>
     </div>
 
-    <span v-if="sessions.length === 0" class="text-[12px] text-text-dim">repos</span>
+    <!-- Un jour de repos a son détail, lui aussi : ses repas (§ 9, P6.4). -->
+    <button
+      v-if="sessions.length === 0"
+      type="button"
+      class="tile-action -mx-1 flex-1 rounded-sm border border-transparent px-1 text-left text-[12px] text-text-dim"
+      @click="ui.openDay(date)"
+    >
+      repos
+    </button>
   </div>
 </template>

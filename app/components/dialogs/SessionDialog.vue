@@ -1,10 +1,27 @@
 <script setup lang="ts">
-const props = defineProps<{ sessionId: number }>()
+/**
+ * Le dialog d'une séance, et — depuis P6.4 — celui d'un jour de repos, qui
+ * n'avait rien à ouvrir. Sans séance, il ne reste du jour que ses repas.
+ */
+const props = defineProps<{ sessionId?: number | null; date?: string | null }>()
 const emit = defineEmits<{ saved: [] }>()
 
 const plan = usePlanStore()
 
-const session = computed(() => plan.plan?.sessions.find((item) => item.id === props.sessionId))
+/**
+ * Visé par identifiant, ou par date : un jour ouvert depuis Nutrition montre sa
+ * séance principale, et un jour de repos n'a que ses repas.
+ */
+const session = computed(() => {
+  const sessions = plan.plan?.sessions ?? []
+  if (props.sessionId) return sessions.find((item) => item.id === props.sessionId)
+  if (!props.date) return undefined
+
+  const ofDay = sessions.filter((item) => item.date === props.date)
+  return ofDay.find((item) => item.key) ?? ofDay[0]
+})
+
+const day = computed(() => session.value?.date ?? props.date ?? null)
 
 /** Rôle de la séance dans la semaine : c'est ce qui justifie sa place (§ 8). */
 const role = computed(() => {
@@ -65,7 +82,17 @@ const plannedMinutes = computed(() => {
 </script>
 
 <template>
-  <div v-if="session" class="flex flex-col gap-4">
+  <!-- Un jour sans séance : il n'a ni structure ni ressenti, seulement ses repas. -->
+  <div v-if="!session && day" class="flex flex-col gap-4">
+    <div class="flex items-baseline gap-3">
+      <span class="display text-[22px] font-semibold">Repos</span>
+      <span class="mono text-[11.5px] text-text-dim">{{ formatLongDate(day) }}</span>
+    </div>
+
+    <NutritionDayMealPlan :date="day" />
+  </div>
+
+  <div v-else-if="session" class="flex flex-col gap-4">
     <div class="flex items-baseline gap-3">
       <UiAppIcon
         :name="sportStyle(session.sport).icon"
@@ -166,6 +193,10 @@ const plannedMinutes = computed(() => {
           :session-id="session.id"
           :distance-m="session.prescription.totalDistanceM"
         />
+
+        <!-- Les repas du jour vivent avec la séance : c'est elle qui décide de
+             leurs heures (§ 9, P6.4). -->
+        <NutritionDayMealPlan v-if="day" :date="day" />
 
         <div v-if="history.length > 0" class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Les fois d'avant</span>

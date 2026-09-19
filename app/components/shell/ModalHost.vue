@@ -28,6 +28,11 @@ const TITLES: Record<string, string> = {
   bloc: 'Bloc',
 }
 
+/** Un jour sans séance n'est pas une séance : la fenêtre le dit dans son titre. */
+const title = computed(() =>
+  ui.modal === 'seance' && !ui.modalTargetId ? 'Jour' : (TITLES[ui.modal ?? ''] ?? 'Détail'),
+)
+
 async function onSessionSaved() {
   await Promise.all([plan.load(), proposals.load()])
   ui.closeModal()
@@ -50,7 +55,7 @@ async function onDecided() {
   <Teleport to="body">
     <ShellAppModal
       v-if="ui.modal"
-      :title="TITLES[ui.modal] ?? 'Détail'"
+      :title="title"
       :width="WIDTHS[ui.modal] ?? 760"
       @close="ui.closeModal()"
     >
@@ -59,8 +64,9 @@ async function onDecided() {
       </template>
 
       <DialogsSessionDialog
-        v-if="ui.modal === 'seance' && ui.modalTargetId"
+        v-if="ui.modal === 'seance' && (ui.modalTargetId || ui.modalDate)"
         :session-id="ui.modalTargetId"
+        :date="ui.modalDate"
         @saved="onSessionSaved"
       />
 
