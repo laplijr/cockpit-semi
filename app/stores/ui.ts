@@ -12,7 +12,7 @@ export const MODAL_IDS = [
 ] as const
 
 /** Cadrans du cockpit qui ouvrent un détail (§ 8). */
-export const DIAL_IDS = ['course-a', 'forme', 'charge', 'vdot'] as const
+export const DIAL_IDS = ['course-a', 'forme', 'charge', 'vdot', 'adherence'] as const
 export type DialId = (typeof DIAL_IDS)[number]
 
 export type PanelId = (typeof PANEL_IDS)[number]

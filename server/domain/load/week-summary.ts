@@ -85,3 +85,88 @@ export function summariseWeek(
 function sum<T>(items: T[], value: (item: T) => number): number {
   return items.reduce((total, item) => total + value(item), 0)
 }
+
+/** Ce qui s'est accumulé depuis la reprise, et la régularité qui va avec. */
+export interface ProgressCounters {
+  runM: number
+  elevationGainM: number
+  sessions: number
+  longRuns: number
+  /** Semaines d'affilée tenues, la plus récente comprise. */
+  streak: number
+}
+
+/**
+ * Part des séances prévues en dessous de laquelle la semaine n'est pas tenue.
+ * La conformité se compte en séances et non en kilomètres : c'est le plan qu'on
+ * suit, et le volume a déjà son graphe. Une séance manquée sur cinq laisse la
+ * semaine debout, deux la font tomber.
+ */
+export const CONFORMING_SHARE = 0.8
+
+export interface ProgressWeek {
+  summary: WeekSummary | undefined
+  /**
+   * Vrai quand le moteur ou une pause a lui-même allégé la semaine : elle gèle
+   * la série au lieu de la casser. Le moteur doit pouvoir dire de lever le pied
+   * sans que ça coûte quelque chose (§ 1).
+   */
+  excused: boolean
+}
+
+/**
+ * Une semaine compte quand quatre séances sur cinq ont été faites. En dessous,
+ * et sans cause déclarée, la série repart de zéro.
+ */
+export function isConforming(summary: WeekSummary): boolean {
+  if (summary.sessionsPlanned === 0) return false
+  return summary.sessionsDone >= summary.sessionsPlanned * CONFORMING_SHARE
+}
+
+/**
+ * Série de semaines conformes, la plus récente en tête de la liste reçue.
+ * Une semaine allégée ou couverte par une pause est sautée : elle ne fait ni
+ * monter ni tomber la série (§ 9, P6.5).
+ */
+export function conformingStreak(weeks: ProgressWeek[]): number {
+  let streak = 0
+
+  for (const week of weeks) {
+    if (!week.summary) continue
+    if (week.excused || week.summary.light) continue
+    if (!isConforming(week.summary)) break
+    streak += 1
+  }
+
+  return streak
+}
+
+export interface CountedSession {
+  status: SessionStatus
+  sport: Sport
+  code: string
+  actualDistanceM: number | null
+  elevationGainM: number | null
+}
+
+/**
+ * Le chemin parcouru depuis la reprise : des totaux, pas des récompenses. Ils
+ * se lisent avec la série, qu'une semaine allégée gèle (§ 1 : jamais de série
+ * de jours consécutifs, qui pousserait à s'entraîner contre `readiness`).
+ */
+export function progressCounters(
+  sessions: CountedSession[],
+  weeks: ProgressWeek[],
+  longRunCode: string,
+): ProgressCounters {
+  const done = sessions.filter((item) => DONE_STATUSES.includes(item.status))
+  const runs = done.filter((item) => item.sport === Sport.Running)
+
+  return {
+    runM: Math.round(sum(runs, (item) => item.actualDistanceM ?? 0)),
+    elevationGainM: Math.round(sum(done, (item) => item.elevationGainM ?? 0)),
+    sessions: done.length,
+    longRuns: runs.filter((item) => item.code === longRunCode).length,
+    streak: conformingStreak(weeks),
+  }
+}

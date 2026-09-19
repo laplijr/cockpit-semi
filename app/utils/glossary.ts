@@ -109,6 +109,14 @@ export const GLOSSARY = {
     title: 'Propositions acceptées',
     text: "Part des propositions acceptées parmi celles qui ont été décidées. Les propositions encore en attente n'entrent pas dans le calcul.",
   },
+  record: {
+    title: 'Record',
+    text: "Meilleur chrono représentatif sur une distance de référence, ramené à sa distance exacte. Un chrono couru avec un incident n'en fait pas partie : il ne dit pas le niveau.",
+  },
+  serie: {
+    title: 'Série de semaines tenues',
+    text: "Semaines d'affilée où quatre séances prévues sur cinq ont été faites. Une semaine allégée par le moteur ou couverte par une pause gèle la série, elle ne la casse jamais.",
+  },
   recuperation: {
     title: 'Récupération',
     text: "Sommeil déclaré et jours sans aucune séance, ramenés à la semaine. Ces mesures ne jugent aucune séance : elles disent si le corps a eu le temps d'encaisser.",

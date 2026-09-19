@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  conformingStreak,
+  isConforming,
+  progressCounters,
   summariseWeek,
+  type CountedSession,
   type WeekLoadDay,
   type WeekSessionRecord,
 } from '~~/server/domain/load/week-summary'
@@ -81,5 +85,93 @@ describe('résumé de semaine (§ 9, P5.14)', () => {
     expect(summary.light).toBe(true)
     expect(summary.test).toBe(true)
     expect(summary.comeback).toBe(true)
+  })
+})
+
+describe('compteurs et série depuis la reprise (§ 9, P6.5)', () => {
+  const done = (over: Partial<CountedSession> = {}): CountedSession => ({
+    status: SessionStatus.Done,
+    sport: Sport.Running,
+    code: 'EF',
+    actualDistanceM: 8000,
+    elevationGainM: null,
+    ...over,
+  })
+
+  const summary = (sessionsDone: number, light = false, sessionsPlanned = 5) => ({
+    targetRunM: 40000,
+    actualRunM: 38_000,
+    runGapM: -2000,
+    loadUa: 300,
+    loadBySport: {
+      [Sport.Running]: 300,
+      [Sport.Cycling]: 0,
+      [Sport.Strength]: 0,
+      [Sport.Other]: 0,
+    },
+    sessionsPlanned,
+    sessionsDone,
+    light,
+    test: false,
+    comeback: false,
+  })
+
+  it('cumule ce qui a été fait, et ne compte pas ce qui ne l’a pas été', () => {
+    const counters = progressCounters(
+      [
+        done({ actualDistanceM: 10_000, code: 'SL' }),
+        done({ actualDistanceM: 8000 }),
+        done({ status: SessionStatus.Skipped, actualDistanceM: 9000 }),
+        done({ sport: Sport.Cycling, actualDistanceM: null }),
+      ],
+      [],
+      'SL',
+    )
+
+    expect(counters).toMatchObject({ runM: 18_000, sessions: 3, longRuns: 1 })
+  })
+
+  it('ajoute une semaine à la série quand le plan est tenu', () => {
+    const weeks = [summary(4), summary(5)].map((item) => ({ summary: item, excused: false }))
+
+    expect(conformingStreak(weeks)).toBe(2)
+  })
+
+  it('gèle la série sur une semaine allégée au lieu de la casser', () => {
+    const weeks = [
+      { summary: summary(4), excused: false },
+      { summary: summary(1, true), excused: false },
+      { summary: summary(5), excused: false },
+    ]
+
+    expect(conformingStreak(weeks)).toBe(2)
+  })
+
+  it('gèle aussi sur une semaine couverte par une pause', () => {
+    const weeks = [
+      { summary: summary(4), excused: false },
+      { summary: summary(1), excused: true },
+      { summary: summary(5), excused: false },
+    ]
+
+    expect(conformingStreak(weeks)).toBe(2)
+  })
+
+  it('remet la série à zéro sur une semaine ratée sans cause', () => {
+    const weeks = [
+      { summary: summary(2), excused: false },
+      { summary: summary(5), excused: false },
+    ]
+
+    expect(conformingStreak(weeks)).toBe(0)
+  })
+
+  it('s’arrête à une semaine à venir plutôt que de la compter tenue', () => {
+    expect(conformingStreak([{ summary: summary(0, false, 0), excused: false }])).toBe(0)
+  })
+
+  it('juge une semaine tenue à quatre séances sur cinq', () => {
+    expect(isConforming(summary(4))).toBe(true)
+    expect(isConforming(summary(3))).toBe(false)
   })
 })

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { confidence } from '~~/server/domain/fitness/confidence'
+import { ConfidenceEvent, confidenceHistory } from '~~/server/domain/fitness/confidence-history'
+import { FitnessOrigin } from '~~/server/domain/fitness/fitness-point'
 import {
   MAX_INTERVAL_SHARE,
   MIN_INTERVAL_SHARE,
@@ -123,5 +125,63 @@ describe('confiance (§ 5)', () => {
     const tight = confidence(projection, { targetS: projection.timeS - 120 })!
     const loose = confidence(projection, { targetS: projection.timeS + 120 })!
     expect(loose).toBeGreaterThan(tight)
+  })
+})
+
+describe('trajectoire de la confiance (§ 9, P6.5)', () => {
+  const PARIS = {
+    date: '2027-03-07',
+    distanceM: 21_097.5,
+    elevationGainM: null,
+    expectedTempC: null,
+    targetS: 7500,
+  }
+
+  const point = (date: string, vdot: number, origin = FitnessOrigin.Test, isFloor = false) => ({
+    date,
+    vdot,
+    isFloor,
+    origin,
+  })
+
+  it('rend un point de confiance par point de forme, dans l’ordre du temps', () => {
+    const series = confidenceHistory(
+      [point('2026-10-20', 33.7), point('2026-09-13', 33.1, FitnessOrigin.Race, true)],
+      PARIS,
+    )
+
+    expect(series.map((item) => item.date)).toEqual(['2026-09-13', '2026-10-20'])
+  })
+
+  it('monte quand un test passe au-dessus du plancher', () => {
+    const [floor, tested] = confidenceHistory(
+      [point('2026-09-13', 33.1, FitnessOrigin.Race, true), point('2026-10-20', 34.5)],
+      PARIS,
+    )
+
+    expect(tested!.confidencePct).toBeGreaterThan(floor!.confidencePct)
+    expect(floor!.events).toContain(ConfidenceEvent.Floor)
+    expect(tested!.events).toContain(ConfidenceEvent.Test)
+  })
+
+  it('baisse quand une pause couvre des semaines d’ici la course', () => {
+    const points = [point('2026-10-20', 33.7)]
+    const [libre] = confidenceHistory(points, PARIS)
+    const [enPause] = confidenceHistory(points, PARIS, [
+      { startDate: '2026-10-20', endDate: '2026-11-03', estimatedEndDate: null },
+    ])
+
+    expect(enPause!.confidencePct).toBeLessThan(libre!.confidencePct)
+    expect(enPause!.events).toContain(ConfidenceEvent.Paused)
+  })
+
+  it('reste vide sans objectif : une confiance sans cible ne veut rien dire', () => {
+    expect(confidenceHistory([point('2026-10-20', 33.7)], { ...PARIS, targetS: null })).toEqual([])
+  })
+
+  it('ignore les points de forme postérieurs à la course', () => {
+    const series = confidenceHistory([point('2026-10-20', 33.7), point('2027-05-01', 36)], PARIS)
+
+    expect(series).toHaveLength(1)
   })
 })

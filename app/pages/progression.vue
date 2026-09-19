@@ -49,15 +49,6 @@ const VDOT_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
   { label: 'Projection semi', term: 'projection' },
 ]
 
-const KEY_SESSION_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
-  { label: 'Date' },
-  { label: 'Séance', term: 'seanceCle' },
-  { label: 'Distance' },
-  { label: 'RPE prévu', term: 'rpe' },
-  { label: 'RPE réel' },
-  { label: 'Statut' },
-]
-
 const ORIGIN_LABELS: Record<string, string> = {
   course: 'Course',
   test: 'Test 20′',
@@ -65,6 +56,11 @@ const ORIGIN_LABELS: Record<string, string> = {
 }
 
 const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
+
+const counters = computed(() => data.value?.counters ?? null)
+
+/** Le dénivelé n'a pas encore de source : le compteur s'efface plutôt que d'afficher zéro. */
+const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
 </script>
 
 <template>
@@ -121,7 +117,11 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
         <span v-else class="block h-[14px]"><span class="mt-[6px] block h-px bg-line" /></span>
       </button>
 
-      <div class="tile dial">
+      <button
+        type="button"
+        class="tile dial tile-action text-left"
+        @click="ui.openDial('adherence')"
+      >
         <span class="label">Adhérence <UiInfoHint term="adherence" /></span>
 
         <span
@@ -142,7 +142,7 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
             :style="{ width: `${data?.adherence}%` }"
           />
         </span>
-      </div>
+      </button>
 
       <div class="tile dial">
         <span class="label"
@@ -171,7 +171,7 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
 
     <div class="tile">
       <div class="flex items-baseline gap-3">
-        <span class="label">VDOT et projection sur semi</span>
+        <span class="label">Forme et confiance</span>
         <!-- La table ne garde que les trois derniers points ; l'historique
              complet vit dans le dialog du cadran (§ 8, P6.35). -->
         <button
@@ -184,7 +184,11 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
         </button>
       </div>
 
-      <UiSeriesChart :points="vdotCurve" :height="140" />
+      <ProgressionFormChart
+        :vdot="vdotCurve"
+        :confidence="data?.confidence ?? []"
+        :race-name="data?.confidenceRace?.name ?? null"
+      />
 
       <table class="w-full text-[13px]">
         <thead>
@@ -221,35 +225,87 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
     </div>
 
     <section class="grid grid-cols-2 gap-4">
-      <!-- Calibration du ressenti : le tableau du § 8, sans seuil de détection. -->
       <div class="tile">
-        <div class="flex items-baseline gap-3">
-          <span class="label">Calibration du ressenti <UiInfoHint term="calibration" /></span>
-        </div>
+        <span class="label">Records <UiInfoHint term="record" /></span>
 
-        <p v-if="(data?.rpeCalibration.length ?? 0) === 0" class="text-[13px] text-text-dim">
-          Aucun ressenti sur la période.
+        <p v-if="(data?.records.length ?? 0) === 0" class="text-[13px] text-text-dim">
+          Aucun chrono représentatif : un record se court, il ne s'estime pas.
         </p>
 
         <div
-          v-for="row in data?.rpeCalibration ?? []"
-          :key="row.code"
+          v-for="record in data?.records ?? []"
+          :key="record.distance"
           class="flex items-baseline gap-3 border-t border-line-soft py-[6px] first:border-t-0"
         >
-          <span class="text-[13px]">{{ SESSION_LABELS[row.code] ?? row.code }}</span>
-          <span class="mono ml-auto text-[13px]" :class="Math.abs(row.bias) >= 0.5 && 'text-warn'">
-            {{ row.bias > 0 ? '+' : '' }}{{ formatDecimal(row.bias) }}
-          </span>
-          <span class="mono w-[70px] text-right text-[11.5px] text-text-dim">
-            {{ row.samples }} séance{{ row.samples > 1 ? 's' : '' }}
-          </span>
+          <span class="text-[13px]">{{ record.distance }}</span>
+          <span class="mono text-[15px]">{{ formatDuration(record.timeS) }}</span>
+          <UiHoverBubble :label="`Équivalences au VDOT de ce record`" class="ml-auto">
+            <template #trigger>
+              <span class="mono text-[11.5px] text-text-dim">
+                {{ formatDate(record.date) }} · VDOT {{ formatDecimal(record.vdot, 1) }}
+              </span>
+            </template>
+            <span class="label text-[10px]">{{ record.name }}</span>
+            <span
+              v-for="equivalent in record.equivalents"
+              :key="equivalent.distance"
+              class="mono text-[12px] text-text-dim"
+            >
+              {{ equivalent.distance }} · {{ formatDuration(equivalent.timeS) }}
+            </span>
+          </UiHoverBubble>
         </div>
       </div>
 
       <div class="tile">
-        <span class="label">Récupération <UiInfoHint term="recuperation" /></span>
+        <div class="flex items-baseline gap-3">
+          <span class="label">Depuis la reprise</span>
+          <span v-if="data?.resumedOn" class="mono text-[11.5px] text-text-dim">
+            {{ formatDate(data.resumedOn) }}
+          </span>
+        </div>
 
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid gap-3" :class="hasElevation ? 'grid-cols-4' : 'grid-cols-3'">
+          <div class="flex flex-col">
+            <span class="label text-[10px]">Kilomètres</span>
+            <span class="mono text-[17px]">{{ formatDistance(counters?.runM ?? 0) }}</span>
+            <span class="mono text-[10.5px] text-text-dim"
+              >{{ counters?.sessions ?? 0 }} séances</span
+            >
+          </div>
+          <div v-if="hasElevation" class="flex flex-col">
+            <span class="label text-[10px]">Dénivelé</span>
+            <span class="mono text-[17px]">{{ counters?.elevationGainM }} m</span>
+            <span class="mono text-[10.5px] text-text-dim">cumulé</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="label text-[10px]">Sorties longues</span>
+            <span class="mono text-[17px]">{{ counters?.longRuns ?? 0 }}</span>
+            <span class="mono text-[10.5px] text-text-dim">depuis la reprise</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="label text-[10px]">Série <UiInfoHint term="serie" /></span>
+            <span class="mono text-[17px]">{{ counters?.streak ?? 0 }}</span>
+            <span class="mono text-[10.5px] text-text-dim">
+              semaine{{ (counters?.streak ?? 0) > 1 ? 's' : '' }} tenue{{
+                (counters?.streak ?? 0) > 1 ? 's' : ''
+              }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!--
+      Deux lectures d'un même sujet — comment le corps encaisse : le sommeil et
+      les jours sans rien d'un côté, l'écart entre l'effort prévu et l'effort
+      vécu de l'autre. Un seul en-tête (§ 9, P6.5).
+    -->
+    <div class="tile">
+      <span class="label">Ressenti et récupération <UiInfoHint term="recuperation" /></span>
+
+      <div class="grid grid-cols-[1fr_1.2fr] gap-6">
+        <div class="grid grid-cols-3 gap-3 self-start">
           <div class="flex flex-col">
             <span class="label text-[10px]">Sommeil moyen</span>
             <span class="mono text-[17px]">
@@ -287,8 +343,35 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
             <span class="mono text-[10.5px] text-text-dim">par semaine</span>
           </div>
         </div>
+
+        <div class="flex flex-col border-l border-line-soft pl-6">
+          <span class="label text-[10px]">
+            Écart de RPE par séance <UiInfoHint term="calibration" />
+          </span>
+
+          <p v-if="(data?.rpeCalibration.length ?? 0) === 0" class="text-[13px] text-text-dim">
+            Aucun ressenti sur la période.
+          </p>
+
+          <div
+            v-for="row in data?.rpeCalibration ?? []"
+            :key="row.code"
+            class="flex items-baseline gap-3 border-t border-line-soft py-[5px] first:border-t-0"
+          >
+            <span class="text-[13px]">{{ SESSION_LABELS[row.code] ?? row.code }}</span>
+            <span
+              class="mono ml-auto text-[13px]"
+              :class="Math.abs(row.bias) >= 0.5 && 'text-warn'"
+            >
+              {{ row.bias > 0 ? '+' : '' }}{{ formatDecimal(row.bias) }}
+            </span>
+            <span class="mono w-[70px] text-right text-[11.5px] text-text-dim">
+              {{ row.samples }} séance{{ row.samples > 1 ? 's' : '' }}
+            </span>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
 
     <div v-if="(data?.strengthLoads.length ?? 0) > 0" class="tile">
       <span class="label">Charges tenues en renforcement <UiInfoHint term="chargeMuscu" /></span>
@@ -308,56 +391,6 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
           />
         </div>
       </div>
-    </div>
-
-    <div class="tile">
-      <span class="label">Journal des séances clés</span>
-      <table class="w-full text-[13px]">
-        <thead>
-          <tr class="text-left">
-            <th
-              v-for="head in KEY_SESSION_COLUMNS"
-              :key="head.label"
-              class="label pb-2 text-[10px]"
-            >
-              {{ head.label }}
-              <UiInfoHint v-if="head.term" :term="head.term" />
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="item in data?.keySessions ?? []"
-            :key="item.id"
-            class="border-t border-line-soft"
-          >
-            <td class="mono py-[6px]">{{ formatDate(item.date) }}</td>
-            <td class="py-[6px]">{{ SESSION_LABELS[item.code] ?? item.code }}</td>
-            <td class="mono py-[6px] text-text-dim">{{ formatDistance(item.distanceM) }}</td>
-            <td class="mono py-[6px] text-text-dim">{{ item.expectedRpe ?? '—' }}</td>
-            <td
-              class="mono py-[6px]"
-              :class="
-                item.rpe !== null && item.expectedRpe !== null && item.rpe > item.expectedRpe
-                  ? 'text-warn'
-                  : ''
-              "
-            >
-              {{ item.rpe ?? '—' }}
-            </td>
-            <td class="py-[6px]">
-              <span class="pill" :class="item.status === 'faite' ? 'pill-done' : ''">
-                {{ item.status }}
-              </span>
-            </td>
-          </tr>
-          <tr v-if="(data?.keySessions.length ?? 0) === 0">
-            <td colspan="6" class="py-3 text-text-dim">
-              Aucune séance clé encore planifiée ou réalisée.
-            </td>
-          </tr>
-        </tbody>
-      </table>
     </div>
   </div>
 </template>

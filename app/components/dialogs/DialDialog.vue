@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DialId } from '~/stores/ui'
+import type { GlossaryTerm } from '~/utils/glossary'
 
 const props = defineProps<{ dial: DialId }>()
 
@@ -9,6 +10,15 @@ const { data: readiness } = await useFetch('/api/readiness')
 const { data: library } = await useFetch('/api/library/running')
 const { data: races } = await useFetch('/api/races')
 const { data: progression } = await useFetch('/api/progression')
+
+const KEY_SESSION_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
+  { label: 'Date' },
+  { label: 'Séance', term: 'seanceCle' },
+  { label: 'Distance' },
+  { label: 'RPE prévu', term: 'rpe' },
+  { label: 'RPE réel' },
+  { label: 'Statut' },
+]
 
 const ORIGIN_LABELS: Record<string, string> = {
   course: 'Course',
@@ -48,6 +58,7 @@ const title = computed(
       forme: 'Forme du jour',
       charge: 'Charge combinée',
       vdot: 'VDOT',
+      adherence: 'Adhérence',
     })[props.dial],
 )
 </script>
@@ -196,6 +207,75 @@ const title = computed(
               <td class="mono py-[6px]">{{ point.vdot.toFixed(1).replace('.', ',') }}</td>
               <td class="mono py-[6px] text-text-dim">
                 {{ formatDuration(point.halfProjectionS) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
+
+    <!--
+      Le détail de l'adhérence, ce sont les séances elles-mêmes : le cadran dit
+      « 93 % des séances prévues » sans jamais dire lesquelles (§ 9, P6.5).
+    -->
+    <template v-else-if="dial === 'adherence'">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Séances prévues réalisées</span>
+          <span class="display text-[32px] font-bold">
+            {{ progression?.adherence === null ? '—' : `${progression?.adherence} %` }}
+          </span>
+        </div>
+        <div class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Séances clés sur la période</span>
+          <span class="mono text-[20px]">{{ progression?.keySessions.length ?? 0 }}</span>
+        </div>
+      </div>
+
+      <div class="tile bg-surface-inset">
+        <span class="label text-[10.5px]">Journal des séances clés</span>
+        <table class="w-full text-[13px]">
+          <thead>
+            <tr class="text-left">
+              <th
+                v-for="head in KEY_SESSION_COLUMNS"
+                :key="head.label"
+                class="label pb-2 text-[10px]"
+              >
+                {{ head.label }}
+                <UiInfoHint v-if="head.term" :term="head.term" />
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="item in progression?.keySessions ?? []"
+              :key="item.id"
+              class="border-t border-line-soft"
+            >
+              <td class="mono py-[6px]">{{ formatDate(item.date) }}</td>
+              <td class="py-[6px]">{{ SESSION_LABELS[item.code] ?? item.code }}</td>
+              <td class="mono py-[6px] text-text-dim">{{ formatDistance(item.distanceM) }}</td>
+              <td class="mono py-[6px] text-text-dim">{{ item.expectedRpe ?? '—' }}</td>
+              <td
+                class="mono py-[6px]"
+                :class="
+                  item.rpe !== null && item.expectedRpe !== null && item.rpe > item.expectedRpe
+                    ? 'text-warn'
+                    : ''
+                "
+              >
+                {{ item.rpe ?? '—' }}
+              </td>
+              <td class="py-[6px]">
+                <span class="pill" :class="item.status === 'faite' ? 'pill-done' : ''">
+                  {{ item.status }}
+                </span>
+              </td>
+            </tr>
+            <tr v-if="(progression?.keySessions.length ?? 0) === 0">
+              <td colspan="6" class="py-3 text-text-dim">
+                Aucune séance clé encore planifiée ou réalisée.
               </td>
             </tr>
           </tbody>
