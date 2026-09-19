@@ -10,6 +10,8 @@ const refused = computed(() => habits.value.filter((item) => item.status === 're
 
 const calibrations = computed(() => data.value?.calibrations ?? [])
 const latest = computed(() => calibrations.value[0] ?? null)
+/** Les trois semaines qui précèdent la mesure courante : au-delà, la tendance ne se lit plus. */
+const previous = computed(() => calibrations.value.slice(1, 4))
 
 async function decide(id: number, status: string) {
   busy.value = id
@@ -28,10 +30,9 @@ async function decide(id: number, status: string) {
     <section class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">À décider <UiInfoHint term="habitude" /></span>
+        <!-- Un paramètre de lecture, pas une définition : combien attendent (§ 8, P6.35). -->
         <span class="mono text-[11.5px] text-text-dim">
-          {{ pending.length }} habitude{{ pending.length > 1 ? 's' : '' }} détectée{{
-            pending.length > 1 ? 's' : ''
-          }}
+          {{ pending.length }} détectée{{ pending.length > 1 ? 's' : '' }}
         </span>
       </div>
 
@@ -142,13 +143,9 @@ async function decide(id: number, status: string) {
             </div>
           </div>
 
-          <table v-if="calibrations.length > 1" class="w-full text-[12.5px]">
+          <table v-if="previous.length > 0" class="w-full text-[12.5px]">
             <tbody>
-              <tr
-                v-for="week in calibrations.slice(1)"
-                :key="week.date"
-                class="border-t border-line-soft"
-              >
+              <tr v-for="week in previous" :key="week.date" class="border-t border-line-soft">
                 <td class="mono py-[5px] text-text-dim">{{ formatDate(week.date) }}</td>
                 <td class="mono py-[5px] text-right">
                   RPE {{ week.rpeError > 0 ? '+' : '' }}{{ formatDecimal(week.rpeError) }}

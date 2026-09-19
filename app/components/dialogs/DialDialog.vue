@@ -8,6 +8,13 @@ const { data: load } = await useFetch('/api/load')
 const { data: readiness } = await useFetch('/api/readiness')
 const { data: library } = await useFetch('/api/library/running')
 const { data: races } = await useFetch('/api/races')
+const { data: progression } = await useFetch('/api/progression')
+
+const ORIGIN_LABELS: Record<string, string> = {
+  course: 'Course',
+  test: 'Test 20′',
+  import_initial: 'Import',
+}
 
 const OBJECTIVE_LEVELS = [
   { label: 'Ambition', field: 'objectifAmbitionS', confidence: 'confidenceAmbitionPct' },
@@ -157,6 +164,42 @@ const title = computed(
         <span class="mono text-[12px] text-text-dim">
           Allure semi : {{ formatPace(library?.halfPaceSecPerKm) }}/km
         </span>
+      </div>
+
+      <!-- L'historique complet : Progression n'en montre que les trois derniers
+           points, le détail vit ici (§ 8, P6.35). -->
+      <div class="tile bg-surface-inset">
+        <span class="label text-[10.5px]">Tous les points de forme</span>
+        <table class="w-full text-[13px]">
+          <thead>
+            <tr class="text-left">
+              <th
+                v-for="head in ['Date', 'Origine', 'VDOT', 'Projection semi']"
+                :key="head"
+                class="label pb-2 text-[10px]"
+              >
+                {{ head }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="point in progression?.vdot ?? []"
+              :key="point.date"
+              class="border-t border-line-soft"
+            >
+              <td class="mono py-[6px]">{{ formatDate(point.date) }}</td>
+              <td class="py-[6px]">
+                {{ ORIGIN_LABELS[point.origin] ?? point.origin }}
+                <span v-if="point.isFloor" class="pill pill-warn ml-1">plancher</span>
+              </td>
+              <td class="mono py-[6px]">{{ point.vdot.toFixed(1).replace('.', ',') }}</td>
+              <td class="mono py-[6px] text-text-dim">
+                {{ formatDuration(point.halfProjectionS) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </template>
 

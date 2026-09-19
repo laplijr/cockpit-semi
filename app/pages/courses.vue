@@ -1,20 +1,27 @@
 <script setup lang="ts">
-import type { GlossaryTerm } from '~/utils/glossary'
+import { GLOSSARY, type GlossaryTerm } from '~/utils/glossary'
 
 const ui = useUiStore()
 const plan = usePlanStore()
 
-/** Seuls les mots de métier portent une icône : Course, Date et Distance n'en ont pas (§ 8). */
+/**
+ * Cinq colonnes (§ 8, P6.35) : la priorité est un point devant le nom, et
+ * l'écart se lit dans la colonne qui porte déjà l'objectif et la projection.
+ */
 const RACE_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
   { label: 'Course' },
   { label: 'Date' },
   { label: 'Distance' },
-  { label: 'Prio', term: 'priorite' },
-  { label: 'Objectif', term: 'objectif' },
-  { label: 'Projection', term: 'projection' },
-  { label: 'Écart', term: 'ecart' },
+  { label: 'Objectif → projection', term: 'ecart' },
   { label: 'Confiance', term: 'confiance' },
 ]
+
+const PRIORITY_TONES: Record<string, string> = {
+  A: 'bg-accent',
+  B: 'bg-text-dim',
+  C: 'bg-line-strong',
+}
+
 const { data: races, refresh } = await useFetch('/api/races')
 
 const upcoming = computed(() => (races.value ?? []).filter((race) => race.status === 'planifiee'))
@@ -66,14 +73,27 @@ async function onCreated() {
             @keydown.enter.prevent="ui.openModal('course', race.id)"
             @keydown.space.prevent="ui.openModal('course', race.id)"
           >
-            <td class="py-[10px]">{{ race.name }}</td>
-            <td class="mono py-[10px] text-text-dim">{{ formatDate(race.date) }}</td>
-            <td class="mono py-[10px] text-text-dim">{{ formatDistance(race.distanceM) }}</td>
             <td class="py-[10px]">
-              <span class="pill" :class="race.priority === 'A' && 'bg-accent/15 text-accent'">
-                {{ race.priority }}
+              <span class="flex items-center gap-2">
+                <!-- La priorité tient dans un point : la pastille redisait un
+                     rang que la couleur suffit à porter (§ 8, P6.35). -->
+                <UiHoverBubble :label="`Priorité ${race.priority}`">
+                  <template #trigger>
+                    <span
+                      class="size-[7px] rounded-full"
+                      :class="PRIORITY_TONES[race.priority] ?? 'bg-line-strong'"
+                    />
+                  </template>
+                  <span class="label text-[10px]">Priorité {{ race.priority }}</span>
+                  <span class="text-[12.5px] leading-[1.45] text-text-dim">
+                    {{ GLOSSARY.priorite.text }}
+                  </span>
+                </UiHoverBubble>
+                {{ race.name }}
               </span>
             </td>
+            <td class="mono py-[10px] text-text-dim">{{ formatDate(race.date) }}</td>
+            <td class="mono py-[10px] text-text-dim">{{ formatDistance(race.distanceM) }}</td>
             <td class="mono py-[10px]">
               <!-- « À fixer » n'est pas un état, c'est une action qui attend (§ 9, P5.10). -->
               <button
@@ -84,21 +104,28 @@ async function onCreated() {
               >
                 à fixer
               </button>
-              <span v-else-if="race.objectiveMode === 'record'" class="text-text-dim">
-                record {{ formatDuration(race.recordS) }}
+              <span v-else class="text-text-dim">
+                <template v-if="race.objectiveMode === 'record'">record </template>
+                {{
+                  formatDuration(race.objectiveMode === 'record' ? race.recordS : race.objectifS)
+                }}
               </span>
-              <span v-else>{{ formatDuration(race.objectifS) }}</span>
-            </td>
-            <td class="mono py-[10px]">{{ formatDuration(race.projectionS) }}</td>
-            <td class="mono py-[10px]" :class="(race.gapS ?? 0) > 0 ? 'text-warn' : 'text-ok'">
-              {{ formatSignedDuration(race.gapS) }}
+              <span class="mx-1 text-text-dim">→</span>
+              {{ formatDuration(race.projectionS) }}
+              <span
+                v-if="race.gapS !== null"
+                :class="race.gapS > 0 ? 'text-warn' : 'text-ok'"
+                class="ml-1"
+              >
+                {{ formatSignedDuration(race.gapS) }}
+              </span>
             </td>
             <td class="mono py-[10px] text-text-dim">
               {{ race.confidencePct === null ? '—' : `${race.confidencePct} %` }}
             </td>
           </tr>
           <tr v-if="upcoming.length === 0">
-            <td colspan="8" class="py-3 text-text-dim">Aucune course planifiée.</td>
+            <td colspan="5" class="py-3 text-text-dim">Aucune course planifiée.</td>
           </tr>
         </tbody>
       </table>

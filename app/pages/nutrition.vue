@@ -2,7 +2,6 @@
 const { data } = await useFetch('/api/nutrition')
 
 const today = computed(() => data.value?.days[0])
-const tomorrow = computed(() => data.value?.days[1])
 const raceWeek = computed(() => data.value?.raceWeek ?? null)
 </script>
 
@@ -122,33 +121,7 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
         </div>
       </div>
 
-      <table v-if="raceWeek.fuelPlan.intakes.length > 0" class="w-full text-[13px]">
-        <thead>
-          <tr class="text-left">
-            <th
-              v-for="head in ['Minute', 'Km', 'Prise']"
-              :key="head"
-              class="label pb-2 text-[10px]"
-            >
-              {{ head }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(intake, index) in raceWeek.fuelPlan.intakes"
-            :key="`${intake.minute}-${intake.product}-${index}`"
-            class="border-t border-line-soft"
-          >
-            <td class="mono py-[6px]">{{ intake.minute }}′</td>
-            <td class="mono py-[6px] text-text-dim">{{ intake.km }}</td>
-            <td class="py-[6px]">
-              {{ FUEL_PRODUCT_LABELS[intake.product] ?? intake.product }} · {{ intake.quantity }}
-              <span v-if="intake.optional" class="pill ml-2 text-[10px]">optionnelle</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <RacesFuelIntakes :intakes="raceWeek.fuelPlan.intakes" />
 
       <p v-for="note in raceWeek.fuelPlan.notes" :key="note" class="text-[12.5px] text-text-dim">
         {{ note }}
@@ -199,12 +172,6 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
           </tr>
         </tbody>
       </table>
-
-      <p class="text-[12.5px] text-text-dim">
-        Le type de jour suit la séance la plus exigeante ; les protéines et les lipides ne bougent
-        pas avec la charge. Demain est une
-        {{ (DAY_KIND_LABELS[tomorrow?.kind ?? ''] ?? '').toLowerCase() }}.
-      </p>
     </section>
   </div>
 </template>

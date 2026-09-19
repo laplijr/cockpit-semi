@@ -10,6 +10,8 @@ const PERIODS = [
 
 const period = ref<(typeof PERIODS)[number]['value']>('tout')
 
+const ui = useUiStore()
+
 const { data } = await useFetch('/api/progression', {
   query: { period },
 })
@@ -18,6 +20,27 @@ const { data } = await useFetch('/api/progression', {
 const vdotCurve = computed(() =>
   (data.value?.vdot ?? []).map((point) => ({ date: point.date, value: point.vdot })),
 )
+
+/** L'échelle du cadran de forme : la même tendance, à la taille d'un instrument. */
+const vdotSpark = computed(() => {
+  const values = (data.value?.vdot ?? []).map((point) => point.vdot)
+  if (values.length < 2) return null
+
+  const low = Math.min(...values) - 0.5
+  const span = Math.max(...values) + 0.5 - low
+
+  return values
+    .map((value, index) => {
+      const x = (index / (values.length - 1)) * 100
+      return `${x.toFixed(1)},${(20 - ((value - low) / span) * 20).toFixed(1)}`
+    })
+    .join(' ')
+})
+
+const lastVdot = computed(() => data.value?.vdot.at(-1) ?? null)
+
+/** La table ne garde que les trois derniers points : le reste vit dans le dialog du cadran. */
+const recentVdot = computed(() => (data.value?.vdot ?? []).slice(-3))
 
 const VDOT_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
   { label: 'Date' },
@@ -61,37 +84,105 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
       </button>
     </div>
 
+    <!-- Les trois KPI sont des instruments : chiffre à 56 px, une métadonnée,
+         une échelle qui le situe (§ 8, P6.35). -->
     <section class="grid grid-cols-3 gap-4">
-      <div class="tile">
+      <button type="button" class="tile dial tile-action text-left" @click="ui.openDial('vdot')">
         <span class="label">Forme mesurée <UiInfoHint term="vdot" /></span>
-        <span class="display text-[32px] leading-none font-bold">
-          {{ data?.vdot.at(-1)?.vdot.toFixed(1).replace('.', ',') ?? '—' }}
+
+        <span
+          class="display text-[56px] leading-none font-bold"
+          :class="{ 'text-warn': lastVdot?.isFloor, 'text-text-dim': !lastVdot }"
+        >
+          {{ lastVdot ? lastVdot.vdot.toFixed(1).replace('.', ',') : '—' }}
         </span>
+
         <span class="mono text-[11.5px] text-text-dim">
           {{ data?.vdot.length ?? 0 }} point{{ (data?.vdot.length ?? 0) > 1 ? 's' : '' }} ·
-          {{ data?.vdot.at(-1)?.isFloor ? 'plancher' : 'mesure' }}
+          {{ lastVdot?.isFloor ? 'plancher' : 'mesure' }}
         </span>
-      </div>
 
-      <div class="tile">
+        <svg
+          v-if="vdotSpark"
+          viewBox="0 0 100 20"
+          preserveAspectRatio="none"
+          class="h-[14px] w-full"
+          aria-hidden="true"
+        >
+          <polyline
+            :points="vdotSpark"
+            fill="none"
+            stroke="var(--color-accent)"
+            stroke-width="1.5"
+            vector-effect="non-scaling-stroke"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span v-else class="block h-[14px]"><span class="mt-[6px] block h-px bg-line" /></span>
+      </button>
+
+      <div class="tile dial">
         <span class="label">Adhérence <UiInfoHint term="adherence" /></span>
-        <span class="display text-[32px] leading-none font-bold">
+
+        <span
+          class="display text-[56px] leading-none font-bold"
+          :class="data?.adherence === null && 'text-text-dim'"
+        >
           {{ data?.adherence === null ? '—' : `${data?.adherence} %` }}
         </span>
+
+        <span class="mono text-[11.5px] text-text-dim">des séances prévues</span>
+
+        <!-- L'échelle situe le chiffre : 0 à 100 %, repère à la valeur. -->
+        <span class="relative block h-[14px]">
+          <span class="absolute inset-x-0 top-[6px] h-[3px] rounded-sm bg-accent-track" />
+          <span
+            v-if="data?.adherence !== null"
+            class="absolute top-[6px] h-[3px] rounded-sm bg-accent"
+            :style="{ width: `${data?.adherence}%` }"
+          />
+        </span>
       </div>
 
-      <div class="tile">
+      <div class="tile dial">
         <span class="label"
           >Propositions acceptées <UiInfoHint term="propositionsAcceptees"
         /></span>
-        <span class="display text-[32px] leading-none font-bold">
+
+        <span
+          class="display text-[56px] leading-none font-bold"
+          :class="data?.acceptanceRate === null && 'text-text-dim'"
+        >
           {{ data?.acceptanceRate === null ? '—' : `${data?.acceptanceRate} %` }}
+        </span>
+
+        <span class="mono text-[11.5px] text-text-dim">des décisions prises</span>
+
+        <span class="relative block h-[14px]">
+          <span class="absolute inset-x-0 top-[6px] h-[3px] rounded-sm bg-accent-track" />
+          <span
+            v-if="data?.acceptanceRate !== null"
+            class="absolute top-[6px] h-[3px] rounded-sm bg-accent"
+            :style="{ width: `${data?.acceptanceRate}%` }"
+          />
         </span>
       </div>
     </section>
 
     <div class="tile">
-      <span class="label">VDOT et projection sur semi</span>
+      <div class="flex items-baseline gap-3">
+        <span class="label">VDOT et projection sur semi</span>
+        <!-- La table ne garde que les trois derniers points ; l'historique
+             complet vit dans le dialog du cadran (§ 8, P6.35). -->
+        <button
+          v-if="(data?.vdot.length ?? 0) > recentVdot.length"
+          type="button"
+          class="mono ml-auto text-[11.5px] text-accent"
+          @click="ui.openDial('vdot')"
+        >
+          voir les {{ data?.vdot.length }} points
+        </button>
+      </div>
 
       <UiSeriesChart :points="vdotCurve" :height="140" />
 
@@ -105,7 +196,7 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
           </tr>
         </thead>
         <tbody>
-          <tr v-for="point in data?.vdot ?? []" :key="point.date" class="border-t border-line-soft">
+          <tr v-for="point in recentVdot" :key="point.date" class="border-t border-line-soft">
             <td class="mono py-[6px]">{{ formatDate(point.date) }}</td>
             <td class="py-[6px]">
               {{ ORIGIN_LABELS[point.origin] ?? point.origin }}
@@ -123,11 +214,10 @@ const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
         <span class="label">Volume visé et charge par semaine <UiInfoHint term="ua" /></span>
         <span class="mono text-[11.5px] text-text-dim">24 premières semaines</span>
       </div>
-      <UiWeekBars :weeks="visibleWeeks" />
-
-      <span class="mono text-[11px] text-text-dim">
-        Barre haute : volume visé. Barre basse : charge enregistrée, en unités arbitraires.
-      </span>
+      <UiWeekBars
+        :weeks="visibleWeeks"
+        :legend="{ volume: 'volume visé', load: 'charge enregistrée' }"
+      />
     </div>
 
     <section class="grid grid-cols-2 gap-4">

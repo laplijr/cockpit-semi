@@ -119,7 +119,7 @@ export const GLOSSARY = {
   },
   reperesMacro: {
     title: 'Repères macro',
-    text: 'Glucides et protéines exprimés par kilo de poids de corps et par jour. Ils suivent le type de journée, pas la séance prise isolément.',
+    text: 'Glucides, protéines et lipides par kilo de poids de corps et par jour. Le type de journée suit la séance la plus exigeante, et seuls les glucides bougent avec la charge.',
   },
   regleApprise: {
     title: 'Règle apprise',
