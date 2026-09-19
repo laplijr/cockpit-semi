@@ -14,7 +14,7 @@ const preventionBlock = computed(() =>
     <div class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">
-          Le renforcement suit les phases du plan course <UiInfoHint term="phaseMuscu" />
+          <UiInfoHint term="phaseMuscu">Le renforcement suit les phases du plan course</UiInfoHint>
         </span>
         <span class="mono text-[11.5px] text-text-dim">
           {{ PHASE_LABELS[data?.phaseType ?? ''] ?? data?.phaseType }} ·
@@ -39,11 +39,17 @@ const preventionBlock = computed(() =>
       >
         <span class="flex items-baseline gap-2">
           <span class="display truncate text-[17px] font-semibold">{{ item.label }}</span>
-          <span
+          <UiHoverBubble
             v-if="planned.has(item.code)"
-            class="ml-auto h-[6px] w-[6px] shrink-0 rounded-full bg-accent"
-            title="Prévue cette semaine"
-          />
+            label="Prévue cette semaine"
+            size="sm"
+            trigger-class="ml-auto"
+          >
+            <template #trigger>
+              <span class="block h-[6px] w-[6px] shrink-0 rounded-full bg-accent" />
+            </template>
+            <span class="text-[12.5px] text-text-dim">Prévue cette semaine</span>
+          </UiHoverBubble>
         </span>
         <span class="mono text-[12px] text-text-dim">
           {{ formatMinutes(item.prescription.durationMin) }} · RPE
@@ -53,7 +59,7 @@ const preventionBlock = computed(() =>
     </div>
 
     <div class="tile">
-      <span class="label">Exercices de prévention <UiInfoHint term="prevention" /></span>
+      <span class="label"><UiInfoHint term="prevention">Exercices de prévention</UiInfoHint></span>
 
       <div class="grid grid-cols-2 gap-x-6 gap-y-2">
         <div
@@ -67,18 +73,19 @@ const preventionBlock = computed(() =>
           @keydown.space.prevent="ui.openExercise(exercise.id)"
         >
           <span class="flex items-baseline gap-2">
-            <span class="text-[13px]">{{ exercise.label }}</span>
+            <UiNoteHint :title="exercise.label" :text="exercise.why">
+              <span class="text-[13px]">{{ exercise.label }}</span>
+            </UiNoteHint>
             <span class="mono text-[12px] text-text-dim">
               {{ exercise.sets }} × {{ exercise.reps }}{{ exercise.isometric ? '″' : '' }}
             </span>
-            <UiNoteHint :title="exercise.label" :text="exercise.why" />
           </span>
         </div>
       </div>
     </div>
 
     <div class="tile">
-      <span class="label">Charges tenues <UiInfoHint term="chargeMuscu" /></span>
+      <span class="label"><UiInfoHint term="chargeMuscu">Charges tenues</UiInfoHint></span>
 
       <div
         v-if="Object.keys(data?.lastLoadsKg ?? {}).length === 0"

@@ -33,14 +33,15 @@ async function ask() {
 <template>
   <div class="tile bg-surface-inset">
     <div class="flex items-center gap-3">
-      <span class="label text-[10.5px]">Repas du jour <UiInfoHint term="repasDuJour" /></span>
+      <span class="label text-[10.5px]"
+        ><UiInfoHint term="repasDuJour">Repas du jour</UiInfoHint></span
+      >
       <!-- Ouvrir le jour ne génère rien : seul ce geste appelle le modèle (§ 1). -->
       <button
         v-if="data?.meals"
         type="button"
         class="btn btn-ghost ml-auto size-9 shrink-0 p-0"
         :disabled="asking"
-        title="Régénérer les repas du jour"
         aria-label="Régénérer les repas du jour"
         @click="ask"
       >

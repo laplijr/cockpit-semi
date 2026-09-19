@@ -234,6 +234,77 @@
     color: var(--color-warn);
   }
 
+  /*
+   * Bulle d'explication : une couche au-dessus de l'écran, pas une tuile de
+   * plus. Son fond descend sous celui des tuiles au lieu de monter au-dessus —
+   * c'est ce qui la détache — et les pastilles en `surface-muted` qu'elle
+   * porte ressortent au lieu de s'y fondre (§ 8, P6.36).
+   */
+  .bubble {
+    background: var(--color-ink-deep);
+    border: 1px solid var(--color-line-strong);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px -6px rgb(0 0 0 / 0.65);
+  }
+
+  /* Carré à 45° : la bulle recouvre ses deux côtés intérieurs. */
+  .bubble-arrow {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    background: var(--color-ink-deep);
+    transform: rotate(45deg);
+  }
+
+  .bubble-arrow-up {
+    border-top: 1px solid var(--color-line-strong);
+    border-left: 1px solid var(--color-line-strong);
+  }
+
+  /* Apparition : de l'opacité et trois pixels, rien de plus. */
+  .bubble-in {
+    animation: bubble-in 90ms ease-out;
+  }
+
+  @keyframes bubble-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bubble-in {
+      animation: none;
+    }
+  }
+
+  .bubble-arrow-down {
+    border-bottom: 1px solid var(--color-line-strong);
+    border-right: 1px solid var(--color-line-strong);
+  }
+
+  /*
+   * Un mot de métier est son propre déclencheur : rien au repos, il s'éclaircit
+   * et prend le curseur d'aide quand la souris entre dans sa zone (§ 8, P6.36).
+   */
+  .explicable {
+    cursor: help;
+    color: inherit;
+    transition: color 120ms ease;
+  }
+
+  /*
+   * Les trois zones de révélation : une tuile, une ligne de table, une rangée
+   * de formulaire. Un mot explicable hors de ces zones ne s'allumerait jamais.
+   */
+  .tile:hover .explicable,
+  tr:hover .explicable,
+  label:hover .explicable,
+  .explicable-zone:hover .explicable {
+    color: var(--color-text);
+  }
+
   .badge {
     min-width: 18px;
     height: 18px;

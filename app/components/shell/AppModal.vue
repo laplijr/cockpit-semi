@@ -14,7 +14,7 @@ const dialog = useDialogFocus()
       role="dialog"
       aria-modal="true"
       :aria-label="title"
-      class="relative flex max-h-full flex-col gap-4 overflow-y-auto rounded-md border border-line bg-surface p-6"
+      class="explicable-zone relative flex max-h-full flex-col gap-4 overflow-y-auto rounded-md border border-line bg-surface p-6"
       :style="{ width: `${width}px` }"
     >
       <div class="flex items-center gap-3">

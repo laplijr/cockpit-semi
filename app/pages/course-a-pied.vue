@@ -36,8 +36,9 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
         <tbody>
           <tr v-for="zone in data?.zones ?? []" :key="zone.key" class="border-t border-line-soft">
             <td class="py-[6px]">
-              {{ zone.label }}
-              <UiInfoHint :term="glossaryTermFor(ZONE_TERMS, zone.key)!" />
+              <UiInfoHint :term="glossaryTermFor(ZONE_TERMS, zone.key)!">
+                {{ zone.label }}
+              </UiInfoHint>
             </td>
             <td class="mono py-[6px]">{{ formatPace(zone.paceSecPerKm) }}/km</td>
             <td class="mono py-[6px] text-text-dim">
@@ -45,7 +46,7 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
             </td>
           </tr>
           <tr class="border-t border-line-soft">
-            <td class="py-[6px]">Allure semi <UiInfoHint term="allureSemi" /></td>
+            <td class="py-[6px]"><UiInfoHint term="allureSemi">Allure semi</UiInfoHint></td>
             <td class="mono py-[6px]">{{ formatPace(data?.halfPaceSecPerKm) }}/km</td>
             <td class="mono py-[6px] text-text-dim">projection sur 21,1 km</td>
           </tr>
@@ -69,25 +70,25 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
       >
         <span class="flex items-baseline gap-2">
           <span class="display truncate text-[17px] font-semibold">
-            {{ type.label }}
             <UiInfoHint
               v-if="glossaryTermFor(SESSION_TERMS, type.code)"
               :term="glossaryTermFor(SESSION_TERMS, type.code)!"
-            />
+            >
+              {{ type.label }}
+            </UiInfoHint>
+            <template v-else>{{ type.label }}</template>
           </span>
-          <span
-            v-if="type.key"
-            class="ml-auto h-[6px] w-[6px] shrink-0 rounded-full bg-accent"
-            title="Séance clé"
-          />
+          <UiHoverBubble v-if="type.key" label="Séance clé" size="sm" trigger-class="ml-auto">
+            <template #trigger>
+              <span class="block h-[6px] w-[6px] shrink-0 rounded-full bg-accent" />
+            </template>
+            <span class="text-[12.5px] text-text-dim">Séance clé</span>
+          </UiHoverBubble>
         </span>
 
         <span class="mono text-[24px] leading-none">{{ formatPace(type.paceSecPerKm) }}/km</span>
 
-        <span
-          class="mono truncate text-[12px] text-text-dim"
-          :title="structureOf(type.prescription.steps)"
-        >
+        <span class="mono truncate text-[12px] text-text-dim">
           {{ formatDistance(type.prescription.totalDistanceM) }} ·
           {{ structureOf(type.prescription.steps) }}
         </span>

@@ -45,7 +45,6 @@ const ICONS = {
   check: [path('M20 6 9 17l-5-5')],
   trash: [path('M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13'), path('M10 11v6M14 11v6')],
   close: [path('M18 6 6 18M6 6l12 12')],
-  info: [circle(12, 12, 9), path('M12 11v5'), path('M12 8h.01')],
   wand: [path('M4 20 14.5 9.5'), path('M16 3v5M13.5 5.5h5'), path('M19.5 12v3M18 13.5h3')],
   strava: [path('M8 3l6 12h-4l-2-4-2 4H2z'), path('M14 15l3 6 3-6h-2l-1 2-1-2z')],
   route: [
@@ -60,7 +59,16 @@ const ICONS = {
 
 export type IconName = keyof typeof ICONS
 
-const props = withDefaults(defineProps<{ name: IconName; size?: number }>(), { size: 16 })
+/**
+ * Une icône est muette par défaut : elle double un mot déjà écrit. Quand elle
+ * porte seule une information — le sport d'une séance, la coche « faite » —
+ * `label` la nomme pour le lecteur d'écran. Ce n'est pas une bulle : nommer une
+ * icône et expliquer un mot sont deux choses (§ 8, P6.36).
+ */
+const props = withDefaults(defineProps<{ name: IconName; size?: number; label?: string }>(), {
+  size: 16,
+  label: undefined,
+})
 
 const shapes = computed<Shape[]>(() => ICONS[props.name])
 </script>
@@ -75,9 +83,11 @@ const shapes = computed<Shape[]>(() => ICONS[props.name])
     stroke-width="1.8"
     stroke-linecap="round"
     stroke-linejoin="round"
-    aria-hidden="true"
+    :aria-hidden="label ? undefined : 'true'"
+    :role="label ? 'img' : undefined"
     class="shrink-0"
   >
+    <title v-if="label">{{ label }}</title>
     <component :is="shape.tag" v-for="(shape, index) in shapes" :key="index" v-bind="shape.attrs" />
   </svg>
 </template>

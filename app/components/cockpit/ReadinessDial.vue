@@ -22,7 +22,7 @@ const SEGMENTS = [
 <template>
   <div v-if="isLoading(status)" class="tile dial" aria-busy="true">
     <div class="flex items-baseline justify-between">
-      <span class="label">Forme du jour <UiInfoHint term="formeDuJour" /></span>
+      <span class="label"><UiInfoHint term="formeDuJour">Forme du jour</UiInfoHint></span>
     </div>
     <UiSkeleton variant="number" />
     <UiSkeleton :height="15" width="72px" />
@@ -36,7 +36,7 @@ const SEGMENTS = [
     @click="ui.openDial('forme')"
   >
     <span class="flex items-baseline justify-between gap-2">
-      <span class="label">Forme du jour <UiInfoHint term="formeDuJour" /></span>
+      <span class="label"><UiInfoHint term="formeDuJour">Forme du jour</UiInfoHint></span>
     </span>
 
     <span class="display text-[56px] leading-none font-bold" :class="tone">

@@ -63,7 +63,7 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
       class="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] grid-rows-[auto_auto_auto] gap-x-3 gap-y-[6px]"
     >
       <label class="row-span-3 grid grid-rows-subgrid gap-y-[6px]">
-        <span class="label text-[10.5px]">Objectif <UiInfoHint term="objectif" /></span>
+        <span class="label text-[10.5px]"><UiInfoHint term="objectif">Objectif</UiInfoHint></span>
         <select v-model="mode" class="input">
           <option value="temps">Chrono cible</option>
           <!-- Un mode indisponible dit pourquoi là où il se choisit, pas en note de bas de page. -->
@@ -105,7 +105,6 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
             type="button"
             class="btn btn-ghost h-9 w-9 px-0"
             :disabled="proposed === null"
-            title="Proposer les trois niveaux depuis ma projection"
             aria-label="Proposer les trois niveaux depuis ma projection"
             @click="proposeFromProjection"
           >

@@ -40,7 +40,9 @@ const line = computed(() => {
 
   <button v-else type="button" class="tile dial tile-action text-left" @click="ui.openDial('vdot')">
     <span class="flex items-baseline justify-between gap-2">
-      <span class="label">{{ label }} <UiInfoHint :term="isFloor ? 'plancher' : 'vdot'" /></span>
+      <span class="label">
+        <UiInfoHint :term="isFloor ? 'plancher' : 'vdot'">{{ label }}</UiInfoHint>
+      </span>
     </span>
 
     <!-- Une estimation basse se lit à la couleur du chiffre : la pastille sort (§ 8, P6.35). -->

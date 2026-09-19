@@ -57,21 +57,20 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
       >
         <span class="flex items-baseline gap-2">
           <span class="display truncate text-[17px] font-semibold">
-            {{ type.label }}
             <UiInfoHint
               v-if="glossaryTermFor(SESSION_TERMS, type.code)"
               :term="glossaryTermFor(SESSION_TERMS, type.code)!"
-            />
+            >
+              {{ type.label }}
+            </UiInfoHint>
+            <template v-else>{{ type.label }}</template>
           </span>
           <span v-if="type.onPainOnly" class="pill pill-warn ml-auto shrink-0">sur douleur</span>
         </span>
 
         <span class="mono text-[24px] leading-none">{{ type.ftpRange }}</span>
 
-        <span
-          class="mono truncate text-[12px] text-text-dim"
-          :title="structureOf(type.prescription.steps)"
-        >
+        <span class="mono truncate text-[12px] text-text-dim">
           {{ formatMinutes(type.minDurationMin) }} – {{ formatMinutes(type.maxDurationMin) }} ·
           {{ structureOf(type.prescription.steps) }}
         </span>

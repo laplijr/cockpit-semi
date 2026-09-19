@@ -45,7 +45,7 @@ const planned = computed(() => (data.value?.plannedCodes ?? []).some((code) => c
       >
         <span class="text-[13.5px]">{{ step.label }}</span>
         <span v-if="step.superset" class="pill text-[10px]">
-          superset <UiInfoHint term="superset" />
+          <UiInfoHint term="superset">superset</UiInfoHint>
         </span>
         <UiAppIcon
           v-if="step.exerciseId"

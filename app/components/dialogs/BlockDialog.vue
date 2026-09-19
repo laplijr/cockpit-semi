@@ -92,10 +92,10 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
             <td class="mono py-[6px] w-20 text-right">{{ formatDistance(week.targetRunM) }}</td>
             <td class="py-[6px] w-28 text-right">
               <span v-if="week.light" class="pill text-[10px]">
-                allégée <UiInfoHint term="semaineAllegee" />
+                <UiInfoHint term="semaineAllegee">allégée</UiInfoHint>
               </span>
               <span v-if="week.test" class="pill text-[10px]">
-                test <UiInfoHint term="test20" />
+                <UiInfoHint term="test20">test</UiInfoHint>
               </span>
             </td>
           </tr>
@@ -105,7 +105,9 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
 
     <div class="grid grid-cols-3 gap-4">
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Séances clés <UiInfoHint term="seanceCle" /></span>
+        <span class="label text-[10.5px]"
+          ><UiInfoHint term="seanceCle">Séances clés</UiInfoHint></span
+        >
         <span v-for="item in keySessions" :key="item.code" class="text-[13px] text-text-dim">
           {{ SESSION_LABELS[item.code] ?? item.code }}
           <span class="mono text-text-dim">× {{ item.count }}</span>

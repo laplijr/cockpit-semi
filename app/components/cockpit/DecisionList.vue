@@ -132,8 +132,7 @@ async function apply() {
       />
       <button
         type="button"
-        class="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-baseline gap-3 text-left"
-        :title="`${titleOf(group)} · ${group.ruleId}`"
+        class="explicable-zone grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-baseline gap-3 text-left"
         @click="ui.openModal('proposition', group.ids[0]!)"
       >
         <span class="flex min-w-0 items-baseline gap-2">
@@ -141,9 +140,17 @@ async function apply() {
             v-if="sportOf(group)"
             :name="sportStyle(sportOf(group)!).icon"
             :size="14"
+            :label="SPORT_LABELS[sportOf(group)!] ?? sportOf(group)!"
             :class="['shrink-0 self-center', sportStyle(sportOf(group)!).tone]"
           />
-          <span class="truncate text-[13.5px]">{{ targetOf(group) }}</span>
+          <!-- Le titre complet et l'identifiant de règle passent au survol. -->
+          <UiHoverBubble :label="titleOf(group)" size="lg" trigger-class="min-w-0">
+            <template #trigger>
+              <span class="explicable truncate text-[13.5px]">{{ targetOf(group) }}</span>
+            </template>
+            <template #title>{{ titleOf(group) }}</template>
+            <span class="mono text-[11.5px] text-text-dim">{{ group.ruleId }}</span>
+          </UiHoverBubble>
         </span>
 
         <!-- Le delta est un texte du moteur, parfois long : il tronque de son

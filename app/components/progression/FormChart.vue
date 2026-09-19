@@ -115,7 +115,7 @@ const EVENT_LABELS: Record<string, string> = {
     <template v-if="confidence.length > 0">
       <div class="mt-1 flex items-baseline justify-between border-t border-line-soft pt-1">
         <span class="label text-[9.5px]">
-          Confiance <UiInfoHint term="confiance" />
+          <UiInfoHint term="confiance">Confiance</UiInfoHint>
           <template v-if="raceName"> · {{ raceName }}</template>
         </span>
         <span class="mono text-[10.5px] text-text-dim"

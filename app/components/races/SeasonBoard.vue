@@ -64,7 +64,7 @@ function pillShift(positionPct: number): string {
   <div v-if="layout.segments.length > 0" class="tile">
     <!-- Quatre informations : le cap, la position, la prochaine bascule, la frise (§ 8). -->
     <div class="flex items-baseline gap-3">
-      <span class="label">Cap <UiInfoHint term="courseA" /></span>
+      <span class="label"><UiInfoHint term="courseA">Cap</UiInfoHint></span>
       <span v-if="target" class="mono text-[11.5px] text-text-dim">
         {{ target.name }} · {{ formatDateWithYear(target.date) }} · J−{{
           daysUntil(target.date, today)
@@ -86,7 +86,7 @@ function pillShift(positionPct: number): string {
         <template v-if="nextSwitch.startDate"> le {{ formatDate(nextSwitch.startDate) }}</template>
       </span>
       <span v-if="nextTest">
-        Prochain test <UiInfoHint term="test20" /> en semaine {{ nextTest.index }}
+        <UiInfoHint term="test20">Prochain test</UiInfoHint> en semaine {{ nextTest.index }}
       </span>
     </div>
 

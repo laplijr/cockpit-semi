@@ -27,7 +27,7 @@ const tone = computed(() => {
 <template>
   <div v-if="isLoading(status)" class="tile dial" aria-busy="true">
     <div class="flex items-baseline justify-between">
-      <span class="label">Charge combinée <UiInfoHint term="chargeCombinee" /></span>
+      <span class="label"><UiInfoHint term="chargeCombinee">Charge combinée</UiInfoHint></span>
     </div>
     <UiSkeleton variant="number" />
     <UiSkeleton :height="15" width="72px" />
@@ -41,7 +41,7 @@ const tone = computed(() => {
     @click="ui.openDial('charge')"
   >
     <span class="flex items-baseline justify-between gap-2">
-      <span class="label">Charge combinée <UiInfoHint term="chargeCombinee" /></span>
+      <span class="label"><UiInfoHint term="chargeCombinee">Charge combinée</UiInfoHint></span>
     </span>
 
     <span class="display text-[56px] leading-none font-bold" :class="tone">

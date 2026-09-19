@@ -84,7 +84,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
          une échelle qui le situe (§ 8, P6.35). -->
     <section class="grid grid-cols-3 gap-4">
       <button type="button" class="tile dial tile-action text-left" @click="ui.openDial('vdot')">
-        <span class="label">Forme mesurée <UiInfoHint term="vdot" /></span>
+        <span class="label"><UiInfoHint term="vdot">Forme mesurée</UiInfoHint></span>
 
         <span
           class="display text-[56px] leading-none font-bold"
@@ -122,7 +122,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         class="tile dial tile-action text-left"
         @click="ui.openDial('adherence')"
       >
-        <span class="label">Adhérence <UiInfoHint term="adherence" /></span>
+        <span class="label"><UiInfoHint term="adherence">Adhérence</UiInfoHint></span>
 
         <span
           class="display text-[56px] leading-none font-bold"
@@ -145,9 +145,9 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       </button>
 
       <div class="tile dial">
-        <span class="label"
-          >Propositions acceptées <UiInfoHint term="propositionsAcceptees"
-        /></span>
+        <span class="label">
+          <UiInfoHint term="propositionsAcceptees">Propositions acceptées</UiInfoHint>
+        </span>
 
         <span
           class="display text-[56px] leading-none font-bold"
@@ -194,8 +194,8 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         <thead>
           <tr class="text-left">
             <th v-for="head in VDOT_COLUMNS" :key="head.label" class="label pb-2 text-[10px]">
-              {{ head.label }}
-              <UiInfoHint v-if="head.term" :term="head.term" />
+              <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
+              <template v-else>{{ head.label }}</template>
             </th>
           </tr>
         </thead>
@@ -215,7 +215,9 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
 
     <div class="tile">
       <div class="flex items-baseline gap-3">
-        <span class="label">Volume visé et charge par semaine <UiInfoHint term="ua" /></span>
+        <span class="label"
+          ><UiInfoHint term="ua">Volume visé et charge par semaine</UiInfoHint></span
+        >
         <span class="mono text-[11.5px] text-text-dim">24 premières semaines</span>
       </div>
       <UiWeekBars
@@ -226,7 +228,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
 
     <section class="grid grid-cols-2 gap-4">
       <div class="tile">
-        <span class="label">Records <UiInfoHint term="record" /></span>
+        <span class="label"><UiInfoHint term="record">Records</UiInfoHint></span>
 
         <p v-if="(data?.records.length ?? 0) === 0" class="text-[13px] text-text-dim">
           Aucun chrono représentatif : un record se court, il ne s'estime pas.
@@ -284,7 +286,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
             <span class="mono text-[10.5px] text-text-dim">depuis la reprise</span>
           </div>
           <div class="flex flex-col">
-            <span class="label text-[10px]">Série <UiInfoHint term="serie" /></span>
+            <span class="label text-[10px]"><UiInfoHint term="serie">Série</UiInfoHint></span>
             <span class="mono text-[17px]">{{ counters?.streak ?? 0 }}</span>
             <span class="mono text-[10.5px] text-text-dim">
               semaine{{ (counters?.streak ?? 0) > 1 ? 's' : '' }} tenue{{
@@ -302,7 +304,9 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       vécu de l'autre. Un seul en-tête (§ 9, P6.5).
     -->
     <div class="tile">
-      <span class="label">Ressenti et récupération <UiInfoHint term="recuperation" /></span>
+      <span class="label"
+        ><UiInfoHint term="recuperation">Ressenti et récupération</UiInfoHint></span
+      >
 
       <div class="grid grid-cols-[1fr_1.2fr] gap-6">
         <div class="grid grid-cols-3 gap-3 self-start">
@@ -346,7 +350,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
 
         <div class="flex flex-col border-l border-line-soft pl-6">
           <span class="label text-[10px]">
-            Écart de RPE par séance <UiInfoHint term="calibration" />
+            <UiInfoHint term="calibration">Écart de RPE par séance</UiInfoHint>
           </span>
 
           <p v-if="(data?.rpeCalibration.length ?? 0) === 0" class="text-[13px] text-text-dim">
@@ -374,7 +378,9 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
     </div>
 
     <div v-if="(data?.strengthLoads.length ?? 0) > 0" class="tile">
-      <span class="label">Charges tenues en renforcement <UiInfoHint term="chargeMuscu" /></span>
+      <span class="label"
+        ><UiInfoHint term="chargeMuscu">Charges tenues en renforcement</UiInfoHint></span
+      >
 
       <!--
         Une liste qui s'allonge défile dans sa tuile au lieu de pousser ce qui

@@ -142,7 +142,9 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
     </section>
 
     <section class="tile">
-      <span class="label">Repères par type de jour <UiInfoHint term="reperesMacro" /></span>
+      <span class="label"
+        ><UiInfoHint term="reperesMacro">Repères par type de jour</UiInfoHint></span
+      >
 
       <table class="w-full text-[13px]">
         <thead>

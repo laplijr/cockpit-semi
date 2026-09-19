@@ -91,7 +91,7 @@ async function save() {
 
     <div v-if="isTest" class="tile" style="border-color: rgba(242, 162, 58, 0.35)">
       <span class="label text-[10.5px]">
-        Distance couverte en 20 minutes (m) <UiInfoHint term="test20" />
+        <UiInfoHint term="test20">Distance couverte en 20 minutes (m)</UiInfoHint>
       </span>
       <input v-model.number="testDistanceM" type="number" class="input mono" placeholder="4000" />
       <p class="text-[12px] text-text-dim">
@@ -115,13 +115,13 @@ async function save() {
 
     <div class="flex flex-col gap-[6px]">
       <span class="label text-[10.5px]">
-        Effort perçu — RPE {{ form.rpe }} <UiInfoHint term="rpe" />
+        <UiInfoHint term="rpe">Effort perçu</UiInfoHint> — RPE {{ form.rpe }}
       </span>
       <input v-model.number="form.rpe" type="range" min="1" max="10" class="w-full accent-accent" />
     </div>
 
     <div class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Sensations <UiInfoHint term="sensations" /></span>
+      <span class="label text-[10.5px]"><UiInfoHint term="sensations">Sensations</UiInfoHint></span>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="item in SENSATIONS"
@@ -138,13 +138,13 @@ async function save() {
 
     <label class="flex flex-col gap-[6px]">
       <span class="label text-[10.5px]">
-        Sommeil la nuit dernière (h) <UiInfoHint term="sommeil" />
+        <UiInfoHint term="sommeil">Sommeil la nuit dernière (h)</UiInfoHint>
       </span>
       <input v-model.number="form.sleepHours" type="number" step="0.5" class="input mono" />
     </label>
 
     <div class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Douleur <UiInfoHint term="douleur" /></span>
+      <span class="label text-[10.5px]"><UiInfoHint term="douleur">Douleur</UiInfoHint></span>
       <div v-if="watchZones.length > 0" class="flex flex-wrap gap-2">
         <button
           v-for="zone in watchZones"

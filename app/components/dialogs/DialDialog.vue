@@ -242,8 +242,8 @@ const title = computed(
                 :key="head.label"
                 class="label pb-2 text-[10px]"
               >
-                {{ head.label }}
-                <UiInfoHint v-if="head.term" :term="head.term" />
+                <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
+                <template v-else>{{ head.label }}</template>
               </th>
             </tr>
           </thead>

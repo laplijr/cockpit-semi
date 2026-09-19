@@ -43,7 +43,7 @@ const ui = useUiStore()
           :name="sportStyle(session.sport).icon"
           :size="13"
           :class="sportStyle(session.sport).tone"
-          :title="SPORT_LABELS[session.sport] ?? session.sport"
+          :label="SPORT_LABELS[session.sport] ?? session.sport"
         />
         <span
           class="display truncate text-[15px] font-semibold"
@@ -54,11 +54,12 @@ const ui = useUiStore()
         <!-- Une séance clé se marque d'un point accent : la pastille disait le
              même mot que la couleur (§ 8, P6.35). Le point suit l'icône, la
              troncature du nom ne doit jamais l'emporter. -->
-        <span
-          v-if="session.key"
-          class="ml-auto h-[6px] w-[6px] shrink-0 rounded-full bg-accent"
-          title="Séance clé"
-        />
+        <UiHoverBubble v-if="session.key" label="Séance clé" size="sm" trigger-class="ml-auto">
+          <template #trigger>
+            <span class="block h-[6px] w-[6px] shrink-0 rounded-full bg-accent" />
+          </template>
+          <span class="text-[12.5px] text-text-dim">Séance clé</span>
+        </UiHoverBubble>
       </span>
       <span class="mono flex items-center gap-1 pl-[19px] text-[11px] text-text-dim">
         <!-- Une séance sans kilométrage se lit en durée : vélo et muscu. -->
@@ -73,7 +74,7 @@ const ui = useUiStore()
           name="check"
           :size="12"
           class="text-ok"
-          title="Faite"
+          label="Faite"
         />
       </span>
     </div>

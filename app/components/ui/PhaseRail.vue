@@ -40,15 +40,26 @@ const summary = computed(() =>
 
 <template>
   <div class="flex flex-col gap-1">
-    <span class="label text-[9.5px]">Phases <UiInfoHint term="regletteDePhases" /></span>
+    <span class="label text-[9.5px]"><UiInfoHint term="regletteDePhases">Phases</UiInfoHint></span>
     <div class="flex gap-px" role="img" :aria-label="`Phases : ${summary || 'aucune'}`">
-      <span
+      <UiHoverBubble
         v-for="segment in lit"
         :key="segment.phase"
-        class="h-[5px] flex-1 rounded-[1px]"
-        :class="segment.on ? 'bg-accent' : 'bg-accent-track'"
-        :title="PHASE_LABELS[segment.phase] ?? segment.phase"
-      />
+        :label="PHASE_LABELS[segment.phase] ?? segment.phase"
+        size="sm"
+        class="flex-1"
+        trigger-class="w-full"
+      >
+        <template #trigger>
+          <span
+            class="block h-[5px] w-full rounded-[1px]"
+            :class="segment.on ? 'bg-accent' : 'bg-accent-track'"
+          />
+        </template>
+        <span class="text-[12.5px] text-text-dim">
+          {{ PHASE_LABELS[segment.phase] ?? segment.phase }}
+        </span>
+      </UiHoverBubble>
     </div>
     <div class="mono flex justify-between text-[10px] text-text-dim">
       <span v-for="word in LEGEND" :key="word">{{ word }}</span>

@@ -138,7 +138,7 @@ async function onResume() {
               :name="sportStyle(session.sport).icon"
               :size="15"
               :class="sportStyle(session.sport).tone"
-              :title="SPORT_LABELS[session.sport] ?? session.sport"
+              :label="SPORT_LABELS[session.sport] ?? session.sport"
             />
             <span class="text-[13px]">{{ SESSION_LABELS[session.code] ?? session.code }}</span>
             <span class="mono text-[12px] text-text-dim">
@@ -148,7 +148,7 @@ async function onResume() {
               {{ formatMinutes(prescribedMinutes(session.prescription)) }}
             </span>
           </span>
-          <CockpitNutritionHint class="ml-auto" />
+          <CockpitNutritionPill class="ml-auto" />
         </div>
       </div>
 

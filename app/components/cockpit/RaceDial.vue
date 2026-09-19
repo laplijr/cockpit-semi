@@ -32,7 +32,7 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
     aria-busy="true"
   >
     <div class="flex items-baseline justify-between">
-      <span class="label">Course A <UiInfoHint term="courseA" /></span>
+      <span class="label"><UiInfoHint term="courseA">Course A</UiInfoHint></span>
     </div>
     <UiSkeleton variant="number" />
     <UiSkeleton :height="15" width="164px" />
@@ -47,7 +47,9 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
     @click="ui.openDial('course-a')"
   >
     <span class="flex items-baseline justify-between gap-2">
-      <span class="label truncate">Course A <UiInfoHint term="courseA" /> · {{ race.name }}</span>
+      <span class="label truncate"
+        ><UiInfoHint term="courseA">Course A</UiInfoHint> · {{ race.name }}</span
+      >
     </span>
 
     <span class="display text-[56px] leading-none font-bold text-accent">J−{{ countdown }}</span>
@@ -85,7 +87,7 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
        creux disent qu'il y a une mesure à venir (§ 8, P5.21). -->
   <div v-else class="tile dial border-dashed">
     <div class="flex items-baseline justify-between">
-      <span class="label">Course A <UiInfoHint term="courseA" /></span>
+      <span class="label"><UiInfoHint term="courseA">Course A</UiInfoHint></span>
     </div>
 
     <span class="display text-[56px] leading-none font-bold text-text-dim">—</span>

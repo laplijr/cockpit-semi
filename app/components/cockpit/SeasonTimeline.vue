@@ -92,14 +92,20 @@ const LEVEL_H = 15
         <span
           v-for="mark in layout.races"
           :key="mark.race.id"
-          class="pointer-events-none absolute bottom-0 flex flex-col gap-px"
+          class="absolute bottom-0 flex flex-col gap-px"
           :class="alignOf(mark.positionPct)"
           :style="{ left: `${mark.positionPct}%` }"
-          :title="`${mark.race.name} · ${formatDate(mark.race.date)}`"
         >
-          <span class="mono text-[10px] whitespace-nowrap text-text-dim">
-            {{ mark.race.name }} · J−{{ mark.daysUntil }}
-          </span>
+          <UiHoverBubble :label="`${mark.race.name}, le ${formatDate(mark.race.date)}`" size="sm">
+            <template #trigger>
+              <span class="mono text-[10px] whitespace-nowrap text-text-dim">
+                {{ mark.race.name }} · J−{{ mark.daysUntil }}
+              </span>
+            </template>
+            <span class="text-[12.5px] text-text-dim">
+              {{ mark.race.name }} · {{ formatDate(mark.race.date) }}
+            </span>
+          </UiHoverBubble>
           <!-- Le trait descend du libellé jusqu'au bas de la barre, quel que
                soit le niveau où la course a été montée. -->
           <span class="w-[2px] bg-text" :style="{ height: `${BAR_H + mark.level * LEVEL_H}px` }" />

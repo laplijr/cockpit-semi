@@ -52,7 +52,7 @@ const done = computed(() => props.session.status === 'faite')
         :name="sport.icon"
         :size="22"
         :class="sport.tone"
-        :title="SPORT_LABELS[session.sport] ?? session.sport"
+        :label="SPORT_LABELS[session.sport] ?? session.sport"
       />
 
       <!-- `truncate` rogne l'overflow : sans interligne, les jambages du nom

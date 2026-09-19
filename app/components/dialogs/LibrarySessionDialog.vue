@@ -74,12 +74,12 @@ const figures = computed(() => {
   <div class="flex flex-col gap-4">
     <div class="flex items-baseline gap-3">
       <span class="display text-[22px] font-semibold">
-        {{ label }}
-        <UiInfoHint v-if="term" :term="term" />
+        <UiInfoHint v-if="term" :term="term">{{ label }}</UiInfoHint>
+        <template v-else>{{ label }}</template>
       </span>
       <span class="mono text-[11.5px] text-text-dim">RPE {{ expectedRpe }}</span>
       <span v-if="runType?.key" class="pill ml-auto bg-accent/15 text-accent">
-        séance clé <UiInfoHint term="seanceCle" />
+        <UiInfoHint term="seanceCle">séance clé</UiInfoHint>
       </span>
       <span v-else-if="rideType?.onPainOnly" class="pill pill-warn ml-auto">sur douleur</span>
     </div>

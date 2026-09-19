@@ -24,3 +24,45 @@ describe('contraste des petits textes (§ 11, P6.35)', () => {
     expect(offenders).toEqual([])
   })
 })
+
+/**
+ * L'aide ne se signale plus par un glyphe : le mot est son propre déclencheur
+ * (§ 8, P6.36). Deux portes restent fermées — aucune icône d'information dans
+ * l'app, aucun `title` natif.
+ */
+describe('plus aucune marque d’aide (§ 8, P6.36)', () => {
+  it('n’a plus de forme « info » à poser', () => {
+    const icons = readFileSync('app/components/ui/AppIcon.vue', 'utf8')
+
+    expect(icons).not.toMatch(/^\s*info:/m)
+    /** `pen` reste : la barre du haut s'en sert pour l'Imprévu. */
+    expect(icons).toMatch(/^\s*pen:/m)
+  })
+
+  it('n’emploie plus de `title` natif : la bulle dit tout', () => {
+    /**
+     * Un `title` n'est natif que s'il est posé sur une balise HTML. Sur un
+     * composant — `ShellAppModal`, `ShellAppPanel`, `UiNoteHint` — c'est une
+     * prop, et Vue distingue les deux par la majuscule du nom de balise.
+     */
+    const offenders = vueFiles('app')
+      .filter((path) => path.endsWith('.vue'))
+      .flatMap((path) => nativeTitles(path, readFileSync(path, 'utf8')))
+
+    expect(offenders).toEqual([])
+  })
+})
+
+function nativeTitles(path: string, source: string): string[] {
+  const found: string[] = []
+
+  for (const match of source.matchAll(/\s:?title="/g)) {
+    const opening = source.lastIndexOf('<', match.index)
+    const tag = /^<([A-Za-z][\w.-]*)/.exec(source.slice(opening))?.[1]
+    if (tag && /^[a-z]/.test(tag)) {
+      found.push(`${path}:${source.slice(0, match.index).split('\n').length}`)
+    }
+  }
+
+  return found
+}

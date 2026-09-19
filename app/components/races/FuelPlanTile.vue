@@ -41,7 +41,6 @@ async function generate() {
         type="button"
         class="btn btn-ghost ml-auto size-9 shrink-0 p-0"
         :disabled="generating"
-        :title="fuelPlan ? 'Régénérer le plan ravito' : 'Générer le plan ravito'"
         :aria-label="fuelPlan ? 'Régénérer le plan ravito' : 'Générer le plan ravito'"
         @click="generate"
       >

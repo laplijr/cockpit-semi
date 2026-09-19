@@ -5,18 +5,21 @@ import { PhaseType } from '~~/server/domain/plan/phases'
 
 /**
  * La réglette remplace la liste de pastilles de phase (§ 8, P6.35) : sept
- * segments, les phases autorisées allumées, trois mots de légende.
+ * segments, les phases autorisées allumées, trois mots de légende. Depuis
+ * P6.36 chaque segment est le déclencheur de sa propre bulle : il se nomme par
+ * `aria-label`, plus par un `title` natif.
  */
 describe('réglette de phases', () => {
   const segments = async (allowed: string[]) => {
     const rail = await mountSuspended(PhaseRail, { props: { allowed } })
-    return rail.findAll('span[title]').map((node) => node.classes().includes('bg-accent'))
+    return rail.findAll('.h-\\[5px\\]').map((node) => node.classes().includes('bg-accent'))
   }
 
   it('compte sept segments et trois mots de légende', async () => {
     const rail = await mountSuspended(PhaseRail, { props: { allowed: [] } })
 
-    expect(rail.findAll('span[title]')).toHaveLength(7)
+    expect(rail.findAll('.h-\\[5px\\]')).toHaveLength(7)
+    expect(rail.findAll('[role="button"][aria-label]')).toHaveLength(8)
     expect(rail.findAll('.mono span').map((node) => node.text())).toEqual([
       'base',
       'spécifique',

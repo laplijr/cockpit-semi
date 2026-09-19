@@ -29,7 +29,7 @@ async function decide(id: number, status: string) {
     <!-- Ce qui attend une décision passe devant : c'est la seule zone d'action. -->
     <section class="tile">
       <div class="flex items-baseline gap-3">
-        <span class="label">À décider <UiInfoHint term="habitude" /></span>
+        <span class="label"><UiInfoHint term="habitude">À décider</UiInfoHint></span>
         <!-- Un paramètre de lecture, pas une définition : combien attendent (§ 8, P6.35). -->
         <span class="mono text-[11.5px] text-text-dim">
           {{ pending.length }} détectée{{ pending.length > 1 ? 's' : '' }}
@@ -71,7 +71,7 @@ async function decide(id: number, status: string) {
 
     <section class="grid grid-cols-2 gap-4">
       <div class="tile">
-        <span class="label">Règles personnelles <UiInfoHint term="regleApprise" /></span>
+        <span class="label"><UiInfoHint term="regleApprise">Règles personnelles</UiInfoHint></span>
 
         <p v-if="applied.length === 0" class="text-[13px] text-text-dim">Aucune règle apprise.</p>
 
@@ -100,7 +100,7 @@ async function decide(id: number, status: string) {
 
       <div class="tile">
         <div class="flex items-baseline gap-3">
-          <span class="label">Calibration <UiInfoHint term="calibration" /></span>
+          <span class="label"><UiInfoHint term="calibration">Calibration</UiInfoHint></span>
           <span v-if="latest" class="mono text-[11.5px] text-text-dim">
             semaine du {{ formatDate(latest.date) }}
           </span>

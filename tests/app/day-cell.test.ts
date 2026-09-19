@@ -21,30 +21,42 @@ describe('cellule de jour', () => {
   const cell = (props: Record<string, unknown>) => mountSuspended(DayCell, { props })
 
   it('marque la séance clé d’un point accent (§ 8, P6.35)', async () => {
-    const mounted = await cell({ label: 'mar', sessions: [session(true)] })
+    const mounted = await cell({ label: 'mar', date: '2026-11-24', sessions: [session(true)] })
 
-    expect(mounted.find('.bg-accent').attributes('title')).toBe('Séance clé')
+    /** Le point se nomme par sa bulle, plus par un `title` natif (§ 8, P6.36). */
+    expect(mounted.find('[aria-label="Séance clé"]').exists()).toBe(true)
+    expect(mounted.find('.bg-accent').exists()).toBe(true)
     expect(mounted.text()).not.toContain('clé')
   })
 
   it('garde le même point sur la page Semaine, où la place manque', async () => {
-    const mounted = await cell({ label: 'mar', sessions: [session(true)], compact: true })
+    const mounted = await cell({
+      label: 'mar',
+      date: '2026-11-24',
+      sessions: [session(true)],
+      compact: true,
+    })
 
     expect(mounted.find('.bg-accent').exists()).toBe(true)
-    expect(mounted.text()).not.toContain('C')
+    expect(mounted.find('.pill').exists()).toBe(false)
   })
 
   it('ne marque rien quand la séance n’est pas clé', async () => {
     expect(
-      (await cell({ label: 'mar', sessions: [session(false)] })).find('.bg-accent').exists(),
+      (await cell({ label: 'mar', date: '2026-11-24', sessions: [session(false)] }))
+        .find('.bg-accent')
+        .exists(),
     ).toBe(false)
   })
 
-  it('remplace « · faite » par une coche', async () => {
+  it('remplace « · faite » par une coche, qui porte enfin son nom', async () => {
     const done = { ...session(false), status: 'faite' }
-    const mounted = await cell({ label: 'mar', sessions: [done] })
+    const mounted = await cell({ label: 'mar', date: '2026-11-24', sessions: [done] })
 
     expect(mounted.text()).not.toContain('faite')
-    expect(mounted.find('svg.text-ok').attributes('title')).toBe('Faite')
+    /** Le `title` posé sur un `<svg aria-hidden>` ne disait rien : c'est un vrai nom (§ 8, P6.36). */
+    const check = mounted.find('svg.text-ok')
+    expect(check.attributes('aria-hidden')).toBeUndefined()
+    expect(check.find('title').text()).toBe('Faite')
   })
 })

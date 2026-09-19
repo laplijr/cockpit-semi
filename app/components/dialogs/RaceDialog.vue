@@ -243,7 +243,9 @@ async function remove() {
 
     <!-- Les trois niveaux se lisent comme un curseur de risque, pas comme trois verdicts. -->
     <div v-if="race.objectiveMode === 'record'" class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">Record à battre <UiInfoHint term="confiance" /></span>
+      <span class="label text-[10.5px]"
+        ><UiInfoHint term="confiance">Record à battre</UiInfoHint></span
+      >
       <span class="mono text-[17px]">{{ formatDuration(race.recordS) }}</span>
       <span class="text-[12px] text-text-dim">
         {{ race.recordName }} · {{ race.recordDate ? formatDate(race.recordDate) : '—' }} ·
@@ -252,7 +254,7 @@ async function remove() {
     </div>
     <div v-else-if="!race.objectiveToSet" class="tile bg-surface-inset">
       <span class="label text-[10.5px]">
-        Confiance par niveau <UiInfoHint term="confiance" />
+        <UiInfoHint term="confiance">Confiance par niveau</UiInfoHint>
       </span>
       <div class="grid grid-cols-3 gap-4">
         <div v-for="level in OBJECTIVE_LEVELS" :key="level.key" class="flex flex-col">
