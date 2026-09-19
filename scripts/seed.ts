@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { regeneratePlan } from '../server/application/regenerate-plan'
 import { vdotFloorFrom } from '../server/domain/fitness/floor'
+import { vdotFromRace } from '../server/domain/fitness/vdot'
 import { FitnessOrigin } from '../server/domain/fitness/fitness-point'
 import { PauseType } from '../server/domain/pause/pause'
 import { PlanTrigger } from '../server/domain/plan/session'
@@ -67,6 +68,36 @@ async function seed() {
     startWeeklyVolumeM: 20_000,
     peakWeeklyVolumeM: 45_000,
     onboarded: false,
+  })
+
+  /**
+   * Le 10 km du printemps, couru proprement : c'est le seul chrono
+   * représentatif de l'historique, donc le seul record de la table. Il précède
+   * la blessure et ne touche pas au plan — la périodisation ne lit que les
+   * courses encore planifiées.
+   */
+  const [tenK] = await db
+    .insert(schema.race)
+    .values({
+      name: '10 km de Vannes',
+      date: '2026-06-21',
+      distanceM: 10_000,
+      priority: RacePriority.C,
+      objectiveMode: ObjectiveMode.Time,
+      status: RaceStatus.Raced,
+      resultatS: 56 * 60 + 40,
+      representative: true,
+      notes: 'Couru à fond, sans incident : la référence sur 10 km.',
+    })
+    .returning()
+
+  await db.insert(schema.fitnessPoint).values({
+    date: '2026-06-21',
+    vdot: vdotFromRace(10_000, 56 * 60 + 40),
+    origin: FitnessOrigin.Race,
+    raceId: tenK!.id,
+    isFloor: false,
+    note: 'Chrono représentatif sur 10 km',
   })
 
   const [reference] = await db
@@ -173,7 +204,7 @@ async function seed() {
   const progress = await simulate(db, scenario)
   if (scenario.resumeDate) {
     console.log(
-      `Rejeu du ${scenario.resumeDate} au ${scenario.simulatedDay} : ${progress.sessionsDone} séances faites, ${progress.sessionsMissed} manquées, ${progress.tests} test(s), VDOT ${progress.lastVdot.toFixed(2)}`,
+      `Rejeu du ${scenario.resumeDate} au ${scenario.simulatedDay} : ${progress.sessionsDone} séances faites, ${progress.sessionsMissed} manquées, ${progress.tests} test(s), ${progress.strengthSets} séries de renforcement, ${progress.decisions} décisions, ${progress.habits} habitude(s), ${progress.objectivesSet} objectif(s) posé(s), VDOT ${progress.lastVdot.toFixed(2)}`,
     )
   }
 

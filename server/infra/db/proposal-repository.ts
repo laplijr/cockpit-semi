@@ -133,6 +133,12 @@ export async function evaluateAndStore(
 
   await db.insert(proposal).values(
     fresh.map((item) => ({
+      /**
+       * Datée de l'horloge de l'app, pas de celle de la machine : c'est la même
+       * horloge qui décide sept jours plus tard qu'elle est caduque. Sur le seed
+       * daté, `defaultNow()` les faisait toutes expirer le lendemain (§ P3.5).
+       */
+      createdAt: new Date(`${today}T12:00:00Z`),
       trigger,
       ruleId: item.ruleId,
       effect: item.effect,

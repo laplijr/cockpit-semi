@@ -2,8 +2,9 @@ import { desc, eq } from 'drizzle-orm'
 import { FitnessOrigin } from '../domain/fitness/fitness-point'
 import { project, type Projection } from '../domain/fitness/projection'
 import type { Database } from '../infra/db/client'
+import { createPlanGateway } from '../infra/db/plan-gateway'
 import { fitnessPoint, pause } from '../infra/db/schema'
-import { planGateway, systemClock } from './context'
+import { systemClock } from './context'
 
 const DAYS_PER_WEEK = 7
 const DAY_MS = 86_400_000
@@ -39,7 +40,8 @@ export interface ProjectionContext {
 /** Tout ce dont la projection a besoin, chargé une fois pour toutes les courses. */
 export async function loadProjectionContext(db: Database): Promise<ProjectionContext> {
   const [fitness, tests, latestPause] = await Promise.all([
-    planGateway().loadCurrentFitness(),
+    /** La base vient en paramètre : le seed n'a pas de `useRuntimeConfig`. */
+    createPlanGateway(db).loadCurrentFitness(),
     db
       .select({ vdot: fitnessPoint.vdot })
       .from(fitnessPoint)

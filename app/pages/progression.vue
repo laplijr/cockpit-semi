@@ -376,13 +376,17 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
     <div v-if="(data?.strengthLoads.length ?? 0) > 0" class="tile">
       <span class="label">Charges tenues en renforcement <UiInfoHint term="chargeMuscu" /></span>
 
-      <div class="grid grid-cols-3 gap-4">
+      <!--
+        Une liste qui s'allonge défile dans sa tuile au lieu de pousser ce qui
+        suit : la tête et la note restent en place (§ 8).
+      -->
+      <div class="grid max-h-[300px] grid-cols-3 gap-4 overflow-y-auto">
         <div
           v-for="series in data?.strengthLoads ?? []"
           :key="series.exerciseId"
           class="flex flex-col gap-1"
         >
-          <span class="text-[12.5px]">{{ series.exerciseId }}</span>
+          <span class="text-[12.5px]">{{ series.label }}</span>
           <UiSeriesChart
             :points="series.points.map((point) => ({ date: point.date, value: point.loadKg }))"
             :height="72"

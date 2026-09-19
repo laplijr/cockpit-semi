@@ -1,11 +1,17 @@
 import { and, asc, eq, lte } from 'drizzle-orm'
+import { calibrateWeek, detectAndStoreHabits } from '../server/application/detect-habits'
+import { generateDueFuelPlans } from '../server/application/generate-fuel-plan'
 import { recordFeedback, skipSession } from '../server/application/record-feedback'
+import { recordStrengthSets } from '../server/application/record-strength-sets'
 import { recordTest, testDistanceForVdot } from '../server/application/record-test'
 import { resumePause } from '../server/application/resume-pause'
 import { Sensation, type Pain } from '../server/domain/load/feedback'
-import { addDays } from '../server/domain/plan/calendar'
+import { MONDAY } from '../server/domain/athlete/constraints'
+import { addDays, weekday } from '../server/domain/plan/calendar'
 import { SessionStatus } from '../server/domain/plan/session'
 import { fixedClock } from '../server/domain/shared/clock'
+import { Sport } from '../server/domain/shared/sport'
+import type { StrengthSetRecord } from '../server/domain/strength/next-load'
 import type { Database } from '../server/infra/db/client'
 import {
   createFeedbackGateway,
@@ -13,8 +19,25 @@ import {
   createPauseGateway,
 } from '../server/infra/db/feedback-gateway'
 import { createPlanGateway } from '../server/infra/db/plan-gateway'
-import { expireStaleProposals } from '../server/infra/db/proposal-repository'
-import { fitnessPoint, session } from '../server/infra/db/schema'
+import {
+  acceptProposal,
+  expireStaleProposals,
+  listProposals,
+  refuseProposal,
+} from '../server/infra/db/proposal-repository'
+import { createStrengthGateway } from '../server/infra/db/strength-gateway'
+import { project } from '../server/domain/fitness/projection'
+import { RaceStatus } from '../server/domain/races/race'
+import { fitnessPoint, race, session } from '../server/infra/db/schema'
+import { ProposalStatus } from '../server/domain/rules/proposal-status'
+import {
+  MISSED_FORMAT_RATE,
+  PROPOSAL_ACCEPT_RATE,
+  RPE_BIAS_BY_CODE,
+  SHORT_NIGHT_RATE,
+  SHORT_NIGHT_RPE_COST,
+  START_LOAD_KG,
+} from './athlete-profile'
 import { between, createRandom, type Scenario } from './scenarios'
 
 /** Part des séances prévues qui sont manquées, sans ressenti. */
@@ -28,6 +51,10 @@ interface Progress {
   sessionsMissed: number
   tests: number
   lastVdot: number
+  strengthSets: number
+  decisions: number
+  habits: number
+  objectivesSet: number
 }
 
 /** Douleur résiduelle du genou : 3/10 au premier jour, nulle au bout de trois semaines. */
@@ -48,13 +75,14 @@ function sensationsFor(delta: number): Sensation[] {
 interface PlannedRow {
   id: number
   date: string
+  sport: string
   code: string
   key: boolean
   prescription: {
     totalDistanceM: number
     expectedRpe: number
     durationMin?: number
-    steps: { paceSecPerKm?: number }[]
+    steps: { paceSecPerKm?: number; exerciseId?: string; reps?: number; repeats?: number }[]
   }
 }
 
@@ -68,6 +96,7 @@ async function plannedOn(db: Database, date: string): Promise<PlannedRow[]> {
   return rows.map((row) => ({
     id: row.id,
     date: row.date,
+    sport: row.sport,
     code: row.code,
     key: row.key,
     prescription: row.prescription as PlannedRow['prescription'],
@@ -101,11 +130,119 @@ async function currentVdot(db: Database): Promise<number> {
 }
 
 /**
+ * Séries d'une séance de renforcement, telles que Ronan les saisirait : le
+ * format prescrit, à la charge tenue la fois d'avant, et la dernière série un
+ * cran plus dure que les autres.
+ */
+function strengthSetsFor(
+  row: PlannedRow,
+  loads: Map<string, number>,
+  random: () => number,
+): StrengthSetRecord[] {
+  const sets: StrengthSetRecord[] = []
+
+  for (const step of row.prescription.steps) {
+    if (!step.exerciseId || step.reps === undefined) continue
+
+    const loadKg = loads.get(step.exerciseId) ?? START_LOAD_KG[step.exerciseId] ?? 0
+    const count = step.repeats ?? 1
+    /** Un jour sur cinq, la dernière série s'arrête court : la charge ne monte pas. */
+    const missed = random() < MISSED_FORMAT_RATE
+
+    for (let index = 1; index <= count; index += 1) {
+      const last = index === count
+      sets.push({
+        exerciseId: step.exerciseId,
+        index,
+        reps: last && missed ? Math.max(1, step.reps - 2) : step.reps,
+        loadKg,
+        rpe: last ? (missed ? 9 : 8) : 7,
+      })
+    }
+  }
+
+  return sets
+}
+
+/**
+ * Ronan décide ce qui lui est proposé plutôt que de laisser expirer : il en
+ * accepte un peu plus de la moitié. Sans ça, le taux d'acceptation ne mesure
+ * que des propositions périmées (§ 9, P3).
+ */
+async function decidePending(db: Database, today: string, random: () => number): Promise<number> {
+  const pending = (await listProposals(db)).filter((row) => row.status === ProposalStatus.Proposed)
+
+  for (const row of pending) {
+    if (random() < PROPOSAL_ACCEPT_RATE) await acceptProposal(db, row.id, today)
+    else await refuseProposal(db, row.id)
+  }
+
+  return pending.length
+}
+
+const DAY_MS = 86_400_000
+const DAYS_PER_WEEK = 7
+
+/**
+ * Ce que Ronan fait après son premier test : il pose enfin les trois niveaux
+ * de sa course A, là où le seed les laissait à fixer. Le moteur les propose
+ * depuis les trois bornes de l'intervalle, il les accepte tels quels (§ 5,
+ * objectif à trois niveaux) — c'est la saisie du dialog Course, pas un calcul.
+ */
+async function setObjectivesFromProjection(
+  db: Database,
+  today: string,
+  vdot: number,
+  testHistory: number[],
+): Promise<number> {
+  const open = await db.select().from(race).where(eq(race.status, RaceStatus.Planned))
+  const pending = open.filter((row) => row.date > today && row.objectifS === null)
+
+  for (const row of pending) {
+    const weeksToRace = Math.max(
+      0,
+      (Date.parse(row.date) - Date.parse(today)) / DAY_MS / DAYS_PER_WEEK,
+    )
+    const projection = project({
+      vdot,
+      isFloor: false,
+      testHistory,
+      weeksToRace,
+      distanceM: row.distanceM,
+      elevationGainM: row.elevationGainM,
+      expectedTempC: row.expectedTempC,
+    })
+
+    await db
+      .update(race)
+      .set({
+        objectifAmbitionS: projection.lowS,
+        objectifS: projection.timeS,
+        objectifPlancherS: projection.highS,
+      })
+      .where(eq(race.id, row.id))
+  }
+
+  return pending.length
+}
+
+/**
  * Rejoue l'historique jour par jour, de la reprise au jour simulé, en passant
  * par les mêmes cas d'usage que l'application : rien n'est inséré à la main.
  */
 export async function simulate(db: Database, scenario: Scenario): Promise<Progress> {
-  if (!scenario.resumeDate) return { sessionsDone: 0, sessionsMissed: 0, tests: 0, lastVdot: 33 }
+  if (!scenario.resumeDate) {
+    return {
+      sessionsDone: 0,
+      sessionsMissed: 0,
+      tests: 0,
+      lastVdot: 33,
+      strengthSets: 0,
+      decisions: 0,
+      habits: 0,
+      objectivesSet: 0,
+    }
+  }
 
   const random = createRandom(scenario.seed)
   const plans = createPlanGateway(db)
@@ -113,20 +250,44 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
 
   await resumePause(createPauseGateway(db), plans, fixedClock(scenario.resumeDate))
 
+  const strength = createStrengthGateway(db)
+  /** Charge tenue au dernier passage, par exercice : elle monte d'une séance à l'autre. */
+  const loads = new Map<string, number>()
+
   const progress: Progress = {
     sessionsDone: 0,
     sessionsMissed: 0,
     tests: 0,
     lastVdot: await currentVdot(db),
+    strengthSets: 0,
+    decisions: 0,
+    habits: 0,
+    objectivesSet: 0,
   }
 
   const lastWeekStart = addDays(scenario.simulatedDay, -6)
+  /** VDOT des tests successifs : c'est lui qui donne l'intervalle de projection. */
+  const testHistory: number[] = []
 
   for (let date = scenario.resumeDate; date <= scenario.simulatedDay; date = addDays(date, 1)) {
     const clock = fixedClock(date)
     // Le cron quotidien tourne aussi dans la simulation : sans lui, les
     // propositions jamais décidées s'accumuleraient indéfiniment.
     await expireStaleProposals(db, date)
+    // Les propositions de la dernière semaine restent en attente : l'état final
+    // doit montrer un cockpit qui a quelque chose à décider (§ P3.5).
+    if (date < lastWeekStart) progress.decisions += await decidePending(db, date, random)
+
+    /**
+     * Le reste du cron quotidien, sa part déterministe : les plans ravito de
+     * J−7, puis la relecture des habitudes et la calibration, hebdomadaires.
+     * La revérification des courses en est exclue : elle appelle le réseau.
+     */
+    await generateDueFuelPlans(db, date)
+    if (weekday(date) === MONDAY || date === scenario.simulatedDay) {
+      progress.habits = await detectAndStoreHabits(db, date)
+      await calibrateWeek(db, date)
+    }
     const dayIndex = Math.round((Date.parse(date) - Date.parse(scenario.resumeDate)) / 86_400_000)
 
     /**
@@ -159,6 +320,17 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
         progress.lastVdot = result.vdot
         progress.tests += 1
         progress.sessionsDone += 1
+        testHistory.push(result.vdot)
+
+        /** Le premier test recale le VDOT : c'est là que les objectifs se posent. */
+        if (progress.tests === 1) {
+          progress.objectivesSet = await setObjectivesFromProjection(
+            db,
+            date,
+            result.vdot,
+            testHistory,
+          )
+        }
         continue
       }
 
@@ -171,7 +343,18 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
       // Dernière semaine : deux séances clés d'affilée nettement trop dures,
       // pour qu'au moins une règle se déclenche dans l'état final.
       const forceHard = date >= lastWeekStart && row.key
-      const delta = forceHard ? 2 : Math.round(between(random, -1, 1))
+
+      /** Une nuit courte de temps en temps, et elle se paie le lendemain (§ 5). */
+      const shortNight = random() < SHORT_NIGHT_RATE
+      const sleepHours = shortNight
+        ? Math.round(between(random, 4.5, 5.9) * 2) / 2
+        : Math.round(between(random, 6.5, 8) * 2) / 2
+
+      const bias = RPE_BIAS_BY_CODE[row.code] ?? 0
+      const raw = forceHard
+        ? 2
+        : bias + (shortNight ? SHORT_NIGHT_RPE_COST : 0) + between(random, -0.5, 0.5)
+      const delta = Math.round(raw)
       const rpe = Math.min(10, Math.max(1, row.prescription.expectedRpe + delta))
       const spread = between(random, 0.95, 1.05)
 
@@ -179,13 +362,24 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
         sessionId: row.id,
         rpe,
         sensations: sensationsFor(delta),
-        sleepHours: Math.round(between(random, 6.5, 8) * 2) / 2,
+        sleepHours,
         pain: residualPain(dayIndex),
         durationMin: Math.round(plannedMinutes(row) * spread),
         distanceM: actualDistanceM(row, spread),
         notes: null,
       })
       progress.sessionsDone += 1
+
+      // Une séance de renforcement se clôt par ses charges : sans elles, la
+      // courbe de Progression et la charge suivante n'ont rien à lire (§ 9, P4).
+      if (row.sport === Sport.Strength) {
+        const sets = strengthSetsFor(row, loads, random)
+        if (sets.length > 0) {
+          const next = await recordStrengthSets(strength, row.id, sets)
+          for (const item of next) loads.set(item.exerciseId, item.loadKg)
+          progress.strengthSets += sets.length
+        }
+      }
     }
   }
 

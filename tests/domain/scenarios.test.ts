@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { testDistanceForVdot, vdotFromTest } from '~~/server/application/record-test'
+import { HABIT_THRESHOLDS } from '~~/server/domain/learning/habit'
+import {
+  MISSED_FORMAT_RATE,
+  PROPOSAL_ACCEPT_RATE,
+  RPE_BIAS_BY_CODE,
+  SHORT_NIGHT_RATE,
+  SHORT_NIGHT_RPE_COST,
+  START_LOAD_KG,
+} from '~~/scripts/athlete-profile'
 import { SCENARIOS, between, createRandom, resolveScenario } from '~~/scripts/scenarios'
 
 describe('générateur pseudo-aléatoire', () => {
@@ -83,5 +92,41 @@ describe('progression de forme entre deux tests', () => {
 
   it('demande une distance plus longue pour un VDOT plus élevé', () => {
     expect(testDistanceForVdot(40)).toBeGreaterThan(testDistanceForVdot(33))
+  })
+})
+
+describe('profil simulé de l’athlète', () => {
+  it('donne un biais assez marqué pour que le détecteur l’accroche', () => {
+    const { minBias } = HABIT_THRESHOLDS.rpeBias
+    const biases = Object.values(RPE_BIAS_BY_CODE)
+
+    expect(biases.length).toBeGreaterThan(0)
+    for (const bias of biases) expect(Math.abs(bias)).toBeGreaterThanOrEqual(minBias)
+  })
+
+  it('fait dormir assez court, assez souvent, pour que la sensibilité se mesure', () => {
+    const { minCases } = HABIT_THRESHOLDS.sleepSensitivity
+    /** Huit semaines de réalisé tournent autour de soixante séances. */
+    const nights = 60 * SHORT_NIGHT_RATE
+
+    expect(nights).toBeGreaterThan(minCases)
+    expect(SHORT_NIGHT_RPE_COST).toBeGreaterThanOrEqual(1)
+  })
+
+  it('décide plus de propositions qu’il n’en refuse, sans les accepter toutes', () => {
+    expect(PROPOSAL_ACCEPT_RATE).toBeGreaterThan(0.5)
+    expect(PROPOSAL_ACCEPT_RATE).toBeLessThan(1)
+  })
+
+  it('part de charges non nulles sur les exercices qui se chargent', () => {
+    expect(START_LOAD_KG.squat).toBeGreaterThan(0)
+    expect(START_LOAD_KG['developpe-couche']).toBeGreaterThan(0)
+    /** Un exercice au poids du corps reste à zéro : il n'a pas de charge à suivre. */
+    expect(START_LOAD_KG.nordic).toBe(0)
+  })
+
+  it('manque le format assez souvent pour que la charge fasse des paliers', () => {
+    expect(MISSED_FORMAT_RATE).toBeGreaterThan(0)
+    expect(MISSED_FORMAT_RATE).toBeLessThan(0.5)
   })
 })

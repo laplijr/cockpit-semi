@@ -10,6 +10,7 @@ import { ObjectiveMode, RacePriority, RaceStatus } from '../domain/races/race'
 import { personalRecords, recordFor } from '../domain/races/records'
 import { ProposalStatus } from '../domain/rules/proposal-status'
 import { windowStart } from '../domain/shared/period'
+import { strengthExercise } from '../domain/strength/exercises'
 import { SessionStatus } from '../domain/plan/session'
 import { RunSessionCode } from '../domain/running/session-types'
 import { useDatabase } from '../infra/db/client'
@@ -256,9 +257,18 @@ export default defineEventHandler(async (event) => {
     counters,
     resumedOn,
     pausedNow: openPause !== undefined,
+    /**
+     * Un exercice au poids du corps n'a pas de charge à suivre : sa courbe
+     * serait une droite à zéro. On ne garde que ce qui se charge (§ 9, P6).
+     */
     strengthLoads: [...byExercise.entries()]
-      .map(([exerciseId, series]) => ({ exerciseId, points: series }))
+      .map(([exerciseId, series]) => ({
+        exerciseId,
+        label: strengthExercise(exerciseId)?.label ?? exerciseId,
+        points: series,
+      }))
       .filter((series) => series.points.length > 1)
+      .filter((series) => series.points.some((point) => point.loadKg > 0))
       .sort((a, b) => b.points.length - a.points.length),
   }
 })
