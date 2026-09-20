@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   RACE_COLLISION_PCT,
+  WINDOW_SPAN,
   seasonLayout,
+  seasonWindow,
   type SeasonPhase,
   type SeasonWeek,
 } from '~/utils/season-layout'
@@ -105,5 +107,98 @@ describe('géométrie de la frise de saison (§ 9, P5.16)', () => {
     expect(layout.todayPct).toBeNull()
     expect(layout.races).toEqual([])
     expect(layout.ticks).toEqual([])
+  })
+})
+
+describe('fenêtre de douze semaines (§ 9, P6.37)', () => {
+  const windowOf = (today: string, extra: Record<string, unknown> = {}) =>
+    seasonWindow({ phases, weeks, races: [], today, dated: true, ...extra })
+
+  it('centre la fenêtre sur la semaine courante', () => {
+    const view = windowOf(weekStart(25))
+
+    expect(view.columns).toHaveLength(WINDOW_SPAN)
+    expect(view.columns.map((column) => column.index)).toEqual([
+      19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+    ])
+    expect(view.columns.filter((column) => column.current).map((c) => c.index)).toEqual([25])
+  })
+
+  it('se cale sur les douze premières semaines en début de saison, sans index négatif', () => {
+    const view = windowOf(weekStart(2))
+
+    expect(view.columns[0]!.index).toBe(1)
+    expect(view.columns.at(-1)!.index).toBe(12)
+    expect(view.fromPct).toBe(0)
+  })
+
+  it('se cale sur les douze dernières en fin de saison', () => {
+    const view = windowOf(weekStart(49))
+
+    expect(view.columns[0]!.index).toBe(39)
+    expect(view.columns.at(-1)!.index).toBe(50)
+    expect(view.fromPct + view.widthPct).toBeCloseTo(100, 6)
+  })
+
+  it('suit l’ancre plutôt que la semaine courante quand la jauge la déplace', () => {
+    const view = windowOf(weekStart(25), { anchor: 5 })
+
+    expect(view.columns[0]!.index).toBe(1)
+    expect(view.columns.filter((column) => column.current)).toEqual([])
+  })
+
+  it('segmente les phases sur la fenêtre seule, qui somment à 100 %', () => {
+    const view = windowOf(weekStart(25))
+    const total = view.segments.reduce((sum, segment) => sum + segment.sharePct, 0)
+
+    expect(view.segments.map((segment) => segment.type)).toEqual(['base', 'developpement'])
+    expect(view.segments.map((segment) => segment.columns)).toEqual([2, 10])
+    expect(total).toBeCloseTo(100, 6)
+  })
+
+  it('donne au segment courant sa position dans la phase entière, pas dans la fenêtre', () => {
+    const current = windowOf(weekStart(25)).segments.find((segment) => segment.current)
+
+    /** Semaine 25 de la saison : la cinquième d'un développement de quinze. */
+    expect(current).toMatchObject({ weekInPhase: 5, phaseWeeks: 15 })
+  })
+
+  it('rend autant de colonnes qu’une saison plus courte a de semaines', () => {
+    const short = weeksOf(6)
+    const view = seasonWindow({
+      phases: [{ id: 1, type: 'base', startWeek: 1, endWeek: 6, raceId: null }],
+      weeks: short,
+      races: [],
+      today: weekStart(2),
+      dated: true,
+    })
+
+    expect(view.columns).toHaveLength(6)
+    expect(view.widthPct).toBe(100)
+  })
+
+  it('pose la course sur la colonne de sa semaine', () => {
+    const races = [{ id: 1, name: 'Paris', date: weekStart(26), priority: 'A' }]
+    const view = seasonWindow({ phases, weeks, races, today: weekStart(25), dated: true })
+
+    expect(view.columns.filter((column) => column.race).map((c) => c.index)).toEqual([26])
+    expect(view.columns.find((column) => column.race)!.race!.name).toBe('Paris')
+  })
+
+  it('se dégrade sans dates sur un plan non daté, comme la frise', () => {
+    const view = seasonWindow({ phases, weeks, races: [], today: weekStart(25), dated: false })
+
+    expect(view.dated).toBe(false)
+    expect(view.columns).toHaveLength(WINDOW_SPAN)
+    expect(view.columns.every((column) => column.startDate === null)).toBe(true)
+    expect(view.columns.every((column) => column.race === null)).toBe(true)
+    expect(view.segments.length).toBeGreaterThan(0)
+  })
+
+  it('ne rend rien sans semaine', () => {
+    const view = seasonWindow({ phases, weeks: [], races: [], today: weekStart(1), dated: true })
+
+    expect(view.columns).toEqual([])
+    expect(view.widthPct).toBe(0)
   })
 })

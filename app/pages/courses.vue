@@ -37,6 +37,20 @@ async function onCreated() {
 
 <template>
   <div class="flex flex-col gap-4">
+    <!--
+      Le cap passe en tête : on voit d'abord où l'on va, la table dit ensuite
+      avec quoi (arbitré avec Ronan, § 9, P6.37 — P5.16 l'avait écrit, le code
+      disait l'inverse).
+    -->
+    <RacesSeasonBoard
+      :phases="plan.plan?.phases ?? []"
+      :weeks="plan.plan?.weeks ?? []"
+      :races="upcoming"
+      :today="plan.today"
+      :dated="!plan.awaitingResumption"
+      :loading="!plan.loaded"
+    />
+
     <div class="tile">
       <div class="flex items-center gap-3">
         <span class="label">Courses à venir</span>
@@ -130,16 +144,6 @@ async function onCreated() {
         </tbody>
       </table>
     </div>
-
-    <!-- Le cap se lit après la liste : les courses sont l'objet de la page (§ 9). -->
-    <RacesSeasonBoard
-      v-if="plan.plan"
-      :phases="plan.plan.phases"
-      :weeks="plan.plan.weeks"
-      :races="upcoming"
-      :today="plan.today"
-      :dated="!plan.awaitingResumption"
-    />
 
     <div v-if="past.length > 0" class="tile">
       <span class="label">Courses passées</span>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PlanPhaseRow, PlanWeekRow } from '~/stores/plan'
-import { seasonLayout, type SeasonRace } from '~/utils/season-layout'
+import { WINDOW_SPAN, seasonLayout, seasonWindow, type SeasonRace } from '~/utils/season-layout'
 
 const props = defineProps<{
   phases: PlanPhaseRow[]
@@ -8,17 +8,42 @@ const props = defineProps<{
   races: SeasonRace[]
   today: string
   dated: boolean
+  loading?: boolean
 }>()
 
 const ui = useUiStore()
+const plan = usePlanStore()
 
-/** Les résumés de semaine de P5.14 : c'est eux qui portent la charge réalisée. */
-const { data: progression } = await useFetch('/api/progression')
+/**
+ * Les résumés de semaine de P5.14 : c'est eux qui portent la charge réalisée.
+ * La réponse vieillit dès qu'une course est créée — `courses.vue` régénère
+ * alors le plan, et l'étage des volumes disparaissait en silence parce que le
+ * nombre de semaines ne correspondait plus. Elle se recharge donc avec la
+ * version de plan (§ 9, P6.37).
+ */
+const { data: progression, refresh: refreshProgression } = await useFetch('/api/progression')
 
+watch(
+  () => plan.plan?.version.id,
+  (id, previous) => {
+    if (id !== undefined && previous !== undefined && id !== previous) void refreshProgression()
+  },
+)
+
+/** La saison entière : elle ne sert plus qu'à la jauge et au trait d'aujourd'hui. */
 const layout = computed(() => seasonLayout({ ...props }))
 
-/** Une barre par semaine, alignée au segment de sa phase : même axe x, sans écart. */
-const weekBars = computed(() => progression.value?.weeks ?? [])
+/** Semaine sur laquelle la fenêtre est calée ; nulle tant qu'elle suit aujourd'hui. */
+const anchor = ref<number | null>(null)
+
+const view = computed(() => seasonWindow({ ...props, anchor: anchor.value }))
+
+const bars = computed(() => {
+  const byIndex = new Map((progression.value?.weeks ?? []).map((week) => [week.index, week]))
+  return view.value.columns
+    .map((column) => byIndex.get(column.index))
+    .filter((week) => week !== undefined)
+})
 
 /** Le cap : la première course A à venir, celle sur laquelle tout se cale. */
 const target = computed(() =>
@@ -28,149 +53,225 @@ const target = computed(() =>
     .at(0),
 )
 
-const currentSegment = computed(() => layout.value.segments.find((segment) => segment.current))
+const WEEK_MS = 7 * 86_400_000
 
-/** Semaine n de m dans la phase en cours. */
-const weekInPhase = computed(() => {
-  const segment = currentSegment.value
-  if (!segment) return null
-  return {
-    index: layout.value.currentWeekIndex - segment.startWeek + 1,
-    total: segment.weeks,
-  }
+/**
+ * Le grand chiffre du cadran : des **semaines**, l'unité dans laquelle se
+ * planifie l'entraînement. Le décompte en jours passe au second rang.
+ */
+const weeksToTarget = computed(() => {
+  if (!target.value) return null
+  return Math.max(
+    0,
+    Math.round((Date.parse(target.value.date) - Date.parse(props.today)) / WEEK_MS),
+  )
 })
 
-const nextSwitch = computed(() => {
-  const segment = currentSegment.value
-  if (!segment) return null
-  const next = layout.value.segments.find((item) => item.startWeek === segment.endWeek + 1)
-  if (!next) return null
-  return { type: next.type, startDate: next.startDate }
-})
+/** Sans course A, le cadran bascule sur la phase courante au lieu de se vider. */
+const currentSegment = computed(() => view.value.segments.find((segment) => segment.current))
 
-const nextTest = computed(() =>
-  props.weeks.find((week) => week.test && week.endDate >= props.today),
-)
+/** Une date sur trois : assez pour se repérer, pas assez pour encombrer. */
+const DATE_EVERY = 3
 
-/** Une puce de bord se range à l'intérieur de la frise au lieu d'en déborder. */
-function pillShift(positionPct: number): string {
-  if (positionPct < 10) return 'translateX(0)'
-  if (positionPct > 90) return 'translateX(-100%)'
-  return 'translateX(-50%)'
+function movedTo(event: PointerEvent) {
+  const track = event.currentTarget as HTMLElement
+  const share = (event.clientX - track.getBoundingClientRect().left) / track.offsetWidth
+  const total = props.weeks.length
+  anchor.value = Math.min(total, Math.max(1, Math.round(share * total)))
+}
+
+function drag(event: PointerEvent) {
+  if (event.buttons === 1) movedTo(event)
 }
 </script>
 
 <template>
-  <div v-if="layout.segments.length > 0" class="tile">
-    <!-- Quatre informations : le cap, la position, la prochaine bascule, la frise (§ 8). -->
-    <div class="flex items-baseline gap-3">
-      <span class="label"><UiInfoHint term="courseA">Cap</UiInfoHint></span>
-      <span v-if="target" class="mono text-[11.5px] text-text-dim">
-        {{ target.name }} · {{ formatDateWithYear(target.date) }} · J−{{
-          daysUntil(target.date, today)
-        }}
-      </span>
-      <span v-else class="mono text-[11.5px] text-text-dim">Aucune course A à venir.</span>
-    </div>
-
-    <div class="flex flex-wrap gap-x-6 gap-y-1 text-[12.5px] text-text-dim">
-      <span v-if="currentSegment && weekInPhase">
-        <span class="text-text-dim">{{ PHASE_LABELS[currentSegment.type] }}</span>
-        · semaine {{ weekInPhase.index }} sur {{ weekInPhase.total }} de la phase · semaine
-        {{ layout.currentWeekIndex }} sur {{ layout.totalWeeks }} de la saison
-      </span>
-      <span v-else>Plan en attente de la reprise : les semaines ne sont pas encore datées.</span>
-
-      <span v-if="nextSwitch">
-        Bascule en {{ PHASE_LABELS[nextSwitch.type] }}
-        <template v-if="nextSwitch.startDate"> le {{ formatDate(nextSwitch.startDate) }}</template>
-      </span>
-      <span v-if="nextTest">
-        <UiInfoHint term="test20">Prochain test</UiInfoHint> en semaine {{ nextTest.index }}
-      </span>
-    </div>
-
-    <!-- Le trait d'aujourd'hui traverse la barre, le ruban et l'axe. -->
-    <div class="relative pt-1">
-      <div class="flex h-7 w-full overflow-hidden rounded-sm">
-        <button
-          v-for="(segment, index) in layout.segments"
-          :key="segment.id"
-          type="button"
-          class="flex cursor-pointer items-center justify-center border-r border-ink text-[10.5px] whitespace-nowrap hover:brightness-125"
-          :class="
-            segment.current
-              ? 'bg-accent text-on-accent'
-              : index % 2 === 0
-                ? 'bg-surface-raised text-text-dim'
-                : 'bg-surface-inset text-text-dim'
-          "
-          :style="{ width: `${segment.sharePct}%` }"
-          :aria-label="`${PHASE_LABELS[segment.type] ?? segment.type}, ${segment.weeks} semaines`"
-          @click="ui.openModal('bloc', segment.id)"
-        >
-          <span v-if="segment.sharePct > 5">{{ PHASE_LABELS[segment.type] }}</span>
-          <span v-else class="mono">{{ segment.weeks }}</span>
-        </button>
+  <!--
+    Le titre est connu avant la donnée : il s'affiche tout de suite, et le
+    squelette prend la forme du contenu — cadran, douze colonnes, jauge (§ 8).
+  -->
+  <div v-if="loading" class="tile" aria-busy="true">
+    <div class="grid grid-cols-[210px_1fr] gap-6">
+      <div class="flex flex-col gap-2">
+        <span class="label">Cap</span>
+        <UiSkeleton variant="number" :height="38" />
+        <UiSkeleton :height="15" width="150px" />
+        <UiSkeleton :height="15" width="60px" />
       </div>
-
-      <!-- Deuxième étage : la trajectoire des volumes, sur le même axe que les phases. -->
-      <div v-if="weekBars.length === layout.totalWeeks" class="relative">
-        <UiWeekBars :weeks="weekBars" :volume-height="44" :load-height="14" gap="gap-0" />
-        <div class="pointer-events-none absolute inset-0">
-          <span
-            v-for="mark in layout.races"
-            :key="mark.race.id"
-            class="absolute inset-y-0 w-px -translate-x-1/2"
-            :class="mark.race.priority === 'A' ? 'bg-accent' : 'bg-line-strong'"
-            :style="{ left: `${mark.positionPct}%` }"
+      <div class="flex flex-col gap-1">
+        <UiSkeleton variant="block" :height="22" />
+        <div class="flex items-end gap-[3px]" style="height: 80px">
+          <UiSkeleton
+            v-for="column in WINDOW_SPAN"
+            :key="column"
+            variant="block"
+            class="flex-1"
+            :height="column % 4 === 0 ? 36 : 64"
           />
         </div>
+        <UiSkeleton :height="12" width="100%" />
       </div>
+    </div>
+    <UiSkeleton variant="block" :height="7" />
+  </div>
 
-      <div v-if="layout.dated" class="relative h-[58px]">
-        <template v-for="mark in layout.races" :key="mark.race.id">
-          <span
-            class="absolute top-0 w-px -translate-x-1/2"
-            :class="[
-              mark.race.priority === 'A' ? 'bg-accent' : 'bg-line-strong',
-              mark.level === 0 ? 'h-[12px]' : 'h-[32px]',
-            ]"
-            :style="{ left: `${mark.positionPct}%` }"
-          />
-          <!-- Un clic n'empile jamais deux surfaces : le repère ouvre la course. -->
-          <button
-            type="button"
-            class="pill tile-action absolute text-[10.5px] whitespace-nowrap"
-            :class="mark.race.priority === 'A' && 'bg-accent/15 text-accent'"
-            :style="{
-              left: `${mark.positionPct}%`,
-              top: mark.level === 0 ? '14px' : '34px',
-              transform: pillShift(mark.positionPct),
-            }"
-            @click="ui.openModal('course', mark.race.id)"
-          >
-            {{ mark.race.name }} · J−{{ mark.daysUntil }}
-          </button>
+  <div v-else-if="layout.segments.length > 0" class="tile">
+    <!-- Deux informations : le cap, et la saison (§ 8, P6.37). -->
+    <div class="grid grid-cols-[210px_1fr] gap-6">
+      <div class="flex flex-col gap-2">
+        <span class="label"><UiInfoHint term="courseA">Cap</UiInfoHint></span>
+
+        <template v-if="target">
+          <span class="display text-[38px] leading-none font-bold text-accent">
+            {{ weeksToTarget }} <span class="text-[17px] font-semibold">sem.</span>
+          </span>
+          <span class="mono truncate text-[11.5px] text-text-dim">
+            {{ target.name }} · {{ formatDateWithYear(target.date) }}
+          </span>
+          <span class="mono text-[11.5px] text-text-dim">
+            J−{{ daysUntil(target.date, today) }}
+          </span>
+        </template>
+
+        <template v-else-if="currentSegment">
+          <span class="display text-[38px] leading-none font-bold">
+            {{ currentSegment.weekInPhase }}
+            <span class="text-[17px] font-semibold">/ {{ currentSegment.phaseWeeks }}</span>
+          </span>
+          <span class="mono text-[11.5px] text-text-dim">
+            {{ PHASE_LABELS[currentSegment.type] ?? currentSegment.type }}
+          </span>
+          <span class="mono text-[11.5px] text-text-dim">aucune course A à venir</span>
+        </template>
+
+        <template v-else>
+          <span class="display text-[38px] leading-none font-bold text-text-dim">—</span>
+          <span class="mono text-[11.5px] text-text-dim">en attente de la reprise</span>
         </template>
       </div>
 
-      <div v-if="layout.dated" class="relative h-4 border-t border-line-soft">
-        <span
-          v-for="tick in layout.ticks"
-          :key="tick.label + tick.positionPct"
-          class="mono absolute top-0 text-[10px] text-text-dim"
-          :style="{ left: `${tick.positionPct}%`, transform: 'translateX(-50%)' }"
+      <!-- La fenêtre : douze semaines, et rien qui les décrive en prose. -->
+      <div class="flex flex-col gap-1">
+        <!-- Les mêmes barres que Progression : c'est le même graphe (§ 9, P5.18). -->
+        <UiWeekBars
+          v-if="bars.length === view.columns.length"
+          :weeks="bars"
+          :height="64"
+          gap="gap-[3px]"
         >
-          {{ tick.label }}
+          <!--
+            Le bandeau de phases, segmenté sur la fenêtre seule : chaque segment
+            a la place d'écrire son nom, et la bascule est la frontière franche
+            entre deux colonnes (§ 9, P6.37).
+          -->
+          <template #header>
+            <div class="flex gap-px pb-1">
+              <button
+                v-for="segment in view.segments"
+                :key="segment.id"
+                type="button"
+                class="flex h-[22px] items-center justify-center overflow-hidden rounded-[2px] px-2 text-[10.5px] whitespace-nowrap hover:brightness-125"
+                :class="
+                  segment.current ? 'bg-accent text-on-accent' : 'bg-surface-raised text-text-dim'
+                "
+                :style="{ width: `${segment.sharePct}%` }"
+                :aria-label="`${PHASE_LABELS[segment.type] ?? segment.type}, ${segment.phaseWeeks} semaines`"
+                @click="ui.openModal('bloc', segment.id)"
+              >
+                <span class="truncate">{{ PHASE_LABELS[segment.type] ?? segment.type }}</span>
+                <span v-if="segment.current && segment.weekInPhase" class="mono ml-2 shrink-0">
+                  {{ segment.weekInPhase }}/{{ segment.phaseWeeks }}
+                </span>
+              </button>
+            </div>
+          </template>
+
+          <!-- Les repères se posent à leur colonne, plus dans une phrase au-dessus. -->
+          <template #footer>
+            <div class="flex gap-[3px]">
+              <div
+                v-for="(column, index) in view.columns"
+                :key="column.index"
+                class="mono flex min-w-0 flex-1 flex-col items-center gap-px pt-1 text-[10px] text-text-dim"
+              >
+                <span :class="column.current && 'text-accent'">S{{ column.index }}</span>
+                <span v-if="column.startDate && index % DATE_EVERY === 0" class="text-[9.5px]">
+                  {{ formatDate(column.startDate) }}
+                </span>
+
+                <button
+                  v-if="column.race"
+                  type="button"
+                  class="pill tile-action mt-px max-w-full text-[10px]"
+                  :class="column.race.priority === 'A' && 'bg-accent/15 text-accent'"
+                  @click="ui.openModal('course', column.race.id)"
+                >
+                  <span class="truncate">{{ column.race.name }}</span>
+                </button>
+
+                <UiHoverBubble v-else-if="column.test" label="Test 20′ cette semaine" size="sm">
+                  <template #trigger>
+                    <span class="mt-px block size-[6px] rounded-full bg-text-dim" />
+                  </template>
+                  <span class="text-[12.5px] text-text-dim">Test 20′ cette semaine</span>
+                </UiHoverBubble>
+              </div>
+            </div>
+          </template>
+        </UiWeekBars>
+      </div>
+    </div>
+
+    <!--
+      La jauge : la saison entière en sept pixels, sans texte ni axe. Elle porte
+      le trait d'aujourd'hui, le cadre de la fenêtre, et elle la commande. Sur
+      un plan non daté elle disparaît, comme les dates : la fenêtre garde ses
+      numéros de semaine et ses volumes (§ 9, P6.37).
+    -->
+    <div v-if="layout.dated" class="flex items-center gap-3 pt-1">
+      <div
+        class="relative h-[7px] flex-1 cursor-pointer overflow-hidden rounded-sm"
+        role="slider"
+        :aria-label="`Fenêtre de la saison, à partir de la semaine ${view.firstIndex}`"
+        :aria-valuemin="1"
+        :aria-valuemax="layout.totalWeeks"
+        :aria-valuenow="view.firstIndex"
+        :tabindex="0"
+        @pointerdown="movedTo"
+        @pointermove="drag"
+        @keydown.left.prevent="anchor = Math.max(1, view.firstIndex - 1)"
+        @keydown.right.prevent="anchor = Math.min(layout.totalWeeks, view.firstIndex + 1)"
+      >
+        <span class="absolute inset-0 flex">
+          <span
+            v-for="segment in layout.segments"
+            :key="segment.id"
+            class="h-full"
+            :class="segment.current ? 'bg-accent/45' : 'bg-surface-muted'"
+            :style="{ width: `${segment.sharePct}%` }"
+          />
         </span>
+
+        <span
+          class="absolute inset-y-0 rounded-sm border border-text-dim bg-text/10"
+          :style="{ left: `${view.fromPct}%`, width: `${view.widthPct}%` }"
+        />
+
+        <span
+          v-if="layout.todayPct !== null"
+          class="absolute inset-y-0 w-px bg-accent"
+          :style="{ left: `${layout.todayPct}%` }"
+        />
       </div>
 
-      <div
-        v-if="layout.todayPct !== null"
-        class="pointer-events-none absolute top-1 bottom-4 w-px bg-accent"
-        :style="{ left: `${layout.todayPct}%` }"
-      />
+      <button
+        v-if="anchor !== null"
+        type="button"
+        class="mono shrink-0 text-[11px] text-accent"
+        @click="anchor = null"
+      >
+        revenir à aujourd'hui
+      </button>
     </div>
   </div>
 </template>

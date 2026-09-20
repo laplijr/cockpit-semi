@@ -216,3 +216,161 @@ function monthTicks(
 
   return ticks
 }
+
+/** Douze semaines : un bloc et son allégée, plus la bascule qui suit. */
+export const WINDOW_SPAN = 12
+
+export interface WindowColumn {
+  index: number
+  /** Nuls quand le plan n'est pas daté. */
+  startDate: string | null
+  endDate: string | null
+  phaseType: string
+  targetRunM: number
+  light: boolean
+  test: boolean
+  current: boolean
+  /** La course qui tombe cette semaine-là, s'il y en a une. */
+  race: SeasonRace | null
+}
+
+export interface WindowSegment {
+  id: number
+  type: string
+  /** Colonnes de la fenêtre que la phase couvre. */
+  columns: number
+  sharePct: number
+  current: boolean
+  /** Position dans la phase entière, pas dans la fenêtre. */
+  weekInPhase: number | null
+  phaseWeeks: number
+}
+
+export interface SeasonWindow {
+  columns: WindowColumn[]
+  segments: WindowSegment[]
+  /** Position et largeur de la fenêtre dans la jauge, en % ; nulles sans semaine. */
+  fromPct: number
+  widthPct: number
+  /** Index de la première colonne, pour que la jauge sache où elle est. */
+  firstIndex: number
+  dated: boolean
+}
+
+export interface SeasonWindowInput extends SeasonLayoutInput {
+  /** Nombre de colonnes ; la saison plus courte en rend moins. */
+  span?: number
+  /**
+   * Semaine autour de laquelle centrer la fenêtre ; sans valeur, la semaine
+   * courante. La jauge la déplace sans toucher à la saison.
+   */
+  anchor?: number | null
+}
+
+/**
+ * La fenêtre de douze semaines de la page Courses : ce qui se lit, à côté de la
+ * jauge qui porte la saison entière (§ 9, P6.37). Même géométrie que
+ * `seasonLayout`, dont elle ne duplique ni le repli des courses ni l'axe.
+ */
+export function seasonWindow(input: SeasonWindowInput): SeasonWindow {
+  const { phases, weeks, races, today, dated } = input
+  const span = Math.max(1, input.span ?? WINDOW_SPAN)
+
+  const empty: SeasonWindow = {
+    columns: [],
+    segments: [],
+    fromPct: 0,
+    widthPct: 0,
+    firstIndex: 0,
+    dated: false,
+  }
+  if (weeks.length === 0) return empty
+
+  const ordered = [...weeks].sort((a, b) => a.index - b.index)
+  const currentWeek = dated
+    ? ordered.find((week) => week.startDate <= today && today <= week.endDate)
+    : undefined
+
+  /** La fenêtre se cale sur la saison : ni index négatif au début, ni débordement à la fin. */
+  const centre = input.anchor ?? currentWeek?.index ?? ordered[0]!.index
+  const position = Math.max(
+    0,
+    ordered.findIndex((week) => week.index === centre),
+  )
+  const start = Math.min(
+    Math.max(0, position - Math.floor(span / 2)),
+    Math.max(0, ordered.length - span),
+  )
+  const visible = ordered.slice(start, start + span)
+
+  const raceOn = (week: SeasonWeek) =>
+    dated
+      ? ([...races]
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .find((race) => week.startDate <= race.date && race.date <= week.endDate) ?? null)
+      : null
+
+  const columns: WindowColumn[] = visible.map((week) => ({
+    index: week.index,
+    startDate: dated ? week.startDate : null,
+    endDate: dated ? week.endDate : null,
+    phaseType: week.phaseType,
+    targetRunM: week.targetRunM,
+    light: week.light,
+    test: week.test,
+    current: currentWeek !== undefined && week.index === currentWeek.index,
+    race: raceOn(week),
+  }))
+
+  return {
+    columns,
+    segments: windowSegments(columns, phases, currentWeek?.index ?? null),
+    fromPct: (start / ordered.length) * 100,
+    widthPct: (visible.length / ordered.length) * 100,
+    firstIndex: visible[0]?.index ?? 0,
+    dated,
+  }
+}
+
+/**
+ * Les phases de la fenêtre, segmentées sur elle seule : chaque segment a donc
+ * la place d'écrire son nom, et le segment courant porte sa position dans la
+ * phase entière — pas dans la fenêtre, qui n'en montre qu'un morceau. Le
+ * découpage suit `phases`, qui fait foi, et non le type porté par la semaine.
+ */
+function windowSegments(
+  columns: WindowColumn[],
+  phases: SeasonPhase[],
+  currentIndex: number | null,
+): WindowSegment[] {
+  const segments: WindowSegment[] = []
+
+  for (const column of columns) {
+    const phase = phases.find(
+      (item) => column.index >= item.startWeek && column.index <= item.endWeek,
+    )
+    const last = segments.at(-1)
+
+    if (last && phase !== undefined && last.id === phase.id) {
+      last.columns += 1
+      last.current ||= column.current
+    } else {
+      segments.push({
+        id: phase?.id ?? 0,
+        type: phase?.type ?? column.phaseType,
+        columns: 1,
+        sharePct: 0,
+        current: column.current,
+        weekInPhase: null,
+        phaseWeeks: phase ? phase.endWeek - phase.startWeek + 1 : 0,
+      })
+    }
+
+    if (phase && currentIndex !== null && column.index === currentIndex) {
+      segments.at(-1)!.weekInPhase = currentIndex - phase.startWeek + 1
+    }
+  }
+
+  for (const segment of segments) segment.sharePct = (segment.columns / columns.length) * 100
+  return segments
+}
