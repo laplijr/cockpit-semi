@@ -56,6 +56,7 @@ const ICONS = {
   watch: [rect(7, 5, 10, 14, 3), path('M12 9v3l2 1'), path('M9.5 5V3h5v2M9.5 19v2h5v-2')],
   chevron: [path('m9 5 7 7-7 7')],
   plus: [path('M12 5v14M5 12h14')],
+  more: [circle(5, 12, 1), circle(12, 12, 1), circle(19, 12, 1)],
 } satisfies Record<string, Shape[]>
 
 export type IconName = keyof typeof ICONS

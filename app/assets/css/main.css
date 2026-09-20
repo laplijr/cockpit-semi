@@ -37,6 +37,19 @@
   --spacing-sidebar: 232px;
   --spacing-topbar: 56px;
   --spacing-shell: 1440px;
+  --spacing-bottombar: 60px;
+
+  /*
+   * Les deux seuls points de rupture de l'app (§ 8, P6.8). `wide` est le
+   * cockpit, inchangé au pixel près ; `lean` est la tablette, qui garde la
+   * souris ; sous `lean` c'est le téléphone. Tout `@media` et toute variante
+   * de largeur partent d'ici : aucune valeur de rupture n'est écrite en dur
+   * dans un composant. Les cinq seuils par défaut de Tailwind sont retirés —
+   * les laisser, c'est laisser six ruptures là où il en faut deux.
+   */
+  --breakpoint-*: initial;
+  --breakpoint-lean: 768px;
+  --breakpoint-wide: 1280px;
 }
 
 @layer base {
@@ -53,9 +66,16 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Le cockpit est un écran large : sous 1280 px on scrolle, on ne réempile pas. */
-  #__nuxt {
-    min-width: 1280px;
+  /*
+   * Le plancher de 1280 px est celui du cockpit, pas celui de l'app : au-dessus
+   * de la rupture large on scrolle plutôt que de réempiler, en dessous les
+   * deux règles du § 8 prennent le relais (les grilles se replient, les objets
+   * à axe défilent).
+   */
+  @media (width >= theme(--breakpoint-wide)) {
+    #__nuxt {
+      min-width: theme(--breakpoint-wide);
+    }
   }
 
   ::selection {
@@ -303,6 +323,21 @@
   label:hover .explicable,
   .explicable-zone:hover .explicable {
     color: var(--color-text);
+  }
+
+  @media (width < theme(--breakpoint-lean)) {
+    /*
+     * Le doigt n'a pas la précision de la souris : sous la rupture, ce qui se
+     * touche fait au moins 44 px dans les deux sens. La règle est bornée par
+     * sa media query — la densité du cockpit ne bouge pas d'un pixel. Elle
+     * vise les contrôles et jamais les mots : les déclencheurs de glossaire
+     * sont des `span` posés dans une phrase, les grandir la disloquerait.
+     */
+    .btn,
+    .tap {
+      min-height: 44px;
+      min-width: 44px;
+    }
   }
 
   .badge {

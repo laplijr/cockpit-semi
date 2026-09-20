@@ -33,11 +33,15 @@ onBeforeUnmount(() => {
     <ShellSideBar />
     <div class="flex min-w-0 flex-1 flex-col">
       <ShellTopBar />
-      <main class="flex flex-1 flex-col gap-4 px-6 pt-5 pb-7">
+      <!-- La barre du bas est fixée : la page lui réserve sa hauteur et la zone sûre. -->
+      <main
+        class="flex flex-1 flex-col gap-4 px-4 pt-4 pb-[calc(var(--spacing-bottombar)+env(safe-area-inset-bottom)+16px)] lean:px-6 lean:pt-5 lean:pb-7"
+      >
         <ShellPageHeader />
         <slot />
       </main>
     </div>
+    <ShellBottomBar />
     <ShellPanelHost />
     <ShellModalHost />
   </div>

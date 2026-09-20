@@ -51,6 +51,22 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ]
 
+/**
+ * Sur téléphone la navigation est une barre du bas à quatre onglets : les
+ * trois destinations du groupe « Piloter » — la boucle qu'on revisite dix fois
+ * par semaine — plus une porte « Plus » vers tout le reste (§ 8). Les deux
+ * listes se déduisent de `NAV_GROUPS` : il n'y a jamais deux listes à tenir.
+ */
+const BOTTOM_BAR_GROUP = 'Piloter'
+
+export const BOTTOM_BAR_ITEMS: NavItem[] = NAV_GROUPS.filter(
+  (group) => group.title === BOTTOM_BAR_GROUP,
+).flatMap((group) => group.items)
+
+export const MORE_GROUPS: NavGroup[] = NAV_GROUPS.filter(
+  (group) => group.title !== BOTTOM_BAR_GROUP,
+)
+
 const BY_PATH = new Map(NAV_GROUPS.flatMap((group) => group.items).map((item) => [item.to, item]))
 
 export function navItemFor(path: string): NavItem | undefined {

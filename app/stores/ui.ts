@@ -1,4 +1,4 @@
-export const PANEL_IDS = ['imprevu', 'pause'] as const
+export const PANEL_IDS = ['imprevu', 'pause', 'plus'] as const
 export const MODAL_IDS = [
   'nouvelle-course',
   'seance',

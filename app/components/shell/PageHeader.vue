@@ -5,5 +5,6 @@ const title = computed(() => navItemFor(route.path)?.label ?? 'Cockpit')
 </script>
 
 <template>
-  <h1 class="heading">{{ title }}</h1>
+  <!-- Sur téléphone le titre est porté par la barre du haut : pas deux fois. -->
+  <h1 class="heading hidden lean:block">{{ title }}</h1>
 </template>

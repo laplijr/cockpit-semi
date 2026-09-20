@@ -34,5 +34,14 @@ async function onUnplannedConfirmed() {
     >
       <PauseForm @declared="onSaved" />
     </ShellSidePanel>
+
+    <ShellSidePanel
+      v-else-if="ui.panel === 'plus'"
+      title="Plus"
+      subtitle="le reste de la navigation"
+      @close="ui.closePanel()"
+    >
+      <ShellMoreSheet @navigate="ui.closePanel()" />
+    </ShellSidePanel>
   </Teleport>
 </template>

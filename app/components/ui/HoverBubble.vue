@@ -46,6 +46,18 @@ let closeTimer: ReturnType<typeof setTimeout> | undefined
 
 const maxWidth = computed(() => SIZES[props.size])
 
+/**
+ * Un écran tactile n'a ni survol ni focus : sans ça, les cinquante-six
+ * déclencheurs du glossaire seraient muets sur téléphone (§ 8, P6.8). Le mot
+ * s'y ouvre au toucher, se ferme au toucher suivant ailleurs, et sans le délai
+ * de 120 ms — il n'a de sens que pour une souris qui longe une rangée.
+ */
+const coarse = ref(false)
+
+onMounted(() => {
+  coarse.value = window.matchMedia('(pointer: coarse)').matches
+})
+
 function horizontalBounds() {
   const inDialog = root.value?.closest('[role="dialog"]') !== null
   const area = inDialog ? undefined : root.value?.closest('main')?.getBoundingClientRect()
@@ -122,15 +134,34 @@ function hide(immediate = false) {
   closeTimer = setTimeout(conceal, CLOSE_DELAY_MS)
 }
 
+function onPointerDownAnywhere(event: PointerEvent) {
+  if (root.value?.contains(event.target as Node)) return
+  conceal()
+}
+
 watch(open, (isOpen) => {
   if (isOpen) {
     window.addEventListener('scroll', place, true)
     window.addEventListener('resize', place)
+    if (coarse.value) document.addEventListener('pointerdown', onPointerDownAnywhere)
     return
   }
   window.removeEventListener('scroll', place, true)
   window.removeEventListener('resize', place)
+  document.removeEventListener('pointerdown', onPointerDownAnywhere)
 })
+
+/** Au toucher, le mot bascule : ouvert, il se referme ; fermé, il s'ouvre. */
+function onTriggerClick(event: MouseEvent) {
+  event.stopPropagation()
+  event.preventDefault()
+  if (!coarse.value) return
+  if (open.value) {
+    conceal()
+    return
+  }
+  void reveal()
+}
 
 onBeforeUnmount(() => {
   clearTimeout(openTimer)
@@ -138,6 +169,7 @@ onBeforeUnmount(() => {
   if (open.value) conceal()
   window.removeEventListener('scroll', place, true)
   window.removeEventListener('resize', place)
+  document.removeEventListener('pointerdown', onPointerDownAnywhere)
 })
 </script>
 
@@ -146,8 +178,8 @@ onBeforeUnmount(() => {
   <span
     ref="root"
     class="relative inline-flex align-baseline"
-    @mouseenter="show()"
-    @mouseleave="hide()"
+    @mouseenter="coarse || show()"
+    @mouseleave="coarse || hide()"
     @keydown.esc.stop="hide(true)"
   >
     <!--
@@ -164,9 +196,9 @@ onBeforeUnmount(() => {
       :class="triggerClass"
       :aria-label="label"
       :aria-describedby="open ? bubbleId : undefined"
-      @focus="show(true)"
-      @blur="hide(true)"
-      @click.stop.prevent
+      @focus="coarse || show(true)"
+      @blur="coarse || hide(true)"
+      @click="onTriggerClick"
       @keydown.enter.stop.prevent
       @keydown.space.stop.prevent
     >
