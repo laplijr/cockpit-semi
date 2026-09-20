@@ -1,6 +1,6 @@
 import { addDays } from '../domain/plan/calendar'
 import type { RunReplacement, SwappableSession } from '../domain/plan/ride-swap'
-import { replaceRideWithRun, rideSwapRefusal } from '../domain/plan/ride-swap'
+import { MIN_REPLACEMENT_MIN, replaceRideWithRun, rideSwapRefusal } from '../domain/plan/ride-swap'
 import type { Prescription } from '../domain/shared/prescription'
 import type { Clock } from '../domain/shared/clock'
 import type { PlanGateway } from './ports'
@@ -37,8 +37,7 @@ export type RideSwapOutcome =
   | { ok: true; replaced: StoredSession; replacement: RunReplacement }
   | { ok: false; refusal: string }
 
-const NO_VOLUME =
-  'Le volume de course de la semaine est déjà engagé : aucune endurance à venir ne peut céder les 35′ nécessaires.'
+const NO_VOLUME = `Le volume de course de la semaine est déjà engagé : les endurances à venir ne peuvent pas céder les ${MIN_REPLACEMENT_MIN}′ d’une sortie de remplacement.`
 
 /**
  * Ce que deviendrait la sortie vélo du jour si Ronan ne pouvait pas la faire,

@@ -8,6 +8,15 @@ import { addDays } from './calendar'
 import { SessionStatus } from './session'
 import { EASY_MAX_MIN, EASY_MIN_MIN } from './week-template'
 
+/**
+ * Durée minimale d'une séance de remplacement, en minutes. Plus basse que le
+ * plancher d'une endurance du plan (`EASY_MIN_MIN`) : ce n'est pas une séance
+ * que le générateur pose, c'est une journée rattrapée. Un footing souple de
+ * 26′ vaut mieux qu'une journée vide ; sous 20′, il ne vaut plus le
+ * déplacement (retour de Ronan, 20 sept. 2026).
+ */
+export const MIN_REPLACEMENT_MIN = 20
+
 export interface SwappableSession {
   id: number
   date: IsoDate
@@ -31,7 +40,11 @@ export interface RunReplacement {
   givebacks: VolumeGiveback[]
   /** Minutes de vélo que la semaine perd : sa cible de vélo les perd aussi. */
   cyclingMinRemoved: number
-  /** Vrai quand la veille portait la sortie longue : l'endurance est au plancher (§ 5). */
+  /**
+   * Vrai quand c'est le plafond du lendemain de sortie longue qui a décidé la
+   * taille — pas quand la veille en portait une sans que ça change rien : une
+   * semaine qui ne prête que 25′ est bornée par elle, pas par le plafond (§ 5).
+   */
   cappedAfterLongRun: boolean
 }
 
@@ -107,8 +120,10 @@ function distribute(surpluses: number[], wantedM: number): number[] {
 
 /**
  * Endurance qui remplace la sortie vélo du jour, et ce que la semaine rend pour
- * la payer. Rien quand aucune endurance suivante n'a 35′ à prêter : la journée
- * reste alors sans course plutôt que de faire déborder la semaine (§ 5).
+ * la payer. Deux planchers, et ils ne valent pas la même chose : une endurance
+ * qui prête ne descend jamais sous 35′, le remplacement lui-même peut valoir
+ * 20′. Rien en dessous : la journée reste sans course plutôt que de faire
+ * déborder la semaine (§ 5).
  */
 export function replaceRideWithRun({
   ride,
@@ -119,7 +134,10 @@ export function replaceRideWithRun({
 }: RideSwapInput): RunReplacement | undefined {
   const easyPace = paceFor(vdot, TrainingZone.Easy)
   const distanceIn = (minutes: number) => Math.round((minutes * 60 * 1000) / easyPace)
+  /** Ce qu'une endurance du plan ne descend jamais sous : elle reste une séance. */
   const minEasyM = distanceIn(EASY_MIN_MIN)
+  /** Ce sous quoi le remplacement n'existe pas : plus bas, c'est un autre objet. */
+  const minReplacementM = distanceIn(MIN_REPLACEMENT_MIN)
 
   const eve = addDays(ride.date, -1)
   const afterLongRun = [...weekSessions, ...previousDay].some(
@@ -138,9 +156,9 @@ export function replaceRideWithRun({
 
   const surpluses = lenders.map((item) => Math.max(0, easyDistanceOf(item.prescription) - minEasyM))
   const lendable = surpluses.reduce((total, item) => total + item, 0)
-  if (lendable < minEasyM) return undefined
+  if (lendable < minReplacementM) return undefined
 
-  const wantedM = Math.min(Math.max(Math.min(equalLoadM, capM), minEasyM), lendable)
+  const wantedM = Math.min(Math.max(Math.min(equalLoadM, capM), minReplacementM), lendable)
   const takes = distribute(surpluses, wantedM)
 
   const givebacks = lenders.flatMap((lender, index) =>
@@ -166,6 +184,6 @@ export function replaceRideWithRun({
     prescription: { ...run, label: `${type.label}, en remplacement du vélo` },
     givebacks,
     cyclingMinRemoved: ride.prescription.durationMin ?? 0,
-    cappedAfterLongRun: afterLongRun,
+    cappedAfterLongRun: afterLongRun && wantedM === capM,
   }
 }

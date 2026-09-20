@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TrainingZone, paceFor } from '~~/server/domain/fitness/vdot'
 import {
+  MIN_REPLACEMENT_MIN,
   replaceRideWithRun,
   rideSwapRefusal,
   type SwappableSession,
@@ -15,6 +16,7 @@ const VDOT = 35
 const TARGET_RUN_M = 40_000
 const EASY_PACE = paceFor(VDOT, TrainingZone.Easy)
 const MIN_EASY_M = Math.round((EASY_MIN_MIN * 60 * 1000) / EASY_PACE)
+const MIN_REPLACEMENT_M = Math.round((MIN_REPLACEMENT_MIN * 60 * 1000) / EASY_PACE)
 
 /** Sortie Z2 de 1 h 30 à RPE 3 : la séance de vélo la plus courante du plan. */
 function ride(date = '2026-11-18'): SwappableSession {
@@ -138,7 +140,7 @@ describe('endurance de remplacement et volume rendu (§ 5, P6.42)', () => {
     expect(runningVolume(after) + swap.prescription.totalDistanceM).toBe(runningVolume(sessions))
   })
 
-  it('ne descend aucune endurance sous son plancher de 35′', () => {
+  it('ne descend aucune endurance prêteuse sous son plancher de 35′', () => {
     const swap = replaceRideWithRun({
       ride: ride(),
       weekSessions: week(),
@@ -151,7 +153,40 @@ describe('endurance de remplacement et volume rendu (§ 5, P6.42)', () => {
       const easy = giveback.after.steps.find((step) => !step.intense)!
       expect(easy.distanceM).toBeGreaterThanOrEqual(MIN_EASY_M)
     }
-    expect(swap.prescription.totalDistanceM).toBeGreaterThanOrEqual(MIN_EASY_M)
+    expect(swap.prescription.totalDistanceM).toBeGreaterThanOrEqual(MIN_REPLACEMENT_M)
+  })
+
+  /**
+   * Une semaine serrée ne prête que 26′ : refuser vaudrait une journée vide,
+   * et le plancher d'une endurance du plan n'est pas celui d'un rattrapage.
+   */
+  it('rend une sortie plus courte que 35′ quand la semaine ne peut pas mieux', () => {
+    const short = MIN_EASY_M + 1800
+    const sessions = [
+      longRun(5, '2026-11-17'),
+      ride(),
+      easyRun(2, '2026-11-19', short),
+      easyRun(3, '2026-11-21', short),
+      longRun(4, '2026-11-22'),
+    ]
+
+    const swap = replaceRideWithRun({
+      ride: ride(),
+      weekSessions: sessions,
+      previousDay: [],
+      targetRunM: TARGET_RUN_M,
+      vdot: VDOT,
+    })!
+
+    expect(swap.prescription.totalDistanceM).toBe(3600)
+    expect(swap.prescription.totalDistanceM).toBeLessThan(MIN_EASY_M)
+    /* C'est la semaine qui a décidé, pas le plafond : la phrase ne s'affiche pas. */
+    expect(swap.cappedAfterLongRun).toBe(false)
+    expect(swap.prescription.totalDistanceM).toBeGreaterThanOrEqual(MIN_REPLACEMENT_M)
+
+    for (const giveback of swap.givebacks) {
+      expect(giveback.after.steps.find((step) => !step.intense)!.distanceM).toBe(MIN_EASY_M)
+    }
   })
 
   it('ne touche ni la sortie longue ni les séances déjà passées', () => {
@@ -231,7 +266,7 @@ describe('endurance de remplacement et volume rendu (§ 5, P6.42)', () => {
     expect(withEve.prescription.totalDistanceM).toBeLessThan(withoutEve.prescription.totalDistanceM)
   })
 
-  it('ne remplace rien quand la semaine n’a plus 35′ à prêter', () => {
+  it('ne remplace rien quand la semaine n’a plus 20′ à prêter', () => {
     const sessions = [ride(), longRun(4, '2026-11-22'), easyRun(2, '2026-11-16', 9000)]
 
     expect(
