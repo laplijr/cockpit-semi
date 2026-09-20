@@ -76,7 +76,16 @@ const FORECAST_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
   { label: 'Écart', term: 'biais' },
 ]
 
-const forecasts = computed(() => data.value?.forecasts ?? [])
+/**
+ * Deux listes qui s'allongent. Elles défilaient dans leur tuile ; elles se
+ * feuillettent maintenant, comme partout ailleurs (§ 8) : une tuile garde sa
+ * hauteur, et le pied dit sur combien on lit.
+ */
+const FORECAST_PER_PAGE = 6
+const STRENGTH_PER_PAGE = 6
+
+const forecasts = usePagedList(() => data.value?.forecasts ?? [], FORECAST_PER_PAGE)
+const strengthLoads = usePagedList(() => data.value?.strengthLoads ?? [], STRENGTH_PER_PAGE)
 
 /** Un VDOT garde sa décimale, même nulle : la colonne s'aligne. */
 const vdotText = (value: number | null | undefined) =>
@@ -430,7 +439,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         </span>
       </div>
 
-      <p v-if="forecasts.length === 0" class="text-[13px] text-text-dim">
+      <p v-if="forecasts.total === 0" class="text-[13px] text-text-dim">
         Aucune échéance passée depuis la première annonce : la première comparaison tombera au
         prochain test.
       </p>
@@ -473,62 +482,53 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
           </div>
         </div>
 
-        <!-- Une liste qui s'allonge défile dans sa tuile au lieu de pousser la page (§ 8). -->
-        <div class="max-h-[196px] overflow-y-auto">
-          <table class="w-full text-[13px]">
-            <thead>
-              <tr class="text-left">
-                <th
-                  v-for="head in FORECAST_COLUMNS"
-                  :key="head.label"
-                  class="label bg-surface pb-2 text-[10px]"
-                >
-                  <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
-                  <template v-else>{{ head.label }}</template>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in forecasts" :key="row.id" class="border-t border-line-soft">
-                <td class="mono py-[6px] text-text-dim">{{ formatDate(row.issuedDate) }}</td>
-                <td class="py-[6px]">
-                  {{ row.label }}
-                  <span class="mono ml-1 text-[11px] text-text-dim">
-                    {{ formatDate(row.targetDate) }}
-                  </span>
-                </td>
-                <td class="mono py-[6px]">
-                  {{ vdotText(row.projectedVdot) }}
-                  <span class="text-[11px] text-text-dim">
-                    {{ vdotText(row.lowVdot) }}–{{ vdotText(row.highVdot) }}
-                  </span>
-                </td>
-                <td class="mono py-[6px]">{{ vdotText(row.actualVdot) }}</td>
-                <td
-                  class="mono py-[6px]"
-                  :class="Math.abs(row.gapVdot ?? 0) > 0.5 ? 'text-warn' : 'text-text-dim'"
-                >
-                  {{ signedVdot(row.gapVdot) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <table class="w-full text-[13px]">
+          <thead>
+            <tr class="text-left">
+              <th v-for="head in FORECAST_COLUMNS" :key="head.label" class="label pb-2 text-[10px]">
+                <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
+                <template v-else>{{ head.label }}</template>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in forecasts.items" :key="row.id" class="border-t border-line-soft">
+              <td class="mono py-[6px] text-text-dim">{{ formatDate(row.issuedDate) }}</td>
+              <td class="py-[6px]">
+                {{ row.label }}
+                <span class="mono ml-1 text-[11px] text-text-dim">
+                  {{ formatDate(row.targetDate) }}
+                </span>
+              </td>
+              <td class="mono py-[6px]">
+                {{ vdotText(row.projectedVdot) }}
+                <span class="text-[11px] text-text-dim">
+                  {{ vdotText(row.lowVdot) }}–{{ vdotText(row.highVdot) }}
+                </span>
+              </td>
+              <td class="mono py-[6px]">{{ vdotText(row.actualVdot) }}</td>
+              <td
+                class="mono py-[6px]"
+                :class="Math.abs(row.gapVdot ?? 0) > 0.5 ? 'text-warn' : 'text-text-dim'"
+              >
+                {{ signedVdot(row.gapVdot) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <UiPager v-model="forecasts.page" :total="forecasts.total" :per-page="FORECAST_PER_PAGE" />
       </template>
     </div>
 
-    <div v-if="(data?.strengthLoads.length ?? 0) > 0" class="tile">
+    <div v-if="strengthLoads.total > 0" class="tile">
       <span class="label"
         ><UiInfoHint term="chargeMuscu">Charges tenues en renforcement</UiInfoHint></span
       >
 
-      <!--
-        Une liste qui s'allonge défile dans sa tuile au lieu de pousser ce qui
-        suit : la tête et la note restent en place (§ 8).
-      -->
-      <div class="grid max-h-[300px] grid-cols-3 gap-4 overflow-y-auto">
+      <div class="grid grid-cols-3 gap-4">
         <div
-          v-for="series in data?.strengthLoads ?? []"
+          v-for="series in strengthLoads.items"
           :key="series.exerciseId"
           class="flex flex-col gap-1"
         >
@@ -541,6 +541,12 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
           />
         </div>
       </div>
+
+      <UiPager
+        v-model="strengthLoads.page"
+        :total="strengthLoads.total"
+        :per-page="STRENGTH_PER_PAGE"
+      />
     </div>
   </div>
 </template>

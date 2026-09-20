@@ -39,6 +39,15 @@ const SPORTS = [
   { key: 'autre', label: 'Autre' },
 ] as const
 
+/**
+ * Les deux journaux du dialog grandissent sans fin — un point de forme par
+ * course ou par test, deux à trois séances clés par semaine. Le journal des
+ * clés tenait 2840 px sur quarante lignes : ils se lisent dix par dix (§ 8).
+ */
+const PER_PAGE = 10
+const vdotPoints = usePagedList(() => progression.value?.vdot ?? [], PER_PAGE)
+const keySessions = usePagedList(() => progression.value?.keySessions ?? [], PER_PAGE)
+
 const raceA = computed(() =>
   (races.value ?? [])
     .filter((race) => race.priority === 'A' && race.status === 'planifiee')
@@ -216,7 +225,7 @@ const title = computed(
           </thead>
           <tbody>
             <tr
-              v-for="point in progression?.vdot ?? []"
+              v-for="point in vdotPoints.items"
               :key="point.date"
               class="border-t border-line-soft"
             >
@@ -232,6 +241,8 @@ const title = computed(
             </tr>
           </tbody>
         </table>
+
+        <UiPager v-model="vdotPoints.page" :total="vdotPoints.total" :per-page="PER_PAGE" />
       </div>
     </template>
 
@@ -269,11 +280,7 @@ const title = computed(
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="item in progression?.keySessions ?? []"
-              :key="item.id"
-              class="border-t border-line-soft"
-            >
+            <tr v-for="item in keySessions.items" :key="item.id" class="border-t border-line-soft">
               <td class="mono py-[6px]">{{ formatDate(item.date) }}</td>
               <td class="py-[6px]">{{ SESSION_LABELS[item.code] ?? item.code }}</td>
               <td class="mono py-[6px] text-text-dim">{{ formatDistance(item.distanceM) }}</td>
@@ -294,13 +301,15 @@ const title = computed(
                 </span>
               </td>
             </tr>
-            <tr v-if="(progression?.keySessions.length ?? 0) === 0">
+            <tr v-if="keySessions.total === 0">
               <td colspan="6" class="py-3 text-text-dim">
                 Aucune séance clé encore planifiée ou réalisée.
               </td>
             </tr>
           </tbody>
         </table>
+
+        <UiPager v-model="keySessions.page" :total="keySessions.total" :per-page="PER_PAGE" />
       </div>
     </template>
 
