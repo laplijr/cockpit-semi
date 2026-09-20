@@ -205,8 +205,9 @@ export interface PrescriptionContext {
   withHalfPaceFinish?: boolean
 }
 
-const WARMUP_M = 2000
-const COOLDOWN_M = 1000
+/** Distances exactes de l'échauffement et du retour au calme, quand la séance en porte. */
+export const WARMUP_M = 2000
+export const COOLDOWN_M = 1000
 
 function easyPace(vdot: number): number {
   return paceFor(vdot, TrainingZone.Easy)

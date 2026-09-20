@@ -157,6 +157,29 @@ const plannedMinutes = computed(() => {
           </div>
         </div>
 
+        <!--
+          La séance part sur la montre en un fichier. L'itinéraire garde son
+          bloc, celui-ci garde le sien : une seule action principale par ligne
+          (§ 8, P6.7).
+        -->
+        <div v-if="session.sport === 'course'" class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Sur la montre</span>
+
+          <a
+            :href="`/api/sessions/${session.id}/workout.fit`"
+            class="btn btn-ghost self-start"
+            download
+          >
+            <UiAppIcon name="watch" :size="15" />
+            Télécharger pour la montre
+          </a>
+
+          <span class="mono text-[11.5px] text-text-dim">
+            Montre branchée en USB, fichier déposé dans
+            <span class="text-text">GARMIN/NEWFILES/</span>
+          </span>
+        </div>
+
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Prescrit contre réalisé</span>
           <table class="w-full text-[13px]">

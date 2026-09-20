@@ -53,6 +53,7 @@ const ICONS = {
     path('M6 15.5C6 11 9 11 12 11s6 0 6-2.5'),
     path('M15.5 6H9'),
   ],
+  watch: [rect(7, 5, 10, 14, 3), path('M12 9v3l2 1'), path('M9.5 5V3h5v2M9.5 19v2h5v-2')],
   chevron: [path('m9 5 7 7-7 7')],
   plus: [path('M12 5v14M5 12h14')],
 } satisfies Record<string, Shape[]>
