@@ -117,17 +117,21 @@ async function save() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <!-- Sous-grille : un libellé sur deux lignes ne décale plus son champ. -->
-    <div class="grid grid-cols-2 grid-rows-[auto_auto_auto_auto_auto_auto] gap-x-3 gap-y-[6px]">
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
+    <!-- Sous-grille : un libellé sur deux lignes ne décale plus son champ. En
+         une colonne il n'y a plus rien à aligner, et la sous-grille se dissout
+         avec la grille qu'elle alignait (§ 8, P6.8). -->
+    <div
+      class="flex flex-col gap-[6px] lean:grid lean:grid-cols-2 lean:grid-rows-[auto_auto_auto_auto_auto_auto] lean:gap-x-3 lean:gap-y-[6px]"
+    >
+      <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
         <span class="label text-[10.5px]">Nom</span>
         <input v-model="form.name" type="text" class="input" placeholder="Semi de Paris" />
       </label>
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
+      <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
         <span class="label text-[10.5px]">Date</span>
         <input v-model="form.date" type="date" class="input mono" />
       </label>
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
+      <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
         <span class="label text-[10.5px]">Distance</span>
         <select v-model.number="form.distanceM" class="input">
           <option v-for="option in DISTANCES" :key="option.value" :value="option.value">
@@ -135,7 +139,7 @@ async function save() {
           </option>
         </select>
       </label>
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
+      <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
         <span class="label text-[10.5px]">Priorité</span>
         <select v-model="form.priority" class="input">
           <option value="A">A — course principale</option>
@@ -143,11 +147,11 @@ async function save() {
           <option value="C">C — course test</option>
         </select>
       </label>
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
+      <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
         <span class="label text-[10.5px]">D+ (m)</span>
         <input v-model.number="form.elevationGainM" type="number" class="input mono" />
       </label>
-      <span />
+      <span class="hidden lean:block" />
     </div>
 
     <RacesObjectiveFields

@@ -172,7 +172,7 @@ async function logout() {
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-4">
+      <div class="fold-3 grid gap-4">
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">Prénom</span>
           <input v-model="form.firstName" type="text" class="input" placeholder="Ronan" />
@@ -187,7 +187,7 @@ async function logout() {
         </label>
       </div>
 
-      <div class="grid grid-cols-3 gap-4">
+      <div class="fold-3 grid gap-4">
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">FC max (bpm)</span>
           <input v-model.number="form.maxHr" type="number" class="input mono" />
@@ -243,7 +243,7 @@ async function logout() {
         {{ form.profile ? defaultsFor(form.profile).maxWeeklyIncreasePct : 10 }} % par semaine au
         maximum et plafonne au pic.
       </p>
-      <div class="grid grid-cols-2 gap-4">
+      <div class="fold-2 grid gap-4">
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">
             <UiInfoHint term="volumeDepart">Volume de départ (m / semaine)</UiInfoHint>
@@ -294,7 +294,7 @@ async function logout() {
         </button>
       </div>
 
-      <div class="grid grid-cols-2 gap-4 border-t border-line-soft pt-3">
+      <div class="fold-2 grid gap-4 border-t border-line-soft pt-3">
         <label class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">Jour de la sortie longue</span>
           <select v-model.number="form.longRunDay" class="input">
@@ -319,7 +319,7 @@ async function logout() {
         </label>
       </div>
 
-      <div class="grid grid-cols-2 gap-4 border-t border-line-soft pt-3">
+      <div class="fold-2 grid gap-4 border-t border-line-soft pt-3">
         <div class="flex flex-col gap-[6px]">
           <span class="label text-[10.5px]">
             <UiInfoHint term="joursFaciles">Jours qui restent faciles</UiInfoHint>
@@ -329,7 +329,7 @@ async function logout() {
               v-for="day in WEEKDAYS"
               :key="day.value"
               type="button"
-              class="pill"
+              class="pill pill-tap"
               :class="form.easyDays.includes(day.value) && 'bg-accent/15 text-text'"
               @click="toggle(form.easyDays, day.value)"
             >

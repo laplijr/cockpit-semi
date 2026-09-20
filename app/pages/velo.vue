@@ -47,7 +47,7 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
 
     <!-- Une fiche : nom, valeur dominante, structure sur une ligne, réglette
          de phases. La note passe au survol (§ 8, P6.35). -->
-    <div class="grid grid-cols-3 gap-4">
+    <div class="fold-3 grid gap-4">
       <button
         v-for="type in data?.types ?? []"
         :key="type.code"
@@ -83,7 +83,7 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
 
     <div class="tile">
       <span class="label">Règles de conversion course → vélo</span>
-      <div class="grid grid-cols-2 gap-x-8">
+      <div class="fold-2 grid gap-x-8">
         <span
           v-for="rule in CONVERSION_RULES"
           :key="rule.when"

@@ -2,6 +2,12 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
   compatibilityDate: '2026-09-16',
+  /*
+   * La barre flottante des devtools se pose au-dessus de la barre du bas du
+   * téléphone et avale ses touchers : le parcours Playwright démarre donc le
+   * serveur de dev sans elle (§ 10, P6.8).
+   */
+  devtools: { enabled: !process.env.NUXT_E2E },
   modules: ['@nuxt/eslint', '@pinia/nuxt', 'nuxt-auth-utils'],
   css: ['~/assets/css/main.css'],
   vite: { plugins: [tailwindcss()] },

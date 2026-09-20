@@ -117,7 +117,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
 
     <!-- Les trois KPI sont des instruments : chiffre à 56 px, une métadonnée,
          une échelle qui le situe (§ 8, P6.35). -->
-    <section class="grid grid-cols-3 gap-4">
+    <section class="fold-3 grid gap-4">
       <button type="button" class="tile dial tile-action text-left" @click="ui.openDial('vdot')">
         <span class="label"><UiInfoHint term="vdot">Forme mesurée</UiInfoHint></span>
 
@@ -225,27 +225,31 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         :race-name="data?.confidenceRace?.name ?? null"
       />
 
-      <table class="w-full text-[13px]">
-        <thead>
-          <tr class="text-left">
-            <th v-for="head in VDOT_COLUMNS" :key="head.label" class="label pb-2 text-[10px]">
-              <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
-              <template v-else>{{ head.label }}</template>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="point in recentVdot" :key="point.date" class="border-t border-line-soft">
-            <td class="mono py-[6px]">{{ formatDate(point.date) }}</td>
-            <td class="py-[6px]">
-              {{ ORIGIN_LABELS[point.origin] ?? point.origin }}
-              <span v-if="point.isFloor" class="pill pill-warn ml-1">plancher</span>
-            </td>
-            <td class="mono py-[6px]">{{ point.vdot.toFixed(1).replace('.', ',') }}</td>
-            <td class="mono py-[6px] text-text-dim">{{ formatDuration(point.halfProjectionS) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <UiAxisScroller>
+        <table class="table-axis w-full text-[13px]">
+          <thead>
+            <tr class="text-left">
+              <th v-for="head in VDOT_COLUMNS" :key="head.label" class="label pb-2 text-[10px]">
+                <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
+                <template v-else>{{ head.label }}</template>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="point in recentVdot" :key="point.date" class="border-t border-line-soft">
+              <td class="mono py-[6px]">{{ formatDate(point.date) }}</td>
+              <td class="py-[6px]">
+                {{ ORIGIN_LABELS[point.origin] ?? point.origin }}
+                <span v-if="point.isFloor" class="pill pill-warn ml-1">plancher</span>
+              </td>
+              <td class="mono py-[6px]">{{ point.vdot.toFixed(1).replace('.', ',') }}</td>
+              <td class="mono py-[6px] text-text-dim">
+                {{ formatDuration(point.halfProjectionS) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </UiAxisScroller>
     </div>
 
     <!--
@@ -253,22 +257,26 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       pas de titre. La bulle de survol porte la lecture (§ 9, P6.39).
     -->
     <div class="tile">
-      <UiWeekBars :weeks="visibleWeeks" :height="96">
-        <template #footer>
-          <div class="flex gap-1">
-            <span
-              v-for="(week, index) in visibleWeeks"
-              :key="week.index"
-              class="mono flex-1 text-center text-[10px] text-text-dim"
-            >
-              <template v-if="index % WEEK_LABEL_EVERY === 0">S{{ week.index }}</template>
-            </span>
-          </div>
-        </template>
-      </UiWeekBars>
+      <!-- Trois barres par semaine sur vingt-six semaines : un axe, pas une
+           grille. Il défile au lieu de se comprimer (§ 8, P6.8). -->
+      <UiAxisScroller>
+        <UiWeekBars :weeks="visibleWeeks" :height="96" class="min-w-[520px] lean:min-w-0">
+          <template #footer>
+            <div class="flex gap-1">
+              <span
+                v-for="(week, index) in visibleWeeks"
+                :key="week.index"
+                class="mono flex-1 text-center text-[10px] text-text-dim"
+              >
+                <template v-if="index % WEEK_LABEL_EVERY === 0">S{{ week.index }}</template>
+              </span>
+            </div>
+          </template>
+        </UiWeekBars>
+      </UiAxisScroller>
     </div>
 
-    <section class="grid grid-cols-2 gap-4">
+    <section class="fold-2 grid gap-4">
       <div class="tile">
         <span class="label"><UiInfoHint term="record">Records</UiInfoHint></span>
 
@@ -309,7 +317,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
           </span>
         </div>
 
-        <div class="grid gap-3" :class="hasElevation ? 'grid-cols-4' : 'grid-cols-3'">
+        <div class="grid gap-3" :class="hasElevation ? 'fold-4' : 'fold-3'">
           <div class="flex flex-col">
             <span class="label text-[10px]">Kilomètres</span>
             <span class="mono text-[17px]">{{ formatDistance(counters?.runM ?? 0) }}</span>
@@ -350,8 +358,8 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         ><UiInfoHint term="recuperation">Ressenti et récupération</UiInfoHint></span
       >
 
-      <div class="grid grid-cols-[1fr_1.2fr] gap-6">
-        <div class="grid grid-cols-3 gap-3 self-start">
+      <div class="grid grid-cols-1 gap-4 lean:grid-cols-[1fr_1.2fr] lean:gap-6">
+        <div class="fold-3 grid gap-3 self-start">
           <div class="flex flex-col">
             <span class="label text-[10px]">Sommeil moyen</span>
             <span class="mono text-[17px]">
@@ -445,7 +453,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       </p>
 
       <template v-else>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="fold-3 grid gap-3">
           <div
             v-for="verdict in data?.forecastAccuracy ?? []"
             :key="verdict.horizon"
@@ -482,40 +490,46 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
           </div>
         </div>
 
-        <table class="w-full text-[13px]">
-          <thead>
-            <tr class="text-left">
-              <th v-for="head in FORECAST_COLUMNS" :key="head.label" class="label pb-2 text-[10px]">
-                <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
-                <template v-else>{{ head.label }}</template>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in forecasts.items" :key="row.id" class="border-t border-line-soft">
-              <td class="mono py-[6px] text-text-dim">{{ formatDate(row.issuedDate) }}</td>
-              <td class="py-[6px]">
-                {{ row.label }}
-                <span class="mono ml-1 text-[11px] text-text-dim">
-                  {{ formatDate(row.targetDate) }}
-                </span>
-              </td>
-              <td class="mono py-[6px]">
-                {{ vdotText(row.projectedVdot) }}
-                <span class="text-[11px] text-text-dim">
-                  {{ vdotText(row.lowVdot) }}–{{ vdotText(row.highVdot) }}
-                </span>
-              </td>
-              <td class="mono py-[6px]">{{ vdotText(row.actualVdot) }}</td>
-              <td
-                class="mono py-[6px]"
-                :class="Math.abs(row.gapVdot ?? 0) > 0.5 ? 'text-warn' : 'text-text-dim'"
-              >
-                {{ signedVdot(row.gapVdot) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <UiAxisScroller>
+          <table class="table-axis w-full text-[13px]">
+            <thead>
+              <tr class="text-left">
+                <th
+                  v-for="head in FORECAST_COLUMNS"
+                  :key="head.label"
+                  class="label pb-2 text-[10px]"
+                >
+                  <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
+                  <template v-else>{{ head.label }}</template>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in forecasts.items" :key="row.id" class="border-t border-line-soft">
+                <td class="mono py-[6px] text-text-dim">{{ formatDate(row.issuedDate) }}</td>
+                <td class="py-[6px]">
+                  {{ row.label }}
+                  <span class="mono ml-1 text-[11px] text-text-dim">
+                    {{ formatDate(row.targetDate) }}
+                  </span>
+                </td>
+                <td class="mono py-[6px]">
+                  {{ vdotText(row.projectedVdot) }}
+                  <span class="text-[11px] text-text-dim">
+                    {{ vdotText(row.lowVdot) }}–{{ vdotText(row.highVdot) }}
+                  </span>
+                </td>
+                <td class="mono py-[6px]">{{ vdotText(row.actualVdot) }}</td>
+                <td
+                  class="mono py-[6px]"
+                  :class="Math.abs(row.gapVdot ?? 0) > 0.5 ? 'text-warn' : 'text-text-dim'"
+                >
+                  {{ signedVdot(row.gapVdot) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </UiAxisScroller>
 
         <UiPager v-model="forecasts.page" :total="forecasts.total" :per-page="FORECAST_PER_PAGE" />
       </template>
@@ -526,7 +540,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         ><UiInfoHint term="chargeMuscu">Charges tenues en renforcement</UiInfoHint></span
       >
 
-      <div class="grid grid-cols-3 gap-4">
+      <div class="fold-3 grid gap-4">
         <div
           v-for="series in strengthLoads.items"
           :key="series.exerciseId"

@@ -45,7 +45,7 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
 
     <!-- La page est un index : huit cartes de deux lignes. Le détail, avec la
          liste des exercices, vit dans le dialog (§ 8, P6.35). -->
-    <div class="grid grid-cols-4 gap-4">
+    <div class="fold-4 grid gap-4">
       <button
         v-for="item in data?.sessions ?? []"
         :key="item.code"
@@ -77,7 +77,7 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
     <div class="tile">
       <span class="label"><UiInfoHint term="prevention">Exercices de prévention</UiInfoHint></span>
 
-      <div class="grid grid-cols-2 gap-x-6 gap-y-2">
+      <div class="fold-2 grid gap-x-6 gap-y-2">
         <div
           v-for="exercise in preventionBlock"
           :key="exercise.id"
@@ -106,14 +106,20 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
       <div v-if="loads.total === 0" class="text-[13px] text-text-dim">Aucune série saisie.</div>
 
       <template v-else>
-        <table class="w-full text-[13px]">
-          <tbody>
-            <tr v-for="row in loads.items" :key="row.exerciseId" class="border-t border-line-soft">
-              <td class="py-[6px]">{{ row.label }}</td>
-              <td class="mono py-[6px] text-right">{{ formatLoad(row.loadKg) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <UiAxisScroller>
+          <table class="table-axis w-full text-[13px]">
+            <tbody>
+              <tr
+                v-for="row in loads.items"
+                :key="row.exerciseId"
+                class="border-t border-line-soft"
+              >
+                <td class="py-[6px]">{{ row.label }}</td>
+                <td class="mono py-[6px] text-right">{{ formatLoad(row.loadKg) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </UiAxisScroller>
 
         <UiPager v-model="loads.page" :total="loads.total" :per-page="PER_PAGE" />
       </template>

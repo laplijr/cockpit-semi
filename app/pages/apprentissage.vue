@@ -90,7 +90,7 @@ async function decide(id: number, status: string) {
       <UiPager v-model="pendingPage.page" :total="pendingPage.total" :per-page="PER_PAGE" />
     </section>
 
-    <section class="grid grid-cols-2 gap-4">
+    <section class="fold-2 grid gap-4">
       <div class="tile">
         <span class="label"><UiInfoHint term="regleApprise">Règles personnelles</UiInfoHint></span>
 
@@ -132,7 +132,7 @@ async function decide(id: number, status: string) {
         <p v-if="!latest" class="text-[13px] text-text-dim">Aucune mesure de calibration.</p>
 
         <template v-else>
-          <div class="grid grid-cols-3 gap-3">
+          <div class="fold-3 grid gap-3">
             <div class="flex flex-col">
               <span class="label text-[10px]">Écart de RPE</span>
               <span class="mono text-[17px]" :class="latest.rpeError > 0.5 && 'text-warn'">
@@ -166,23 +166,25 @@ async function decide(id: number, status: string) {
             </div>
           </div>
 
-          <table v-if="previous.length > 0" class="w-full text-[12.5px]">
-            <tbody>
-              <tr v-for="week in previous" :key="week.date" class="border-t border-line-soft">
-                <td class="mono py-[5px] text-text-dim">{{ formatDate(week.date) }}</td>
-                <td class="mono py-[5px] text-right">
-                  RPE {{ week.rpeError > 0 ? '+' : '' }}{{ formatDecimal(week.rpeError) }}
-                </td>
-                <td class="mono py-[5px] text-right text-text-dim">
-                  {{
-                    week.acceptanceRate === null
-                      ? '—'
-                      : `${Math.round(week.acceptanceRate * 100)} %`
-                  }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <UiAxisScroller v-if="previous.length > 0">
+            <table class="table-axis w-full text-[12.5px]">
+              <tbody>
+                <tr v-for="week in previous" :key="week.date" class="border-t border-line-soft">
+                  <td class="mono py-[5px] text-text-dim">{{ formatDate(week.date) }}</td>
+                  <td class="mono py-[5px] text-right">
+                    RPE {{ week.rpeError > 0 ? '+' : '' }}{{ formatDecimal(week.rpeError) }}
+                  </td>
+                  <td class="mono py-[5px] text-right text-text-dim">
+                    {{
+                      week.acceptanceRate === null
+                        ? '—'
+                        : `${Math.round(week.acceptanceRate * 100)} %`
+                    }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </UiAxisScroller>
         </template>
       </div>
     </section>

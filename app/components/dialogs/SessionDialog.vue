@@ -184,31 +184,33 @@ const plannedMinutes = computed(() => {
 
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Prescrit contre réalisé</span>
-          <table class="w-full text-[13px]">
-            <tbody>
-              <tr class="border-b border-line-soft">
-                <td class="py-[6px] text-text-dim">Durée</td>
-                <td class="mono py-[6px] text-right">{{ plannedMinutes }} min</td>
-                <td class="mono py-[6px] text-right">
-                  {{ session.actualDurationMin ? `${session.actualDurationMin} min` : '—' }}
-                </td>
-              </tr>
-              <tr v-if="session.prescription.totalDistanceM > 0">
-                <td class="py-[6px] text-text-dim">Distance</td>
-                <td class="mono py-[6px] text-right">
-                  {{ formatDistance(session.prescription.totalDistanceM) }}
-                </td>
-                <td class="mono py-[6px] text-right">
-                  {{ session.actualDistanceM ? formatDistance(session.actualDistanceM) : '—' }}
-                </td>
-              </tr>
-              <tr class="border-t border-line-soft">
-                <td class="py-[6px] text-text-dim">RPE</td>
-                <td class="mono py-[6px] text-right">{{ session.prescription.expectedRpe }}</td>
-                <td class="mono py-[6px] text-right">{{ session.feedbackRpe ?? '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <UiAxisScroller>
+            <table class="table-axis w-full text-[13px]">
+              <tbody>
+                <tr class="border-b border-line-soft">
+                  <td class="py-[6px] text-text-dim">Durée</td>
+                  <td class="mono py-[6px] text-right">{{ plannedMinutes }} min</td>
+                  <td class="mono py-[6px] text-right">
+                    {{ session.actualDurationMin ? `${session.actualDurationMin} min` : '—' }}
+                  </td>
+                </tr>
+                <tr v-if="session.prescription.totalDistanceM > 0">
+                  <td class="py-[6px] text-text-dim">Distance</td>
+                  <td class="mono py-[6px] text-right">
+                    {{ formatDistance(session.prescription.totalDistanceM) }}
+                  </td>
+                  <td class="mono py-[6px] text-right">
+                    {{ session.actualDistanceM ? formatDistance(session.actualDistanceM) : '—' }}
+                  </td>
+                </tr>
+                <tr class="border-t border-line-soft">
+                  <td class="py-[6px] text-text-dim">RPE</td>
+                  <td class="mono py-[6px] text-right">{{ session.prescription.expectedRpe }}</td>
+                  <td class="mono py-[6px] text-right">{{ session.feedbackRpe ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </UiAxisScroller>
         </div>
 
         <!-- Une sortie a besoin d'un parcours : il se demande ici, à la

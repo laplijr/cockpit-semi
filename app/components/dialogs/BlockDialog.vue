@@ -71,36 +71,38 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
 
     <div class="tile bg-surface-inset">
       <span class="label text-[10.5px]">Volume visé, semaine par semaine</span>
-      <table class="w-full text-[13px]">
-        <tbody>
-          <tr
-            v-for="week in weeks"
-            :key="week.id"
-            class="border-t border-line-soft first:border-t-0"
-          >
-            <td class="mono py-[6px] w-14 text-text-dim">S{{ week.index }}</td>
-            <td v-if="dated" class="mono py-[6px] w-28 text-text-dim">
-              {{ formatDate(week.startDate) }}
-            </td>
-            <td class="py-[6px]">
-              <span
-                class="block h-[6px] rounded-sm"
-                :class="week.light ? 'bg-line-strong' : 'bg-accent/70'"
-                :style="{ width: `${(week.targetRunM / maxVolume) * 100}%` }"
-              />
-            </td>
-            <td class="mono py-[6px] w-20 text-right">{{ formatDistance(week.targetRunM) }}</td>
-            <td class="py-[6px] w-28 text-right">
-              <span v-if="week.light" class="pill text-[10px]">
-                <UiInfoHint term="semaineAllegee">allégée</UiInfoHint>
-              </span>
-              <span v-if="week.test" class="pill text-[10px]">
-                <UiInfoHint term="test20">test</UiInfoHint>
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <UiAxisScroller>
+        <table class="table-axis w-full text-[13px]">
+          <tbody>
+            <tr
+              v-for="week in weeks"
+              :key="week.id"
+              class="border-t border-line-soft first:border-t-0"
+            >
+              <td class="mono py-[6px] w-14 text-text-dim">S{{ week.index }}</td>
+              <td v-if="dated" class="mono py-[6px] w-28 text-text-dim">
+                {{ formatDate(week.startDate) }}
+              </td>
+              <td class="py-[6px]">
+                <span
+                  class="block h-[6px] rounded-sm"
+                  :class="week.light ? 'bg-line-strong' : 'bg-accent/70'"
+                  :style="{ width: `${(week.targetRunM / maxVolume) * 100}%` }"
+                />
+              </td>
+              <td class="mono py-[6px] w-20 text-right">{{ formatDistance(week.targetRunM) }}</td>
+              <td class="py-[6px] w-28 text-right">
+                <span v-if="week.light" class="pill text-[10px]">
+                  <UiInfoHint term="semaineAllegee">allégée</UiInfoHint>
+                </span>
+                <span v-if="week.test" class="pill text-[10px]">
+                  <UiInfoHint term="test20">test</UiInfoHint>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </UiAxisScroller>
     </div>
 
     <div class="grid grid-cols-3 gap-4">

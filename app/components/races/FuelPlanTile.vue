@@ -55,7 +55,7 @@ async function generate() {
     </p>
 
     <template v-else>
-      <div class="grid grid-cols-3 gap-3">
+      <div class="fold-3 grid gap-3">
         <div class="flex flex-col">
           <span class="label text-[10px]">Glucides</span>
           <span class="mono text-[15px]">{{ formatRange(fuelPlan.carbsGPerHour, 'g/h') }}</span>

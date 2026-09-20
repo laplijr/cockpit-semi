@@ -73,8 +73,8 @@ watch(
   </div>
 
   <div v-else-if="week" class="tile">
-    <div class="flex items-baseline gap-3">
-      <span class="label">Semaine {{ week.index }}</span>
+    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <span class="label whitespace-nowrap">Semaine {{ week.index }}</span>
       <span class="mono text-[11.5px] text-text-dim">
         {{ PHASE_LABELS[week.phaseType] ?? week.phaseType }} ·
         {{ formatDistance(week.targetRunM) }} visés

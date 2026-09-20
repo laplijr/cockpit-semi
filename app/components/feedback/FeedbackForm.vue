@@ -143,7 +143,7 @@ async function save() {
           v-for="item in SENSATIONS"
           :key="item.value"
           type="button"
-          class="pill"
+          class="pill pill-tap"
           :class="form.sensations.includes(item.value) && 'bg-accent/15 text-text'"
           @click="toggleSensation(item.value)"
         >
@@ -172,7 +172,7 @@ async function save() {
           v-for="zone in watchZones"
           :key="zone"
           type="button"
-          class="pill pill-warn"
+          class="pill pill-tap pill-warn"
           :class="form.painZone === zone && 'ring-1 ring-warn'"
           @click="form.painZone = form.painZone === zone ? '' : zone"
         >

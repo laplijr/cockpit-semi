@@ -325,6 +325,48 @@
     color: var(--color-text);
   }
 
+  /*
+   * Une grille de champs ou de tuiles se replie — quatre colonnes, puis deux,
+   * puis une — sans jamais réordonner son contenu (§ 8, P6.8). La règle est
+   * écrite une fois ici plutôt que trente fois en variantes de largeur :
+   * c'est la même partout, et une grille qui s'y refuse est un objet à axe,
+   * qui défile au lieu de se replier.
+   */
+  .fold-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .fold-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fold-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (width < theme(--breakpoint-wide)) {
+    .fold-4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (width < theme(--breakpoint-lean)) {
+    .fold-4,
+    .fold-3,
+    .fold-2 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    /*
+     * Une table est un objet à axe : ses colonnes ne se replient pas, elles
+     * défilent dans leur tuile. Une table dont les colonnes passent à la ligne
+     * n'est plus une table.
+     */
+    .table-axis {
+      min-width: 520px;
+    }
+  }
+
   @media (width < theme(--breakpoint-lean)) {
     /*
      * Le doigt n'a pas la précision de la souris : sous la rupture, ce qui se
@@ -353,7 +395,13 @@
       height: 44px;
     }
 
-    button.pill {
+    /*
+     * Une pastille qui se touche n'est plus un libellé : elle prend la taille
+     * du doigt. La classe est posée au cas par cas et non sur tous les
+     * `button.pill` — la fenêtre de douze semaines du cap en pose dans des
+     * rangées de 18 px, qu'une règle générale ferait déborder.
+     */
+    .pill-tap {
       height: 44px;
       padding: 0 12px;
       font-size: 13px;

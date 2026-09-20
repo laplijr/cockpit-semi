@@ -21,37 +21,40 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
           {{ formatDistance(data?.weeklyVolumeM ?? 0) }} cette semaine
         </span>
       </div>
-      <table class="w-full text-[13px]">
-        <thead>
-          <tr class="text-left">
-            <th
-              v-for="head in ['Zone', 'Allure', 'Plage']"
-              :key="head"
-              class="label pb-2 text-[10px]"
-            >
-              {{ head }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="zone in data?.zones ?? []" :key="zone.key" class="border-t border-line-soft">
-            <td class="py-[6px]">
-              <UiInfoHint :term="glossaryTermFor(ZONE_TERMS, zone.key)!">
-                {{ zone.label }}
-              </UiInfoHint>
-            </td>
-            <td class="mono py-[6px]">{{ formatPace(zone.paceSecPerKm) }}/km</td>
-            <td class="mono py-[6px] text-text-dim">
-              {{ formatPace(zone.range.fastSecPerKm) }} – {{ formatPace(zone.range.slowSecPerKm) }}
-            </td>
-          </tr>
-          <tr class="border-t border-line-soft">
-            <td class="py-[6px]"><UiInfoHint term="allureSemi">Allure semi</UiInfoHint></td>
-            <td class="mono py-[6px]">{{ formatPace(data?.halfPaceSecPerKm) }}/km</td>
-            <td class="mono py-[6px] text-text-dim">projection sur 21,1 km</td>
-          </tr>
-        </tbody>
-      </table>
+      <UiAxisScroller>
+        <table class="table-axis w-full text-[13px]">
+          <thead>
+            <tr class="text-left">
+              <th
+                v-for="head in ['Zone', 'Allure', 'Plage']"
+                :key="head"
+                class="label pb-2 text-[10px]"
+              >
+                {{ head }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="zone in data?.zones ?? []" :key="zone.key" class="border-t border-line-soft">
+              <td class="py-[6px]">
+                <UiInfoHint :term="glossaryTermFor(ZONE_TERMS, zone.key)!">
+                  {{ zone.label }}
+                </UiInfoHint>
+              </td>
+              <td class="mono py-[6px]">{{ formatPace(zone.paceSecPerKm) }}/km</td>
+              <td class="mono py-[6px] text-text-dim">
+                {{ formatPace(zone.range.fastSecPerKm) }} –
+                {{ formatPace(zone.range.slowSecPerKm) }}
+              </td>
+            </tr>
+            <tr class="border-t border-line-soft">
+              <td class="py-[6px]"><UiInfoHint term="allureSemi">Allure semi</UiInfoHint></td>
+              <td class="mono py-[6px]">{{ formatPace(data?.halfPaceSecPerKm) }}/km</td>
+              <td class="mono py-[6px] text-text-dim">projection sur 21,1 km</td>
+            </tr>
+          </tbody>
+        </table>
+      </UiAxisScroller>
 
       <p v-if="data?.vdotIsFloor" class="text-[13px] text-text-dim">
         Estimation basse, revue au premier test 20′.
@@ -60,7 +63,7 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
 
     <!-- Une fiche : nom, valeur dominante, structure sur une ligne, réglette
          de phases. Le reste — RPE, quota, note — passe au survol (§ 8, P6.35). -->
-    <div class="grid grid-cols-3 gap-4">
+    <div class="fold-3 grid gap-4">
       <button
         v-for="type in data?.types ?? []"
         :key="type.code"

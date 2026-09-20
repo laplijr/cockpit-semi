@@ -12,3 +12,7 @@ coverage
 drizzle/.cache
 *.log
 .vitest
+
+# Playwright
+test-results
+playwright-report

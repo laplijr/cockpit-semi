@@ -211,36 +211,38 @@ const title = computed(
            points, le détail vit ici (§ 8, P6.35). -->
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Tous les points de forme</span>
-        <table class="w-full text-[13px]">
-          <thead>
-            <tr class="text-left">
-              <th
-                v-for="head in ['Date', 'Origine', 'VDOT', 'Projection semi']"
-                :key="head"
-                class="label pb-2 text-[10px]"
+        <UiAxisScroller>
+          <table class="table-axis w-full text-[13px]">
+            <thead>
+              <tr class="text-left">
+                <th
+                  v-for="head in ['Date', 'Origine', 'VDOT', 'Projection semi']"
+                  :key="head"
+                  class="label pb-2 text-[10px]"
+                >
+                  {{ head }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="point in vdotPoints.items"
+                :key="point.date"
+                class="border-t border-line-soft"
               >
-                {{ head }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="point in vdotPoints.items"
-              :key="point.date"
-              class="border-t border-line-soft"
-            >
-              <td class="mono py-[6px]">{{ formatDate(point.date) }}</td>
-              <td class="py-[6px]">
-                {{ ORIGIN_LABELS[point.origin] ?? point.origin }}
-                <span v-if="point.isFloor" class="pill pill-warn ml-1">plancher</span>
-              </td>
-              <td class="mono py-[6px]">{{ point.vdot.toFixed(1).replace('.', ',') }}</td>
-              <td class="mono py-[6px] text-text-dim">
-                {{ formatDuration(point.halfProjectionS) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                <td class="mono py-[6px]">{{ formatDate(point.date) }}</td>
+                <td class="py-[6px]">
+                  {{ ORIGIN_LABELS[point.origin] ?? point.origin }}
+                  <span v-if="point.isFloor" class="pill pill-warn ml-1">plancher</span>
+                </td>
+                <td class="mono py-[6px]">{{ point.vdot.toFixed(1).replace('.', ',') }}</td>
+                <td class="mono py-[6px] text-text-dim">
+                  {{ formatDuration(point.halfProjectionS) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </UiAxisScroller>
 
         <UiPager v-model="vdotPoints.page" :total="vdotPoints.total" :per-page="PER_PAGE" />
       </div>
@@ -266,48 +268,54 @@ const title = computed(
 
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Journal des séances clés</span>
-        <table class="w-full text-[13px]">
-          <thead>
-            <tr class="text-left">
-              <th
-                v-for="head in KEY_SESSION_COLUMNS"
-                :key="head.label"
-                class="label pb-2 text-[10px]"
+        <UiAxisScroller>
+          <table class="table-axis w-full text-[13px]">
+            <thead>
+              <tr class="text-left">
+                <th
+                  v-for="head in KEY_SESSION_COLUMNS"
+                  :key="head.label"
+                  class="label pb-2 text-[10px]"
+                >
+                  <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
+                  <template v-else>{{ head.label }}</template>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in keySessions.items"
+                :key="item.id"
+                class="border-t border-line-soft"
               >
-                <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
-                <template v-else>{{ head.label }}</template>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in keySessions.items" :key="item.id" class="border-t border-line-soft">
-              <td class="mono py-[6px]">{{ formatDate(item.date) }}</td>
-              <td class="py-[6px]">{{ SESSION_LABELS[item.code] ?? item.code }}</td>
-              <td class="mono py-[6px] text-text-dim">{{ formatDistance(item.distanceM) }}</td>
-              <td class="mono py-[6px] text-text-dim">{{ item.expectedRpe ?? '—' }}</td>
-              <td
-                class="mono py-[6px]"
-                :class="
-                  item.rpe !== null && item.expectedRpe !== null && item.rpe > item.expectedRpe
-                    ? 'text-warn'
-                    : ''
-                "
-              >
-                {{ item.rpe ?? '—' }}
-              </td>
-              <td class="py-[6px]">
-                <span class="pill" :class="item.status === 'faite' ? 'pill-done' : ''">
-                  {{ item.status }}
-                </span>
-              </td>
-            </tr>
-            <tr v-if="keySessions.total === 0">
-              <td colspan="6" class="py-3 text-text-dim">
-                Aucune séance clé encore planifiée ou réalisée.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                <td class="mono py-[6px]">{{ formatDate(item.date) }}</td>
+                <td class="py-[6px]">{{ SESSION_LABELS[item.code] ?? item.code }}</td>
+                <td class="mono py-[6px] text-text-dim">{{ formatDistance(item.distanceM) }}</td>
+                <td class="mono py-[6px] text-text-dim">{{ item.expectedRpe ?? '—' }}</td>
+                <td
+                  class="mono py-[6px]"
+                  :class="
+                    item.rpe !== null && item.expectedRpe !== null && item.rpe > item.expectedRpe
+                      ? 'text-warn'
+                      : ''
+                  "
+                >
+                  {{ item.rpe ?? '—' }}
+                </td>
+                <td class="py-[6px]">
+                  <span class="pill" :class="item.status === 'faite' ? 'pill-done' : ''">
+                    {{ item.status }}
+                  </span>
+                </td>
+              </tr>
+              <tr v-if="keySessions.total === 0">
+                <td colspan="6" class="py-3 text-text-dim">
+                  Aucune séance clé encore planifiée ou réalisée.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </UiAxisScroller>
 
         <UiPager v-model="keySessions.page" :total="keySessions.total" :per-page="PER_PAGE" />
       </div>

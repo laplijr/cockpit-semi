@@ -111,22 +111,33 @@ function onPick(event: Event) {
 
       <!-- Déposer un dossier entier doit marcher : l'import est idempotent. -->
       <div
-        class="flex flex-col items-center gap-2 rounded border border-dashed border-line px-4 py-6 text-center"
+        class="flex flex-col items-center gap-2 rounded border border-dashed border-line px-4 py-3 text-center lean:py-6"
         :class="dropping && 'border-accent bg-surface-inset'"
         @dragover.prevent="dropping = true"
         @dragleave.prevent="dropping = false"
         @drop.prevent="onDrop"
       >
-        <span class="text-[13px] text-text-dim">
+        <!-- Une zone de dépôt n'a pas de sens sans câble ni glisser-déposer :
+             sous la rupture il ne reste que le bouton, et une ligne qui dit
+             d'où le pont se fait (§ 8, P6.8). -->
+        <span class="hidden text-[13px] text-text-dim lean:inline">
           Déposez ici les fichiers <span class="mono">.fit</span> de la montre, ou
         </span>
 
-        <button type="button" class="btn btn-ghost" :disabled="pending" @click="input?.click()">
+        <button
+          type="button"
+          class="btn btn-ghost w-full lean:w-auto"
+          :disabled="pending"
+          @click="input?.click()"
+        >
           <UiAppIcon name="plug" :size="15" />
           {{ pending ? 'Import en cours…' : 'Choisir des fichiers' }}
         </button>
 
-        <span class="mono text-[11.5px] text-text-dim">
+        <span class="mono text-[11.5px] text-text-dim lean:hidden">
+          Le pont montre se fait depuis un ordinateur, câble branché.
+        </span>
+        <span class="mono hidden text-[11.5px] text-text-dim lean:inline">
           Un fichier déjà importé est reconnu et ignoré.
         </span>
 

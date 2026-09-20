@@ -58,11 +58,12 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
 <template>
   <div class="flex flex-col gap-2">
     <!-- Sous-grille : libellés, champs et aides s'alignent d'une colonne à
-         l'autre, même quand un libellé passe sur deux lignes. -->
+         l'autre, même quand un libellé passe sur deux lignes. En une colonne
+         il n'y a plus rien à aligner : elle se dissout (§ 8, P6.8). -->
     <div
-      class="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] grid-rows-[auto_auto_auto] gap-x-3 gap-y-[6px]"
+      class="flex flex-col gap-[6px] lean:grid lean:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lean:grid-rows-[auto_auto_auto] lean:gap-x-3 lean:gap-y-[6px]"
     >
-      <label class="row-span-3 grid grid-rows-subgrid gap-y-[6px]">
+      <label class="flex flex-col gap-[6px] lean:row-span-3 lean:grid lean:grid-rows-subgrid">
         <span class="label text-[10.5px]"><UiInfoHint term="objectif">Objectif</UiInfoHint></span>
         <select v-model="mode" class="input">
           <option value="temps">Chrono cible</option>
@@ -71,14 +72,14 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
             Battre mon record{{ recordS === null ? ' — aucun record sur cette distance' : '' }}
           </option>
         </select>
-        <span />
+        <span class="hidden lean:block" />
       </label>
 
       <template v-if="mode === 'temps'">
         <label
           v-for="level in LEVELS"
           :key="level.key"
-          class="row-span-3 grid grid-rows-subgrid gap-y-[6px]"
+          class="flex flex-col gap-[6px] lean:row-span-3 lean:grid lean:grid-rows-subgrid"
         >
           <span class="label text-[10.5px]">
             {{ level.label }}
@@ -99,22 +100,25 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
         </label>
 
         <!-- Action secondaire, jamais un bouton plein à côté d'« Enregistrer » (§ 8). -->
-        <div class="row-span-3 grid grid-rows-subgrid gap-y-[6px]">
-          <span />
+        <div class="flex flex-col gap-[6px] lean:row-span-3 lean:grid lean:grid-rows-subgrid">
+          <span class="hidden lean:block" />
           <button
             type="button"
-            class="btn btn-ghost h-9 w-9 px-0"
+            class="btn btn-ghost h-9 w-full px-0 lean:w-9"
             :disabled="proposed === null"
             aria-label="Proposer les trois niveaux depuis ma projection"
             @click="proposeFromProjection"
           >
             <UiAppIcon name="wand" :size="16" />
           </button>
-          <span />
+          <span class="hidden lean:block" />
         </div>
       </template>
 
-      <div v-else class="col-span-4 row-span-3 grid grid-rows-subgrid gap-y-[6px]">
+      <div
+        v-else
+        class="flex flex-col gap-[6px] lean:col-span-4 lean:row-span-3 lean:grid lean:grid-rows-subgrid"
+      >
         <span class="label text-[10.5px]">Référence à battre</span>
         <span class="mono self-center text-[15px]">{{ formatDuration(recordS) }}</span>
         <span class="text-[11.5px] text-text-dim">

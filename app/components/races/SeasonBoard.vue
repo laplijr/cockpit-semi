@@ -91,7 +91,7 @@ function drag(event: PointerEvent) {
     squelette prend la forme du contenu — cadran, douze colonnes, jauge (§ 8).
   -->
   <div v-if="loading" class="tile" aria-busy="true">
-    <div class="grid grid-cols-[210px_1fr] gap-6">
+    <div class="grid grid-cols-1 gap-4 lean:grid-cols-[210px_1fr] lean:gap-6">
       <div class="flex flex-col gap-2">
         <span class="label">Cap</span>
         <UiSkeleton variant="number" :height="38" />
@@ -117,7 +117,7 @@ function drag(event: PointerEvent) {
 
   <div v-else-if="layout.segments.length > 0" class="tile">
     <!-- Deux informations : le cap, et la saison (§ 8, P6.37). -->
-    <div class="grid grid-cols-[210px_1fr] gap-6">
+    <div class="grid grid-cols-1 gap-4 lean:grid-cols-[210px_1fr] lean:gap-6">
       <div class="flex flex-col gap-2">
         <span class="label"><UiInfoHint term="courseA">Cap</UiInfoHint></span>
 
@@ -148,86 +148,89 @@ function drag(event: PointerEvent) {
         </template>
       </div>
 
-      <!-- La fenêtre : douze semaines, et rien qui les décrive en prose. -->
-      <div class="flex flex-col gap-1">
-        <!-- Les mêmes barres que Progression : c'est le même graphe (§ 9, P5.18). -->
-        <UiWeekBars
-          v-if="bars.length === view.columns.length"
-          :weeks="bars"
-          :height="64"
-          gap="gap-[3px]"
-        >
-          <!--
+      <!-- La fenêtre : douze semaines, et rien qui les décrive en prose. C'est
+           un objet à axe : sous la rupture elle défile au lieu de se replier. -->
+      <UiAxisScroller>
+        <div class="flex min-w-[560px] flex-col gap-1 lean:min-w-0">
+          <!-- Les mêmes barres que Progression : c'est le même graphe (§ 9, P5.18). -->
+          <UiWeekBars
+            v-if="bars.length === view.columns.length"
+            :weeks="bars"
+            :height="64"
+            gap="gap-[3px]"
+          >
+            <!--
             Le bandeau de phases, segmenté sur la fenêtre seule : chaque segment
             a la place d'écrire son nom, et la bascule est la frontière franche
             entre deux colonnes (§ 9, P6.37).
           -->
-          <template #header>
-            <div class="flex gap-px pb-1">
-              <button
-                v-for="segment in view.segments"
-                :key="segment.id"
-                type="button"
-                class="flex h-[22px] items-center justify-center overflow-hidden rounded-[2px] px-2 text-[10.5px] whitespace-nowrap hover:brightness-125"
-                :class="
-                  segment.current ? 'bg-accent text-on-accent' : 'bg-surface-raised text-text-dim'
-                "
-                :style="{ width: `${segment.sharePct}%` }"
-                :aria-label="`${PHASE_LABELS[segment.type] ?? segment.type}, ${segment.phaseWeeks} semaines`"
-                @click="ui.openModal('bloc', segment.id)"
-              >
-                <span class="truncate">{{ PHASE_LABELS[segment.type] ?? segment.type }}</span>
-                <span v-if="segment.current && segment.weekInPhase" class="mono ml-2 shrink-0">
-                  {{ segment.weekInPhase }}/{{ segment.phaseWeeks }}
-                </span>
-              </button>
-            </div>
-          </template>
+            <template #header>
+              <div class="flex gap-px pb-1">
+                <button
+                  v-for="segment in view.segments"
+                  :key="segment.id"
+                  type="button"
+                  class="flex h-[22px] items-center justify-center overflow-hidden rounded-[2px] px-2 text-[10.5px] whitespace-nowrap hover:brightness-125"
+                  :class="
+                    segment.current ? 'bg-accent text-on-accent' : 'bg-surface-raised text-text-dim'
+                  "
+                  :style="{ width: `${segment.sharePct}%` }"
+                  :aria-label="`${PHASE_LABELS[segment.type] ?? segment.type}, ${segment.phaseWeeks} semaines`"
+                  @click="ui.openModal('bloc', segment.id)"
+                >
+                  <span class="truncate">{{ PHASE_LABELS[segment.type] ?? segment.type }}</span>
+                  <span v-if="segment.current && segment.weekInPhase" class="mono ml-2 shrink-0">
+                    {{ segment.weekInPhase }}/{{ segment.phaseWeeks }}
+                  </span>
+                </button>
+              </div>
+            </template>
 
-          <!-- Les repères se posent à leur colonne, plus dans une phrase au-dessus. -->
-          <template #footer>
-            <div class="flex gap-[3px]">
-              <div
-                v-for="(column, index) in view.columns"
-                :key="column.index"
-                class="mono flex min-w-0 flex-1 flex-col items-center pt-1 text-[10px] text-text-dim"
-              >
-                <span class="h-[12px] leading-[12px]" :class="column.current && 'text-accent'">
-                  S{{ column.index }}
-                </span>
+            <!-- Les repères se posent à leur colonne, plus dans une phrase au-dessus. -->
+            <template #footer>
+              <div class="flex gap-[3px]">
+                <div
+                  v-for="(column, index) in view.columns"
+                  :key="column.index"
+                  class="mono flex min-w-0 flex-1 flex-col items-center pt-1 text-[10px] text-text-dim"
+                >
+                  <span class="h-[12px] leading-[12px]" :class="column.current && 'text-accent'">
+                    S{{ column.index }}
+                  </span>
 
-                <!-- Chaque rangée garde sa hauteur, pleine ou vide : sans quoi
+                  <!-- Chaque rangée garde sa hauteur, pleine ou vide : sans quoi
                      la tuile grandirait et rapetisserait au fil du curseur, et
                      une course remonterait à la place d'une date (§ 8). -->
-                <span class="h-[12px] truncate text-[9.5px] leading-[12px]">
-                  <template v-if="column.startDate && index % DATE_EVERY === 0">
-                    {{ formatDate(column.startDate) }}
-                  </template>
-                </span>
-
-                <span class="flex h-[18px] max-w-full items-center justify-center">
-                  <button
-                    v-if="column.race"
-                    type="button"
-                    class="pill tile-action max-w-full text-[10px]"
-                    :class="column.race.priority === 'A' && 'bg-accent/15 text-accent'"
-                    @click="ui.openModal('course', column.race.id)"
-                  >
-                    <span class="truncate">{{ column.race.name }}</span>
-                  </button>
-
-                  <UiHoverBubble v-else-if="column.test" label="Test 20′ cette semaine" size="sm">
-                    <template #trigger>
-                      <span class="block size-[6px] rounded-full bg-text-dim" />
+                  <span class="h-[12px] truncate text-[9.5px] leading-[12px]">
+                    <template v-if="column.startDate && index % DATE_EVERY === 0">
+                      {{ formatDate(column.startDate) }}
                     </template>
-                    <span class="text-[12.5px] text-text-dim">Test 20′ cette semaine</span>
-                  </UiHoverBubble>
-                </span>
+                  </span>
+
+                  <span class="flex h-[18px] max-w-full items-center justify-center">
+                    <button
+                      v-if="column.race"
+                      type="button"
+                      class="pill tile-action max-w-full text-[10px]"
+                      :class="column.race.priority === 'A' && 'bg-accent/15 text-accent'"
+                      @click="ui.openModal('course', column.race.id)"
+                    >
+                      <span class="truncate">{{ column.race.name }}</span>
+                    </button>
+
+                    <UiHoverBubble v-else-if="column.test" label="Test 20′ cette semaine" size="sm">
+                      <template #trigger>
+                        <span class="block size-[6px] rounded-full bg-text-dim" />
+                      </template>
+                      <span class="text-[12.5px] text-text-dim">Test 20′ cette semaine</span>
+                    </UiHoverBubble>
+                  </span>
+                </div>
               </div>
-            </div>
-          </template>
-        </UiWeekBars>
-      </div>
+            </template>
+          </UiWeekBars>
+        </div>
+      </UiAxisScroller>
     </div>
 
     <!--

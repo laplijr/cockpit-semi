@@ -17,7 +17,7 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
       </p>
     </div>
 
-    <section class="grid grid-cols-2 gap-4">
+    <section class="fold-2 grid gap-4">
       <!-- Ouvrir le jour ne génère rien : le détail porte le bouton (§ 1, P6.4). -->
       <button
         v-for="(day, index) in data.days"
@@ -84,7 +84,7 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
       <div
         v-for="day in raceWeek.protocol"
         :key="day.date"
-        class="grid grid-cols-[88px_150px_1fr] items-baseline gap-3 border-t border-line-soft py-2 first:border-t-0"
+        class="grid grid-cols-[88px_1fr] items-baseline gap-x-3 gap-y-px border-t border-line-soft py-2 first:border-t-0 lean:grid-cols-[88px_150px_1fr] lean:gap-y-3"
       >
         <span class="mono text-[12px]" :class="day.daysBefore === 0 && 'text-accent'">
           J−{{ day.daysBefore }} · {{ formatDate(day.date) }}
@@ -92,7 +92,7 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
         <span class="mono text-[12.5px]">
           {{ day.carbsG ? formatRange(day.carbsG, 'g') : formatRange(day.carbsGPerKg, 'g/kg') }}
         </span>
-        <div class="flex flex-col gap-px">
+        <div class="col-span-2 flex flex-col gap-px lean:col-span-1">
           <span class="text-[13px]">{{ day.headline }}</span>
           <span v-for="detail in day.details" :key="detail" class="text-[12px] text-text-dim">
             {{ detail }}
@@ -113,7 +113,7 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
         </span>
       </div>
 
-      <div class="grid grid-cols-3 gap-4">
+      <div class="fold-3 grid gap-4">
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Glucides</span>
           <span class="mono text-[17px]">
@@ -146,47 +146,49 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
         ><UiInfoHint term="reperesMacro">Repères par type de jour</UiInfoHint></span
       >
 
-      <table class="w-full text-[13px]">
-        <thead>
-          <tr class="text-left">
-            <th
-              v-for="head in ['Type de jour', 'Glucides', 'Protéines', 'Lipides']"
-              :key="head"
-              class="label pb-2 text-[10px]"
+      <UiAxisScroller>
+        <table class="table-axis w-full text-[13px]">
+          <thead>
+            <tr class="text-left">
+              <th
+                v-for="head in ['Type de jour', 'Glucides', 'Protéines', 'Lipides']"
+                :key="head"
+                class="label pb-2 text-[10px]"
+              >
+                {{ head }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in data.references"
+              :key="row.kind"
+              class="border-t border-line-soft"
+              :class="row.kind === today?.kind && 'text-accent'"
             >
-              {{ head }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="row in data.references"
-            :key="row.kind"
-            class="border-t border-line-soft"
-            :class="row.kind === today?.kind && 'text-accent'"
-          >
-            <td class="py-[6px]">{{ DAY_KIND_LABELS[row.kind] ?? row.kind }}</td>
-            <td class="mono py-[6px]">
-              {{ formatRange(row.carbsGPerKg, 'g/kg') }}
-              <span v-if="row.carbsG" class="text-text-dim">
-                · {{ formatRange(row.carbsG, 'g') }}
-              </span>
-            </td>
-            <td class="mono py-[6px]">
-              {{ formatRange(row.proteinGPerKg, 'g/kg') }}
-              <span v-if="row.proteinG" class="text-text-dim">
-                · {{ formatRange(row.proteinG, 'g') }}
-              </span>
-            </td>
-            <td class="mono py-[6px]">
-              {{ formatRange(row.fatGPerKg, 'g/kg') }}
-              <span v-if="row.fatG" class="text-text-dim">
-                · {{ formatRange(row.fatG, 'g') }}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <td class="py-[6px]">{{ DAY_KIND_LABELS[row.kind] ?? row.kind }}</td>
+              <td class="mono py-[6px]">
+                {{ formatRange(row.carbsGPerKg, 'g/kg') }}
+                <span v-if="row.carbsG" class="text-text-dim">
+                  · {{ formatRange(row.carbsG, 'g') }}
+                </span>
+              </td>
+              <td class="mono py-[6px]">
+                {{ formatRange(row.proteinGPerKg, 'g/kg') }}
+                <span v-if="row.proteinG" class="text-text-dim">
+                  · {{ formatRange(row.proteinG, 'g') }}
+                </span>
+              </td>
+              <td class="mono py-[6px]">
+                {{ formatRange(row.fatGPerKg, 'g/kg') }}
+                <span v-if="row.fatG" class="text-text-dim">
+                  · {{ formatRange(row.fatG, 'g') }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </UiAxisScroller>
     </section>
   </div>
 </template>

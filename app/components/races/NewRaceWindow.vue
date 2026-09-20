@@ -13,9 +13,9 @@ function onFound(payload: { lookupId: number; fields: LookupFields }) {
 </script>
 
 <template>
-  <div class="grid grid-cols-[320px_1fr] gap-6">
+  <div class="grid grid-cols-1 gap-4 lean:grid-cols-[320px_1fr] lean:gap-6">
     <RacesRaceSearch @found="onFound" />
-    <div class="border-l border-line-soft pl-6">
+    <div class="border-t border-line-soft pt-4 lean:border-t-0 lean:border-l lean:pt-0 lean:pl-6">
       <RacesNewRaceForm :lookup-id="lookupId" :prefill="prefill" @created="emit('created')" />
     </div>
   </div>

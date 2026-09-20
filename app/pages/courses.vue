@@ -63,7 +63,14 @@ async function onCreated() {
           Ajouter
         </button>
       </div>
-      <table class="w-full text-[13px]">
+      <!--
+        Cinq colonnes ne tiennent pas dans 354 px : sous la rupture, une course
+        devient une carte — nom et date en tête, le reste en paires
+        libellé-valeur (§ 8, P6.8). C'est la seule table de l'app qui change de
+        forme plutôt que de défiler : les autres portent des lignes courtes,
+        celle-ci porte une décision par ligne.
+      -->
+      <table class="hidden w-full text-[13px] lean:table">
         <thead>
           <tr class="text-left">
             <th
@@ -108,31 +115,8 @@ async function onCreated() {
             </td>
             <td class="mono py-[10px] text-text-dim">{{ formatDate(race.date) }}</td>
             <td class="mono py-[10px] text-text-dim">{{ formatDistance(race.distanceM) }}</td>
-            <td class="mono py-[10px]">
-              <!-- « À fixer » n'est pas un état, c'est une action qui attend (§ 9, P5.10). -->
-              <button
-                v-if="race.objectiveToSet"
-                type="button"
-                class="text-accent underline decoration-dotted underline-offset-2"
-                @click.stop="ui.openModal('course', race.id)"
-              >
-                à fixer
-              </button>
-              <span v-else class="text-text-dim">
-                <template v-if="race.objectiveMode === 'record'">record </template>
-                {{
-                  formatDuration(race.objectiveMode === 'record' ? race.recordS : race.objectifS)
-                }}
-              </span>
-              <span class="mx-1 text-text-dim">→</span>
-              {{ formatDuration(race.projectionS) }}
-              <span
-                v-if="race.gapS !== null"
-                :class="race.gapS > 0 ? 'text-warn' : 'text-ok'"
-                class="ml-1"
-              >
-                {{ formatSignedDuration(race.gapS) }}
-              </span>
+            <td class="py-[10px]">
+              <RacesObjectiveCell :race="race" />
             </td>
             <td class="mono py-[10px] text-text-dim">
               {{ race.confidencePct === null ? '—' : `${race.confidencePct} %` }}
@@ -143,6 +127,45 @@ async function onCreated() {
           </tr>
         </tbody>
       </table>
+      <div class="flex flex-col lean:hidden">
+        <button
+          v-for="race in upcoming"
+          :key="race.id"
+          type="button"
+          class="tile-action -mx-2 flex flex-col gap-2 rounded-md border border-transparent border-t-line-soft px-2 py-3 text-left first:border-t-transparent"
+          @click="ui.openModal('course', race.id)"
+        >
+          <span class="flex items-baseline gap-2">
+            <span
+              class="size-[7px] shrink-0 self-center rounded-full"
+              :class="PRIORITY_TONES[race.priority] ?? 'bg-line-strong'"
+            />
+            <span class="display text-[17px] font-semibold">{{ race.name }}</span>
+            <span class="mono ml-auto text-[11.5px] text-text-dim">
+              {{ formatDate(race.date) }}
+            </span>
+          </span>
+
+          <span class="flex items-baseline gap-2 text-[12.5px]">
+            <span class="label text-[10px]">Distance</span>
+            <span class="mono ml-auto">{{ formatDistance(race.distanceM) }}</span>
+          </span>
+          <span class="flex items-baseline gap-2 text-[12.5px]">
+            <span class="label text-[10px]">Objectif → projection</span>
+            <RacesObjectiveCell :race="race" class="ml-auto text-right" />
+          </span>
+          <span class="flex items-baseline gap-2 text-[12.5px]">
+            <span class="label text-[10px]">Confiance</span>
+            <span class="mono ml-auto text-text-dim">
+              {{ race.confidencePct === null ? '—' : `${race.confidencePct} %` }}
+            </span>
+          </span>
+        </button>
+
+        <p v-if="upcoming.length === 0" class="py-3 text-[13px] text-text-dim">
+          Aucune course planifiée.
+        </p>
+      </div>
     </div>
 
     <div v-if="past.length > 0" class="tile">
