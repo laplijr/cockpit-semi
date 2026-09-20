@@ -3,6 +3,8 @@
  * Le dialog d'une séance, et — depuis P6.4 — celui d'un jour de repos, qui
  * n'avait rien à ouvrir. Sans séance, il ne reste du jour que ses repas.
  */
+import type { PlanSession } from '~/stores/plan'
+
 const props = defineProps<{ sessionId?: number | null; date?: string | null }>()
 const emit = defineEmits<{ saved: [] }>()
 
@@ -63,6 +65,72 @@ const loads = computed(() =>
       .map((item) => [item.exerciseId, item]),
   ),
 )
+
+interface RideSwapGiveback {
+  sessionId: number
+  date: string
+  takenM: number
+}
+
+interface RideSwapResponse {
+  ok: boolean
+  refusal?: string
+  replacement?: {
+    prescription: PlanSession['prescription']
+    givebacks: RideSwapGiveback[]
+    cappedAfterLongRun: boolean
+  }
+}
+
+/** Une sortie vélo encore à faire aujourd'hui, et elle seule (§ 5, P6.42). */
+const canSwap = computed(
+  () =>
+    session.value?.sport === 'velo' &&
+    session.value.date === plan.today &&
+    session.value.status === 'prevue',
+)
+
+const { data: swap } = useFetch<RideSwapResponse>(
+  () => `/api/sessions/${session.value?.id}/run-swap`,
+  { immediate: canSwap as unknown as boolean },
+)
+
+const replacement = computed(() => (swap.value?.ok ? swap.value.replacement : undefined))
+
+/** Ce que la semaine rend pour payer la course ajoutée : sa cible ne bouge pas. */
+const givebackText = computed(() => {
+  const item = replacement.value
+  if (!item) return ''
+
+  const taken = item.givebacks.reduce((total, giveback) => total + giveback.takenM, 0)
+  const lenders =
+    item.givebacks.length > 1
+      ? `aux ${item.givebacks.length} endurances suivantes`
+      : 'à l’endurance suivante'
+  const base = `Les ${formatDistance(taken)} ajoutés sont repris ${lenders} de la semaine : le volume de course visé ne bouge pas.`
+
+  return item.cappedAfterLongRun
+    ? `${base} Elle est ramenée au minimum : c’est le lendemain de la sortie longue.`
+    : base
+})
+
+const swapping = ref(false)
+const swapError = ref('')
+
+async function replaceWithRun() {
+  if (!session.value) return
+
+  swapping.value = true
+  swapError.value = ''
+  try {
+    await $fetch(`/api/sessions/${session.value.id}/run-swap`, { method: 'POST' })
+    emit('saved')
+  } catch (failure) {
+    swapError.value = apiMessage(failure, 'Remplacement impossible.')
+  } finally {
+    swapping.value = false
+  }
+}
 
 const plannedMinutes = computed(() => {
   const prescription = session.value?.prescription
@@ -157,6 +225,45 @@ const plannedMinutes = computed(() => {
             </span>
             <span v-if="step.note" class="text-[12px] text-text-dim">{{ step.note }}</span>
           </div>
+        </div>
+
+        <!--
+          Un vélo qu'on ne peut pas faire n'a d'issue que « manquée » : ici il
+          devient une endurance, payée par les endurances suivantes de la
+          semaine. Bouton fantôme — le retour de séance reste l'action
+          principale de la fenêtre (§ 8, P6.42).
+        -->
+        <div v-if="canSwap" class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Si tu ne peux pas la faire</span>
+
+          <template v-if="replacement">
+            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span class="mono text-[13px] text-text-dim line-through">
+                {{ session.prescription.label }} · {{ formatMinutes(plannedMinutes) }}
+              </span>
+              <span class="mono text-[13px] text-accent">
+                Endurance fondamentale ·
+                {{ formatDistance(replacement.prescription.totalDistanceM) }} ·
+                {{ formatMinutes(prescribedMinutes(replacement.prescription)) }}
+              </span>
+            </div>
+
+            <span class="text-[12px] text-text-dim">{{ givebackText }}</span>
+
+            <button
+              type="button"
+              class="btn btn-ghost self-stretch lean:self-start"
+              :disabled="swapping"
+              @click="replaceWithRun"
+            >
+              <UiAppIcon name="run" :size="15" />
+              Remplacer par une sortie course
+            </button>
+          </template>
+
+          <span v-else-if="swap" class="text-[12px] text-text-dim">{{ swap.refusal }}</span>
+
+          <p v-if="swapError" class="text-[13px] text-warn">{{ swapError }}</p>
         </div>
 
         <!--
