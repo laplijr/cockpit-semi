@@ -6,6 +6,8 @@ export interface PlanSession {
   code: string
   key: boolean
   status: string
+  /** `manuelle` quand Ronan a posé ou retouché la journée (§ 5, P6.43). */
+  origin: string
   actualDurationMin: number | null
   actualDistanceM: number | null
   /** RPE du ressenti enregistré ; nul tant qu'il n'y en a pas. */

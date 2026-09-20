@@ -176,6 +176,20 @@
       "when": 1789896636262,
       "tag": "0024_nebulous_maginty",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789908301474,
+      "tag": "0025_stormy_captain_cross",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789909276951,
+      "tag": "0026_overrated_silver_surfer",
+      "breakpoints": true
     }
   ]
 }

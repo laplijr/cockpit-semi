@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, ne, notInArray } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNull, ne, notInArray } from 'drizzle-orm'
 import type {
   AthleteSnapshot,
   FitnessSnapshot,
@@ -15,9 +15,10 @@ import {
   DEFAULT_START_VOLUME_M,
 } from '../../domain/athlete/constraints'
 import { STANDARD_INCREASE_PCT, defaultsFor } from '../../domain/athlete/profile'
+import type { IsoDate } from '../../domain/plan/calendar'
 import type { GeneratedPlan } from '../../domain/plan/generate'
 import type { PlannedRace } from '../../domain/plan/periodization'
-import { SessionStatus, type PlanTrigger } from '../../domain/plan/session'
+import { SessionOrigin, SessionStatus, type PlanTrigger } from '../../domain/plan/session'
 import type { ForecastTarget } from '../../domain/fitness/accuracy'
 import { FitnessOrigin } from '../../domain/fitness/fitness-point'
 import { VDOT_GAIN_PER_BLOCK } from '../../domain/fitness/projection'
@@ -108,6 +109,13 @@ export function createPlanGateway(db: Database): PlanGateway {
       trigger: PlanTrigger,
       parameters: PlanParameters,
     ): Promise<number> {
+      /** La version qu'on remplace : c'est d'elle, et d'elle seule, qu'on reprend. */
+      const [superseded] = await db
+        .select({ id: planVersion.id })
+        .from(planVersion)
+        .orderBy(desc(planVersion.createdAt), desc(planVersion.id))
+        .limit(1)
+
       const [version] = await db
         .insert(planVersion)
         .values({ trigger, parameters, startDate: plan.startDate })
@@ -173,6 +181,9 @@ export function createPlanGateway(db: Database): PlanGateway {
 
         await db.insert(session).values(rows)
       }
+
+      // Un jour touché à la main reste tel que Ronan l'a laissé (§ 5, P6.43).
+      await freezeManualDays(db, planVersionId, superseded?.id, plan.startDate)
 
       // Une version périmée ne garde que son historique : ses séances encore
       // prévues sont remplacées par celles de la nouvelle version.
@@ -250,6 +261,60 @@ export function createPlanGateway(db: Database): PlanGateway {
 
       if (issued.length > 0) await db.insert(forecast).values(issued)
     },
+  }
+}
+
+/**
+ * Report des journées posées à la main dans la version neuve. Sans lui, une
+ * séance ajoutée dimanche disparaîtrait au premier test 20′ enregistré : la
+ * régénération ne garde que ce qu'elle produit. La journée entière suit, pas
+ * seulement la séance retouchée — sinon la muscu du même jour serait perdue
+ * en chemin (§ 5, P6.43).
+ */
+async function freezeManualDays(
+  db: Database,
+  planVersionId: number,
+  previousVersionId: number | undefined,
+  from: IsoDate | null,
+) {
+  if (from === null || previousVersionId === undefined) return
+
+  const marked = await db
+    .select({ date: session.date })
+    .from(session)
+    .where(and(eq(session.origin, SessionOrigin.Manual), gte(session.date, from)))
+  if (marked.length === 0) return
+
+  const weeks = await db.select().from(week).where(eq(week.planVersionId, planVersionId))
+  const carried = [SessionStatus.Planned, SessionStatus.Modified, SessionStatus.Cancelled]
+
+  /**
+   * Seule la version qu'on remplace est reprise. Sans cette borne, une séance
+   * orpheline d'une version bien plus ancienne serait ressuscitée sur la même
+   * date, et les fantômes s'accumuleraient à chaque régénération.
+   */
+  const previousWeeks = db
+    .select({ id: week.id })
+    .from(week)
+    .where(eq(week.planVersionId, previousVersionId))
+
+  for (const date of new Set(marked.map((row) => row.date))) {
+    const target = weeks.find((item) => item.startDate <= date && date <= item.endDate)
+    if (!target) continue
+
+    // Ce que le générateur vient de poser ce jour-là cède la place.
+    await db.delete(session).where(and(eq(session.date, date), eq(session.weekId, target.id)))
+
+    await db
+      .update(session)
+      .set({ weekId: target.id, origin: SessionOrigin.Manual })
+      .where(
+        and(
+          eq(session.date, date),
+          inArray(session.status, carried),
+          inArray(session.weekId, previousWeeks),
+        ),
+      )
   }
 }
 

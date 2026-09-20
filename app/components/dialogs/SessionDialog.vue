@@ -114,6 +114,45 @@ const givebackText = computed(() => {
     : base
 })
 
+/** Une journée posée à la main : le générateur ne la retouche plus (§ 5, P6.43). */
+const manualDay = computed(() =>
+  (plan.plan?.sessions ?? []).some((item) => item.date === day.value && item.origin === 'manuelle'),
+)
+
+const editable = computed(
+  () =>
+    session.value !== undefined &&
+    session.value.status !== 'faite' &&
+    session.value.status !== 'annulee' &&
+    session.value.date >= plan.today,
+)
+
+const editing = ref(false)
+const adding = ref(false)
+const editError = ref('')
+
+async function cancelSession() {
+  if (!session.value) return
+  editError.value = ''
+  try {
+    await $fetch(`/api/sessions/${session.value.id}/cancel`, { method: 'POST' })
+    emit('saved')
+  } catch (failure) {
+    editError.value = apiMessage(failure, 'Retrait impossible.')
+  }
+}
+
+async function restoreDay() {
+  if (!day.value) return
+  editError.value = ''
+  try {
+    await $fetch(`/api/plan/days/${day.value}`, { method: 'DELETE' })
+    emit('saved')
+  } catch (failure) {
+    editError.value = apiMessage(failure, 'Impossible de rendre la journée au moteur.')
+  }
+}
+
 const swapping = ref(false)
 const swapError = ref('')
 
@@ -155,6 +194,33 @@ const plannedMinutes = computed(() => {
     <div class="flex items-baseline gap-3">
       <span class="display text-[22px] font-semibold">Repos</span>
       <span class="mono text-[11.5px] text-text-dim">{{ formatLongDate(day) }}</span>
+      <span v-if="manualDay" class="pill ml-auto">posé à la main</span>
+    </div>
+
+    <!-- Une journée vide n'avait aucun moyen de recevoir une séance (§ 9, P6.43). -->
+    <div v-if="day >= plan.today" class="tile bg-surface-inset">
+      <span class="label text-[10.5px]">Ajouter une séance</span>
+
+      <PlanSessionForm v-if="adding" :date="day" @saved="emit('saved')" />
+      <button
+        v-else
+        type="button"
+        class="btn btn-ghost self-stretch lean:self-start"
+        @click="adding = true"
+      >
+        <UiAppIcon name="plus" :size="15" />
+        Poser une séance ce jour-là
+      </button>
+
+      <button
+        v-if="manualDay"
+        type="button"
+        class="btn btn-ghost self-stretch lean:self-start"
+        @click="restoreDay"
+      >
+        Rendre la journée au moteur
+      </button>
+      <p v-if="editError" class="text-[13px] text-warn">{{ editError }}</p>
     </div>
 
     <NutritionDayMealPlan :date="day" />
@@ -176,6 +242,8 @@ const plannedMinutes = computed(() => {
       </span>
       <span v-if="session.status === 'faite'" class="pill pill-done ml-auto">faite</span>
       <span v-else-if="session.status === 'sautee'" class="pill ml-auto">manquée</span>
+      <span v-else-if="session.status === 'annulee'" class="pill ml-auto">retirée</span>
+      <span v-if="manualDay" class="pill">posé à la main</span>
     </div>
 
     <!-- La structure d'abord, le retour de séance ensuite : sur téléphone on
@@ -225,6 +293,58 @@ const plannedMinutes = computed(() => {
             </span>
             <span v-if="step.note" class="text-[12px] text-text-dim">{{ step.note }}</span>
           </div>
+        </div>
+
+        <!-- Une journée peut recevoir une séance de plus, vide ou non (P6.43). -->
+        <div v-if="session.date >= plan.today" class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Ajouter une séance ce jour-là</span>
+
+          <PlanSessionForm v-if="adding" :date="session.date" @saved="emit('saved')" />
+          <button
+            v-else
+            type="button"
+            class="btn btn-ghost self-stretch lean:self-start"
+            @click="adding = true"
+          >
+            <UiAppIcon name="plus" :size="15" />
+            Poser une séance de plus
+          </button>
+        </div>
+
+        <!--
+          Les deux gestes de la main : changer la séance pour celle qu'on veut,
+          ou la retirer sans la compter comme manquée. Le moteur dit ce que ça
+          coûte, il ne l'interdit pas (§ 1, P6.43).
+        -->
+        <div v-if="editable" class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Changer cette séance</span>
+
+          <PlanSessionForm
+            v-if="editing"
+            :date="session.date"
+            :session-id="session.id"
+            :initial="{ sport: session.sport, code: session.code, durationMin: plannedMinutes }"
+            @saved="emit('saved')"
+          />
+
+          <div v-else class="flex flex-col gap-2 lean:flex-row">
+            <button type="button" class="btn btn-ghost flex-1" @click="editing = true">
+              Remplacer
+            </button>
+            <button type="button" class="btn btn-ghost flex-1" @click="cancelSession">
+              Retirer du plan
+            </button>
+          </div>
+
+          <button
+            v-if="manualDay"
+            type="button"
+            class="btn btn-ghost self-stretch lean:self-start"
+            @click="restoreDay"
+          >
+            Rendre la journée au moteur
+          </button>
+          <p v-if="editError" class="text-[13px] text-warn">{{ editError }}</p>
         </div>
 
         <!--

@@ -102,12 +102,22 @@ export function plannableCycleSessions(phase: PhaseType): CycleSessionCode[] {
 /** Structure concrète d'une séance de vélo, à durée bornée par son type. */
 export function cyclingPrescription(code: CycleSessionCode, durationMin?: number): Prescription {
   const type = cycleSessionType(code)
-  const total = Math.round(
-    Math.min(
-      type.maxDurationMin,
-      Math.max(type.minDurationMin, durationMin ?? type.minDurationMin),
-    ),
+  const total = Math.min(
+    type.maxDurationMin,
+    Math.max(type.minDurationMin, durationMin ?? type.minDurationMin),
   )
+
+  return freeCyclingPrescription(code, total)
+}
+
+/**
+ * La même séance à la durée demandée, hors des bornes du type. Elle n'arrive
+ * que par la main de Ronan : le générateur passe toujours par les bornes
+ * (§ 5, P6.43).
+ */
+export function freeCyclingPrescription(code: CycleSessionCode, durationMin: number): Prescription {
+  const type = cycleSessionType(code)
+  const total = Math.round(durationMin)
 
   return {
     code,

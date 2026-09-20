@@ -5,7 +5,7 @@ import { prescribedUnits } from '../shared/prescription'
 import { Sport } from '../shared/sport'
 import type { IsoDate } from './calendar'
 import { addDays } from './calendar'
-import { SessionStatus } from './session'
+import { SessionStatus, type PlannedSessionRecord } from './session'
 import { EASY_MAX_MIN, EASY_MIN_MIN } from './week-template'
 
 /**
@@ -17,15 +17,7 @@ import { EASY_MAX_MIN, EASY_MIN_MIN } from './week-template'
  */
 export const MIN_REPLACEMENT_MIN = 20
 
-export interface SwappableSession {
-  id: number
-  date: IsoDate
-  sport: Sport
-  code: string
-  status: SessionStatus
-  key: boolean
-  prescription: Prescription
-}
+export type SwappableSession = PlannedSessionRecord
 
 /** Volume rendu par une endurance de la semaine pour payer le remplacement (§ 5). */
 export interface VolumeGiveback {

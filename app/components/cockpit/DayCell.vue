@@ -47,7 +47,7 @@ const ui = useUiStore()
         />
         <span
           class="display truncate text-[15px] font-semibold"
-          :class="session.status === 'sautee' && 'text-text-dim line-through'"
+          :class="['sautee', 'annulee'].includes(session.status) && 'text-text-dim line-through'"
         >
           {{ SESSION_LABELS[session.code] ?? session.code }}
         </span>
