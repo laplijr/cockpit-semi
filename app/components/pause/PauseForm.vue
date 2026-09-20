@@ -131,7 +131,7 @@ async function declare() {
     <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
 
     <button type="button" class="btn btn-lg" :disabled="pending" @click="declare">
-      Déclarer la pause et régénérer le plan
+      {{ pending ? 'Régénération du plan…' : 'Déclarer la pause et régénérer le plan' }}
     </button>
   </div>
 </template>

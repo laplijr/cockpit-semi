@@ -58,7 +58,7 @@ async function resume() {
 
     <div>
       <button type="button" class="btn" :disabled="pending" @click="resume">
-        Marquer la reprise
+        {{ pending ? 'Régénération du plan…' : 'Marquer la reprise' }}
       </button>
     </div>
   </div>
