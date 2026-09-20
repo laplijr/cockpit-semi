@@ -7,6 +7,22 @@ const planned = computed(() => new Set(data.value?.plannedCodes ?? []))
 const preventionBlock = computed(() =>
   (data.value?.exercises ?? []).filter((exercise) => exercise.group === 'prevention'),
 )
+
+/**
+ * Une charge par exercice travaillé, du plus récemment tenu au plus ancien :
+ * l'API construit la table dans cet ordre, la page le garde. Trente et un
+ * exercices tiennent la tuile sur 750 px — elle n'en montre plus que dix (§ 8).
+ */
+const PER_PAGE = 10
+const loadRows = computed(() =>
+  Object.entries(data.value?.lastLoadsKg ?? {}).map(([exerciseId, loadKg]) => ({
+    exerciseId,
+    loadKg,
+    label: data.value?.exercises.find((item) => item.id === exerciseId)?.label ?? exerciseId,
+  })),
+)
+
+const loads = usePagedList(() => loadRows.value, PER_PAGE)
 </script>
 
 <template>
@@ -87,27 +103,20 @@ const preventionBlock = computed(() =>
     <div class="tile">
       <span class="label"><UiInfoHint term="chargeMuscu">Charges tenues</UiInfoHint></span>
 
-      <div
-        v-if="Object.keys(data?.lastLoadsKg ?? {}).length === 0"
-        class="text-[13px] text-text-dim"
-      >
-        Aucune série saisie.
-      </div>
+      <div v-if="loads.total === 0" class="text-[13px] text-text-dim">Aucune série saisie.</div>
 
-      <table v-else class="w-full text-[13px]">
-        <tbody>
-          <tr
-            v-for="(loadKg, exerciseId) in data?.lastLoadsKg ?? {}"
-            :key="exerciseId"
-            class="border-t border-line-soft"
-          >
-            <td class="py-[6px]">
-              {{ data?.exercises.find((item) => item.id === exerciseId)?.label ?? exerciseId }}
-            </td>
-            <td class="mono py-[6px] text-right">{{ formatLoad(loadKg) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <template v-else>
+        <table class="w-full text-[13px]">
+          <tbody>
+            <tr v-for="row in loads.items" :key="row.exerciseId" class="border-t border-line-soft">
+              <td class="py-[6px]">{{ row.label }}</td>
+              <td class="mono py-[6px] text-right">{{ formatLoad(row.loadKg) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <UiPager v-model="loads.page" :total="loads.total" :per-page="PER_PAGE" />
+      </template>
     </div>
   </div>
 </template>

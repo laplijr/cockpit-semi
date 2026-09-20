@@ -8,6 +8,16 @@ const pending = computed(() => habits.value.filter((item) => item.status === 'de
 const applied = computed(() => habits.value.filter((item) => item.status === 'acceptee'))
 const refused = computed(() => habits.value.filter((item) => item.status === 'refusee'))
 
+/**
+ * Le moteur détecte plus vite que Ronan ne décide : neuf habitudes en attente
+ * tenaient la tuile sur 690 px. Cinq par page, comme les deux listes qu'elles
+ * alimentent (§ 8).
+ */
+const PER_PAGE = 5
+const pendingPage = usePagedList(() => pending.value, PER_PAGE)
+const appliedPage = usePagedList(() => applied.value, PER_PAGE)
+const refusedPage = usePagedList(() => refused.value, PER_PAGE)
+
 const calibrations = computed(() => data.value?.calibrations ?? [])
 const latest = computed(() => calibrations.value[0] ?? null)
 /** Les trois semaines qui précèdent la mesure courante : au-delà, la tendance ne se lit plus. */
@@ -45,7 +55,7 @@ async function decide(id: number, status: string) {
         aucune ne ressortirait (§ 8).
       -->
       <div
-        v-for="item in pending"
+        v-for="item in pendingPage.items"
         :key="item.id"
         class="flex items-center gap-4 border-t border-line-soft py-3 first:border-t-0"
       >
@@ -76,6 +86,8 @@ async function decide(id: number, status: string) {
           </button>
         </div>
       </div>
+
+      <UiPager v-model="pendingPage.page" :total="pendingPage.total" :per-page="PER_PAGE" />
     </section>
 
     <section class="grid grid-cols-2 gap-4">
@@ -85,7 +97,7 @@ async function decide(id: number, status: string) {
         <p v-if="applied.length === 0" class="text-[13px] text-text-dim">Aucune règle apprise.</p>
 
         <div
-          v-for="item in applied"
+          v-for="item in appliedPage.items"
           :key="item.id"
           class="flex items-center gap-3 border-t border-line-soft py-2 first:border-t-0"
         >
@@ -105,6 +117,8 @@ async function decide(id: number, status: string) {
             Retirer
           </button>
         </div>
+
+        <UiPager v-model="appliedPage.page" :total="appliedPage.total" :per-page="PER_PAGE" />
       </div>
 
       <div class="tile">
@@ -176,7 +190,7 @@ async function decide(id: number, status: string) {
     <section v-if="refused.length > 0" class="tile">
       <span class="label">Écartées</span>
       <div
-        v-for="item in refused"
+        v-for="item in refusedPage.items"
         :key="item.id"
         class="flex items-center gap-3 border-t border-line-soft py-2 first:border-t-0"
       >
@@ -190,6 +204,8 @@ async function decide(id: number, status: string) {
           Remettre à décider
         </button>
       </div>
+
+      <UiPager v-model="refusedPage.page" :total="refusedPage.total" :per-page="PER_PAGE" />
     </section>
   </div>
 </template>

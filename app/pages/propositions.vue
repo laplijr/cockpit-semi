@@ -8,6 +8,10 @@ const STATUS_LABELS: Record<string, string> = {
   refusee: 'refusée',
   expiree: 'expirée',
 }
+
+/** L'historique ne s'arrête jamais de grandir : il se lit dix par dix (§ 8). */
+const PER_PAGE = 10
+const decided = usePagedList(() => proposals.decided, PER_PAGE)
 </script>
 
 <template>
@@ -15,17 +19,14 @@ const STATUS_LABELS: Record<string, string> = {
     <CockpitDecisionList />
 
     <div class="tile">
-      <div class="flex items-baseline gap-3">
-        <span class="label">Historique des décisions</span>
-        <span class="mono text-[11.5px] text-text-dim">{{ proposals.decided.length }}</span>
-      </div>
+      <span class="label">Historique des décisions</span>
 
-      <p v-if="proposals.decided.length === 0" class="text-[13px] text-text-dim">
+      <p v-if="decided.total === 0" class="text-[13px] text-text-dim">
         Aucune décision prise pour l'instant.
       </p>
 
       <div
-        v-for="item in proposals.decided"
+        v-for="item in decided.items"
         :key="item.id"
         class="flex items-baseline gap-3 border-t border-line-soft py-[10px] first:border-t-0"
       >
@@ -38,6 +39,8 @@ const STATUS_LABELS: Record<string, string> = {
           {{ STATUS_LABELS[item.status] ?? item.status }}
         </span>
       </div>
+
+      <UiPager v-model="decided.page" :total="decided.total" :per-page="PER_PAGE" />
     </div>
   </div>
 </template>
