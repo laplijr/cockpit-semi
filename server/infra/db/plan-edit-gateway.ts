@@ -49,7 +49,11 @@ export function createPlanEditGateway(db: Database): PlanEditGateway {
         .from(fitnessPoint)
         .orderBy(desc(fitnessPoint.date), desc(fitnessPoint.id))
         .limit(1)
-      const [latestPause] = await db.select().from(pause).orderBy(desc(pause.startDate)).limit(1)
+      const [latestPause] = await db
+        .select()
+        .from(pause)
+        .orderBy(desc(pause.startDate), desc(pause.id))
+        .limit(1)
       const races = await db
         .select({ date: race.date, priority: race.priority })
         .from(race)

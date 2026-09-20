@@ -16,7 +16,7 @@ export default defineEventHandler(async () => {
   const [watchZones] = await useDatabase()
     .select({ zones: pause.watchZones })
     .from(pause)
-    .orderBy(desc(pause.startDate))
+    .orderBy(desc(pause.startDate), desc(pause.id))
     .limit(1)
 
   // Seule une pause encore ouverte se présente comme telle dans le cockpit.

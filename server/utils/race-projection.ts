@@ -36,7 +36,7 @@ export async function loadProjectionContext(db: Database): Promise<ProjectionCon
       .from(fitnessPoint)
       .where(eq(fitnessPoint.origin, FitnessOrigin.Test))
       .orderBy(fitnessPoint.date),
-    db.select().from(pause).orderBy(desc(pause.startDate)).limit(1),
+    db.select().from(pause).orderBy(desc(pause.startDate), desc(pause.id)).limit(1),
     loadGainPerBlock(db),
   ])
 

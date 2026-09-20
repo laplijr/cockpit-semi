@@ -68,8 +68,17 @@ export function createPlanGateway(db: Database): PlanGateway {
       }))
     },
 
+    /**
+     * Déclarer puis rouvrir une pause le même jour laisse plusieurs lignes à la
+     * même date de début : l'identifiant départage, sinon la pause ouverte peut
+     * se faire doubler par la précédente, déjà close.
+     */
     async loadLatestPause(): Promise<PauseSnapshot | undefined> {
-      const [row] = await db.select().from(pause).orderBy(desc(pause.startDate)).limit(1)
+      const [row] = await db
+        .select()
+        .from(pause)
+        .orderBy(desc(pause.startDate), desc(pause.id))
+        .limit(1)
       if (!row) return undefined
       return {
         id: row.id,
