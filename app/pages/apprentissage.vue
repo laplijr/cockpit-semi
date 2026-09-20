@@ -38,10 +38,16 @@ async function decide(id: number, status: string) {
 
       <p v-if="pending.length === 0" class="text-[13px] text-text-dim">Aucune habitude détectée.</p>
 
+      <!--
+        Accepter et refuser sont les deux faces d'une même décision : deux
+        boutons de même poids, alignés sur la ligne. Un bouton accent par
+        habitude ferait neuf actions principales dans une seule tuile, et plus
+        aucune ne ressortirait (§ 8).
+      -->
       <div
         v-for="item in pending"
         :key="item.id"
-        class="flex items-start gap-4 border-t border-line-soft py-3 first:border-t-0"
+        class="flex items-center gap-4 border-t border-line-soft py-3 first:border-t-0"
       >
         <div class="flex min-w-0 flex-1 flex-col gap-px">
           <span class="text-[13.5px]">{{ item.statement }}</span>
@@ -50,22 +56,25 @@ async function decide(id: number, status: string) {
             {{ item.total }} · confiance {{ Math.round(item.confidence * 100) }} %
           </span>
         </div>
-        <button
-          type="button"
-          class="btn shrink-0"
-          :disabled="busy === item.id"
-          @click="decide(item.id, 'acceptee')"
-        >
-          Accepter
-        </button>
-        <button
-          type="button"
-          class="shrink-0 text-[12.5px] text-text-dim hover:text-text"
-          :disabled="busy === item.id"
-          @click="decide(item.id, 'refusee')"
-        >
-          Refuser
-        </button>
+
+        <div class="flex shrink-0 gap-2">
+          <button
+            type="button"
+            class="btn btn-ghost"
+            :disabled="busy === item.id"
+            @click="decide(item.id, 'acceptee')"
+          >
+            Accepter
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost"
+            :disabled="busy === item.id"
+            @click="decide(item.id, 'refusee')"
+          >
+            Refuser
+          </button>
+        </div>
       </div>
     </section>
 
@@ -78,7 +87,7 @@ async function decide(id: number, status: string) {
         <div
           v-for="item in applied"
           :key="item.id"
-          class="flex items-start gap-3 border-t border-line-soft py-2 first:border-t-0"
+          class="flex items-center gap-3 border-t border-line-soft py-2 first:border-t-0"
         >
           <div class="flex min-w-0 flex-1 flex-col gap-px">
             <span class="text-[13px]">{{ item.statement }}</span>
@@ -89,7 +98,7 @@ async function decide(id: number, status: string) {
           </div>
           <button
             type="button"
-            class="shrink-0 text-[12.5px] text-text-dim hover:text-text"
+            class="btn btn-ghost shrink-0"
             :disabled="busy === item.id"
             @click="decide(item.id, 'detectee')"
           >
@@ -169,12 +178,12 @@ async function decide(id: number, status: string) {
       <div
         v-for="item in refused"
         :key="item.id"
-        class="flex items-baseline gap-3 border-t border-line-soft py-2 first:border-t-0"
+        class="flex items-center gap-3 border-t border-line-soft py-2 first:border-t-0"
       >
-        <span class="text-[13px] text-text-dim">{{ item.statement }}</span>
+        <span class="min-w-0 flex-1 text-[13px] text-text-dim">{{ item.statement }}</span>
         <button
           type="button"
-          class="mono ml-auto text-[11.5px] text-text-dim hover:text-text"
+          class="btn btn-ghost ml-auto shrink-0"
           :disabled="busy === item.id"
           @click="decide(item.id, 'detectee')"
         >
