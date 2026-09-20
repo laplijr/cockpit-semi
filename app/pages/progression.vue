@@ -55,7 +55,9 @@ const ORIGIN_LABELS: Record<string, string> = {
   import_initial: 'Import',
 }
 
+/** La tuile en montre vingt-quatre : c'est le numéro de semaine qui le dit. */
 const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
+const WEEK_LABEL_EVERY = 4
 
 const counters = computed(() => data.value?.counters ?? null)
 
@@ -213,17 +215,24 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       </table>
     </div>
 
+    <!--
+      Trois barres par semaine et rien autour : pas de légende, pas d'ordonnée,
+      pas de titre. La bulle de survol porte la lecture (§ 9, P6.39).
+    -->
     <div class="tile">
-      <div class="flex items-baseline gap-3">
-        <span class="label"
-          ><UiInfoHint term="ua">Volume visé et charge par semaine</UiInfoHint></span
-        >
-        <span class="mono text-[11.5px] text-text-dim">24 premières semaines</span>
-      </div>
-      <UiWeekBars
-        :weeks="visibleWeeks"
-        :legend="{ volume: 'volume visé', load: 'charge enregistrée' }"
-      />
+      <UiWeekBars :weeks="visibleWeeks" :height="96">
+        <template #footer>
+          <div class="flex gap-1">
+            <span
+              v-for="(week, index) in visibleWeeks"
+              :key="week.index"
+              class="mono flex-1 text-center text-[10px] text-text-dim"
+            >
+              <template v-if="index % WEEK_LABEL_EVERY === 0">S{{ week.index }}</template>
+            </span>
+          </div>
+        </template>
+      </UiWeekBars>
     </div>
 
     <section class="grid grid-cols-2 gap-4">
