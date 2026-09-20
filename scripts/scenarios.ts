@@ -45,6 +45,15 @@ export const SCENARIOS: Record<string, Scenario> = {
     seed: 4,
     vdotGainPerTest: 0.6,
   },
+  /** Jour de Paris : le seul état où la saisie d'un résultat est ouverte (§ 9, P6.41). */
+  'paris-jour-j': {
+    name: 'paris-jour-j',
+    description: 'Jour de Paris : même historique que l’affûtage, la course attend son chrono.',
+    resumeDate: '2026-09-28',
+    simulatedDay: '2027-03-07',
+    seed: 4,
+    vdotGainPerTest: 0.6,
+  },
 }
 
 export const DEFAULT_SCENARIO = 'pause'

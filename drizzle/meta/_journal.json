@@ -169,6 +169,13 @@
       "when": 1789887674653,
       "tag": "0023_sloppy_alice",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789896636262,
+      "tag": "0024_nebulous_maginty",
+      "breakpoints": true
     }
   ]
 }

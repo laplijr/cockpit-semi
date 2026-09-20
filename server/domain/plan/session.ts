@@ -20,4 +20,5 @@ export enum PlanTrigger {
   Resume = 'reprise',
   ProposalAccepted = 'recalcul_accepte',
   TestRecorded = 'test_enregistre',
+  RaceRecorded = 'resultat_enregistre',
 }

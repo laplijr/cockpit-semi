@@ -1,12 +1,15 @@
 import { confidence } from '../../domain/fitness/confidence'
 import { objectiveIsUnset, proposeLevels } from '../../domain/fitness/objective'
 import { ObjectiveMode, RaceStatus } from '../../domain/races/race'
+import { canRecordResult } from '../../domain/races/result'
 import { useDatabase } from '../../infra/db/client'
 import { race } from '../../infra/db/schema'
 import { loadProjectionContext, projectRace } from '../../utils/race-projection'
+import { systemClock } from '../../utils/context'
 
 export default defineEventHandler(async () => {
   const db = useDatabase()
+  const today = systemClock.today()
 
   const [rows, context] = await Promise.all([
     db.select().from(race).orderBy(race.date),
@@ -44,6 +47,8 @@ export default defineEventHandler(async () => {
       recordDate: record?.date ?? null,
       recordName: record?.name ?? null,
       objectiveToSet: row.objectiveMode === ObjectiveMode.Time && objectiveIsUnset(levels),
+      /** La course a eu lieu et attend son chrono : l'écran n'a pas à redire la règle (§ 5). */
+      awaitingResult: canRecordResult(row, today),
     }
 
     const projection = projectRace(context, row)

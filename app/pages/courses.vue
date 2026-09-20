@@ -24,7 +24,14 @@ const PRIORITY_TONES: Record<string, string> = {
 
 const { data: races, refresh } = await useFetch('/api/races')
 
-const upcoming = computed(() => (races.value ?? []).filter((race) => race.status === 'planifiee'))
+/**
+ * Trois états et non deux : une course dont le jour est passé n'est plus « à
+ * venir », elle attend son chrono (§ 9, P6.41). Le serveur tranche, avec son
+ * horloge : l'écran ne redit pas la règle.
+ */
+const planned = computed(() => (races.value ?? []).filter((race) => race.status === 'planifiee'))
+const upcoming = computed(() => planned.value.filter((race) => !race.awaitingResult))
+const toRecord = computed(() => (races.value ?? []).filter((race) => race.awaitingResult))
 const past = computed(() => (races.value ?? []).filter((race) => race.status !== 'planifiee'))
 
 await plan.ensureLoaded()
@@ -45,11 +52,30 @@ async function onCreated() {
     <RacesSeasonBoard
       :phases="plan.plan?.phases ?? []"
       :weeks="plan.plan?.weeks ?? []"
-      :races="upcoming"
+      :races="planned"
       :today="plan.today"
       :dated="!plan.awaitingResumption"
       :loading="!plan.loaded"
     />
+
+    <div v-if="toRecord.length > 0" class="tile">
+      <span class="label">À renseigner</span>
+      <p class="text-[12.5px] text-text-dim">
+        Ces courses ont eu lieu. Leur chrono recale le VDOT, les records et les projections.
+      </p>
+      <button
+        v-for="race in toRecord"
+        :key="race.id"
+        type="button"
+        class="tile-action -mx-2 flex items-baseline gap-3 rounded-md border border-transparent border-t-line-soft px-2 py-3 text-left first:border-t-transparent"
+        @click="ui.openModal('course', race.id)"
+      >
+        <span class="display text-[15px] font-semibold">{{ race.name }}</span>
+        <span class="mono text-[11.5px] text-text-dim">{{ formatDate(race.date) }}</span>
+        <span class="mono text-[11.5px] text-text-dim">{{ formatDistance(race.distanceM) }}</span>
+        <span class="ml-auto text-[12.5px] text-accent">Renseigner le résultat</span>
+      </button>
+    </div>
 
     <div class="tile">
       <div class="flex items-center gap-3">

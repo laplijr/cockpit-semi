@@ -107,6 +107,12 @@ const regenerates = computed(
       form.priority !== race.value.priority),
 )
 
+/**
+ * Une course qui a eu lieu s'ouvre sur son résultat : c'est la seule décision
+ * qui reste à prendre sur elle, et l'édition passe derrière (§ 8, P6.41).
+ */
+const mode = ref<'result' | 'edit'>(race.value?.awaitingResult ? 'result' : 'edit')
+
 const saving = ref(false)
 const error = ref('')
 const confirmingDelete = ref(false)
@@ -160,151 +166,184 @@ async function remove() {
       >
     </div>
 
-    <div class="grid grid-cols-3 gap-4">
-      <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Projection</span>
-        <span class="mono text-[20px]">{{ formatDuration(race.projectionS) }}</span>
-        <span v-if="race.projectionIsFloor" class="text-[12px] text-text-dim">
-          calculée sur le plancher
-        </span>
-      </div>
-      <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Écart à l'objectif</span>
-        <span class="mono text-[20px]">{{ formatSignedDuration(race.gapS) }}</span>
-      </div>
-      <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Jours restants</span>
-        <span class="mono text-[20px]">{{ daysUntil(race.date, plan.today) }}</span>
-      </div>
-    </div>
-
-    <!-- Sous-grille : un libellé sur deux lignes ne décale plus son champ. -->
-    <div class="grid grid-cols-3 grid-rows-[auto_auto_auto_auto] gap-x-3 gap-y-[6px]">
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
-        <span class="label text-[10.5px]">
-          Nom
-          <span v-if="changed('name', race.name)" class="text-text-dim line-through">
-            {{ race.name }}
-          </span>
-        </span>
-        <input v-model="form.name" type="text" class="input" />
-      </label>
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
-        <span class="label text-[10.5px]">
-          Date
-          <span v-if="changed('date', race.date)" class="mono text-text-dim line-through">
-            {{ formatDate(race.date) }}
-          </span>
-        </span>
-        <input v-model="form.date" type="date" class="input mono" />
-      </label>
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
-        <span class="label text-[10.5px]">
-          Distance
-          <span v-if="changed('distanceM', race.distanceM)" class="mono text-text-dim line-through">
-            {{ formatDistance(race.distanceM) }}
-          </span>
-        </span>
-        <select v-model.number="form.distanceM" class="input">
-          <option v-for="option in DISTANCES" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
-      </label>
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
-        <span class="label text-[10.5px]">
-          Priorité
-          <span v-if="changed('priority', race.priority)" class="text-text-dim line-through">
-            {{ race.priority }}
-          </span>
-        </span>
-        <select v-model="form.priority" class="input">
-          <option value="A">A — course principale</option>
-          <option value="B">B — course secondaire</option>
-          <option value="C">C — course test</option>
-        </select>
-      </label>
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
-        <span class="label text-[10.5px]">D+ (m)</span>
-        <input v-model.number="form.elevationGainM" type="number" class="input mono" />
-      </label>
-      <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
-        <span class="label text-[10.5px]">Température attendue (°C)</span>
-        <input v-model.number="form.expectedTempC" type="number" class="input mono" />
-      </label>
-    </div>
-
-    <RacesObjectiveFields
-      v-model:mode="form.objectiveMode"
-      v-model:levels="levels"
-      :proposed="proposed"
-      :record-s="recordS"
-    />
-
-    <!-- Les trois niveaux se lisent comme un curseur de risque, pas comme trois verdicts. -->
-    <div v-if="race.objectiveMode === 'record'" class="tile bg-surface-inset">
-      <span class="label text-[10.5px]"
-        ><UiInfoHint term="confiance">Record à battre</UiInfoHint></span
+    <template v-if="mode === 'result'">
+      <RacesResultForm
+        :race-id="raceId"
+        :distance-m="race.distanceM"
+        :objectif-s="race.objectifS"
+        :projection-s="race.projectionS"
+        @saved="emit('changed')"
+      />
+      <button
+        type="button"
+        class="text-[13px] text-text-dim hover:text-text"
+        @click="mode = 'edit'"
       >
-      <span class="mono text-[17px]">{{ formatDuration(race.recordS) }}</span>
-      <span class="text-[12px] text-text-dim">
-        {{ race.recordName }} · {{ race.recordDate ? formatDate(race.recordDate) : '—' }} ·
-        confiance {{ race.confidencePct === null ? '—' : `${race.confidencePct} %` }}
-      </span>
-    </div>
-    <div v-else-if="!race.objectiveToSet" class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">
-        <UiInfoHint term="confiance">Confiance par niveau</UiInfoHint>
-      </span>
+        Modifier la course
+      </button>
+    </template>
+
+    <template v-else>
       <div class="grid grid-cols-3 gap-4">
-        <div v-for="level in OBJECTIVE_LEVELS" :key="level.key" class="flex flex-col">
-          <span class="label text-[10px]">{{ level.label }}</span>
-          <span class="mono text-[17px]">{{ formatDuration(race[level.field]) }}</span>
-          <span class="mono text-[12px] text-text-dim">
-            {{ race[level.confidence] === null ? '—' : `${race[level.confidence]} %` }}
+        <div class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Projection</span>
+          <span class="mono text-[20px]">{{ formatDuration(race.projectionS) }}</span>
+          <span v-if="race.projectionIsFloor" class="text-[12px] text-text-dim">
+            calculée sur le plancher
           </span>
         </div>
+        <div class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Écart à l'objectif</span>
+          <span class="mono text-[20px]">{{ formatSignedDuration(race.gapS) }}</span>
+        </div>
+        <div class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Jours restants</span>
+          <span class="mono text-[20px]">{{ daysUntil(race.date, plan.today) }}</span>
+        </div>
       </div>
-      <span class="text-[12px] text-text-dim">
-        Du plus ambitieux au plus sûr : la confiance monte avec le temps qu'on s'accorde.
-      </span>
-    </div>
 
-    <!-- Le ravito se pilote depuis la course, il se lit dans Nutrition (§ 9, P6). -->
-    <RacesFuelPlanTile
-      v-if="race.status === 'planifiee'"
-      :race-id="raceId"
-      :fuel-plan="race.fuelPlan"
-      @generated="refreshRaces()"
-    />
+      <!-- Sous-grille : un libellé sur deux lignes ne décale plus son champ. -->
+      <div class="grid grid-cols-3 grid-rows-[auto_auto_auto_auto] gap-x-3 gap-y-[6px]">
+        <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
+          <span class="label text-[10.5px]">
+            Nom
+            <span v-if="changed('name', race.name)" class="text-text-dim line-through">
+              {{ race.name }}
+            </span>
+          </span>
+          <input v-model="form.name" type="text" class="input" />
+        </label>
+        <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
+          <span class="label text-[10.5px]">
+            Date
+            <span v-if="changed('date', race.date)" class="mono text-text-dim line-through">
+              {{ formatDate(race.date) }}
+            </span>
+          </span>
+          <input v-model="form.date" type="date" class="input mono" />
+        </label>
+        <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
+          <span class="label text-[10.5px]">
+            Distance
+            <span
+              v-if="changed('distanceM', race.distanceM)"
+              class="mono text-text-dim line-through"
+            >
+              {{ formatDistance(race.distanceM) }}
+            </span>
+          </span>
+          <select v-model.number="form.distanceM" class="input">
+            <option v-for="option in DISTANCES" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
+          <span class="label text-[10.5px]">
+            Priorité
+            <span v-if="changed('priority', race.priority)" class="text-text-dim line-through">
+              {{ race.priority }}
+            </span>
+          </span>
+          <select v-model="form.priority" class="input">
+            <option value="A">A — course principale</option>
+            <option value="B">B — course secondaire</option>
+            <option value="C">C — course test</option>
+          </select>
+        </label>
+        <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
+          <span class="label text-[10.5px]">D+ (m)</span>
+          <input v-model.number="form.elevationGainM" type="number" class="input mono" />
+        </label>
+        <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
+          <span class="label text-[10.5px]">Température attendue (°C)</span>
+          <input v-model.number="form.expectedTempC" type="number" class="input mono" />
+        </label>
+      </div>
 
-    <p class="text-[13px] text-text-dim">{{ PRIORITY_MEANING[form.priority] }}</p>
+      <RacesObjectiveFields
+        v-model:mode="form.objectiveMode"
+        v-model:levels="levels"
+        :proposed="proposed"
+        :record-s="recordS"
+      />
 
-    <p v-if="regenerates" class="text-[13px] text-warn">
-      Date, distance ou priorité : enregistrer régénérera le plan.
-    </p>
-    <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+      <!-- Les trois niveaux se lisent comme un curseur de risque, pas comme trois verdicts. -->
+      <div v-if="race.objectiveMode === 'record'" class="tile bg-surface-inset">
+        <span class="label text-[10.5px]"
+          ><UiInfoHint term="confiance">Record à battre</UiInfoHint></span
+        >
+        <span class="mono text-[17px]">{{ formatDuration(race.recordS) }}</span>
+        <span class="text-[12px] text-text-dim">
+          {{ race.recordName }} · {{ race.recordDate ? formatDate(race.recordDate) : '—' }} ·
+          confiance {{ race.confidencePct === null ? '—' : `${race.confidencePct} %` }}
+        </span>
+      </div>
+      <div v-else-if="!race.objectiveToSet" class="tile bg-surface-inset">
+        <span class="label text-[10.5px]">
+          <UiInfoHint term="confiance">Confiance par niveau</UiInfoHint>
+        </span>
+        <div class="grid grid-cols-3 gap-4">
+          <div v-for="level in OBJECTIVE_LEVELS" :key="level.key" class="flex flex-col">
+            <span class="label text-[10px]">{{ level.label }}</span>
+            <span class="mono text-[17px]">{{ formatDuration(race[level.field]) }}</span>
+            <span class="mono text-[12px] text-text-dim">
+              {{ race[level.confidence] === null ? '—' : `${race[level.confidence]} %` }}
+            </span>
+          </div>
+        </div>
+        <span class="text-[12px] text-text-dim">
+          Du plus ambitieux au plus sûr : la confiance monte avec le temps qu'on s'accorde.
+        </span>
+      </div>
 
-    <div class="flex items-center gap-3">
-      <button type="button" class="btn btn-lg" :disabled="saving" @click="save">Enregistrer</button>
+      <!-- Le ravito se pilote depuis la course, il se lit dans Nutrition (§ 9, P6). -->
+      <RacesFuelPlanTile
+        v-if="race.status === 'planifiee'"
+        :race-id="raceId"
+        :fuel-plan="race.fuelPlan"
+        @generated="refreshRaces()"
+      />
 
-      <template v-if="confirmingDelete">
-        <span class="ml-auto text-[13px] text-warn">Supprimer cette course ?</span>
-        <button type="button" class="btn btn-ghost" :disabled="saving" @click="remove">
-          Oui, supprimer
+      <p class="text-[13px] text-text-dim">{{ PRIORITY_MEANING[form.priority] }}</p>
+
+      <p v-if="regenerates" class="text-[13px] text-warn">
+        Date, distance ou priorité : enregistrer régénérera le plan.
+      </p>
+      <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+
+      <div class="flex items-center gap-3">
+        <button type="button" class="btn btn-lg" :disabled="saving" @click="save">
+          Enregistrer
         </button>
-        <button type="button" class="btn btn-ghost" @click="confirmingDelete = false">
-          Annuler
+
+        <template v-if="confirmingDelete">
+          <span class="ml-auto text-[13px] text-warn">Supprimer cette course ?</span>
+          <button type="button" class="btn btn-ghost" :disabled="saving" @click="remove">
+            Oui, supprimer
+          </button>
+          <button type="button" class="btn btn-ghost" @click="confirmingDelete = false">
+            Annuler
+          </button>
+        </template>
+        <button
+          v-else
+          type="button"
+          class="ml-auto text-[13px] text-text-dim hover:text-text"
+          @click="confirmingDelete = true"
+        >
+          Supprimer la course
         </button>
-      </template>
+      </div>
+
       <button
-        v-else
+        v-if="race.awaitingResult"
         type="button"
-        class="ml-auto text-[13px] text-text-dim hover:text-text"
-        @click="confirmingDelete = true"
+        class="text-[13px] text-text-dim hover:text-text"
+        @click="mode = 'result'"
       >
-        Supprimer la course
+        Revenir au résultat
       </button>
-    </div>
+    </template>
   </div>
 </template>
