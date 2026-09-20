@@ -79,7 +79,7 @@ export const GLOSSARY = {
   },
   projection: {
     title: 'Projection',
-    text: 'Chrono estimé le jour de la course : forme du jour, gain du bloc restant, dénivelé et chaleur. Elle se lit toujours avec son intervalle.',
+    text: "Chrono estimé le jour de la course : forme du jour, gain du bloc restant, dénivelé et chaleur. Elle se lit toujours avec son intervalle. Elle porte sur la course A la plus proche dont l'objectif est fixé — pas forcément la prochaine.",
   },
   confiance: {
     title: 'Confiance',

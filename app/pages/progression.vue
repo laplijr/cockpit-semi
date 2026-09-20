@@ -16,11 +16,6 @@ const { data } = await useFetch('/api/progression', {
   query: { period },
 })
 
-/** La courbe promise par le § 8 : la table reste dessous, elle donne le détail. */
-const vdotCurve = computed(() =>
-  (data.value?.vdot ?? []).map((point) => ({ date: point.date, value: point.vdot })),
-)
-
 /** L'échelle du cadran de forme : la même tendance, à la taille d'un instrument. */
 const vdotSpark = computed(() => {
   const values = (data.value?.vdot ?? []).map((point) => point.vdot)
@@ -47,7 +42,16 @@ const VDOT_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
   { label: 'Origine' },
   { label: 'VDOT', term: 'vdot' },
   { label: 'Projection semi', term: 'projection' },
+  { label: 'Confiance', term: 'confiance' },
 ]
+
+/**
+ * La confiance de ce point-là, et non celle d'aujourd'hui : la trajectoire est
+ * construite sur les mêmes points de forme, elle se retrouve par sa date
+ * (§ 9, P6.40).
+ */
+const confidenceAt = (date: string) =>
+  data.value?.confidence.find((point) => point.date === date)?.confidencePct ?? null
 
 const ORIGIN_LABELS: Record<string, string> = {
   course: 'Course',
@@ -206,7 +210,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
 
     <div class="tile">
       <div class="flex items-baseline gap-3">
-        <span class="label">Forme et confiance</span>
+        <span class="label">Projection et confiance</span>
         <!-- La table ne garde que les trois derniers points ; l'historique
              complet vit dans le dialog du cadran (§ 8, P6.35). -->
         <button
@@ -219,9 +223,8 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         </button>
       </div>
 
-      <ProgressionFormChart
-        :vdot="vdotCurve"
-        :confidence="data?.confidence ?? []"
+      <ProgressionProjectionChart
+        :points="data?.confidence ?? []"
         :race-name="data?.confidenceRace?.name ?? null"
       />
 
@@ -245,6 +248,9 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
               <td class="mono py-[6px]">{{ point.vdot.toFixed(1).replace('.', ',') }}</td>
               <td class="mono py-[6px] text-text-dim">
                 {{ formatDuration(point.halfProjectionS) }}
+              </td>
+              <td class="mono py-[6px] text-text-dim">
+                {{ confidenceAt(point.date) === null ? '—' : `${confidenceAt(point.date)} %` }}
               </td>
             </tr>
           </tbody>

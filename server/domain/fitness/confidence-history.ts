@@ -46,8 +46,16 @@ export interface ConfidencePoint {
   date: string
   /** Pourcentage de chances de tenir l'objectif, vu de ce jour-là. */
   confidencePct: number
-  /** Chrono projeté ce jour-là, pour la bulle. */
+  /** Chrono projeté ce jour-là. */
   projectedS: number
+  /**
+   * Les bornes de la projection de ce jour-là — l'incertitude, pas la
+   * confiance. C'est l'intervalle que la couverture de P6.6 confronte au
+   * réalisé : le graphe en fait son enveloppe plutôt que d'en inventer une
+   * depuis la confiance (§ 9, P6.40).
+   */
+  lowS: number
+  highS: number
   /** Ce qui explique ce point, du plus parlant au moins parlant. */
   events: ConfidenceEvent[]
 }
@@ -124,6 +132,8 @@ export function confidenceHistory(
         date: point.date,
         confidencePct: confidence(projection, { targetS: race.targetS }) ?? 0,
         projectedS: projection.timeS,
+        lowS: projection.lowS,
+        highS: projection.highS,
         events: eventsOf(point, paused),
       }
     })

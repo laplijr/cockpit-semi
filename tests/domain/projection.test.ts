@@ -179,6 +179,61 @@ describe('trajectoire de la confiance (§ 9, P6.5)', () => {
     expect(confidenceHistory([point('2026-10-20', 33.7)], { ...PARIS, targetS: null })).toEqual([])
   })
 
+  it('rend l’enveloppe de la projection, jamais nulle : une projection sans marge serait une promesse', () => {
+    const series = confidenceHistory(
+      [point('2026-09-13', 33.1, FitnessOrigin.Race, true), point('2026-10-20', 33.7)],
+      PARIS,
+    )
+
+    for (const item of series) {
+      expect(item.lowS).toBeLessThan(item.projectedS)
+      expect(item.highS).toBeGreaterThan(item.projectedS)
+      expect(item.highS - item.lowS).toBeGreaterThanOrEqual(
+        Math.round(item.projectedS * MIN_INTERVAL_SHARE * 2) - 1,
+      )
+    }
+  })
+
+  it('resserre l’enveloppe quand les tests s’accordent', () => {
+    const erratiques = confidenceHistory(
+      [point('2026-08-01', 31), point('2026-09-13', 35), point('2026-10-20', 33.7)],
+      PARIS,
+    ).at(-1)!
+    const réguliers = confidenceHistory(
+      [point('2026-08-01', 33.5), point('2026-09-13', 33.6), point('2026-10-20', 33.7)],
+      PARIS,
+    ).at(-1)!
+
+    expect(réguliers.highS - réguliers.lowS).toBeLessThan(erratiques.highS - erratiques.lowS)
+  })
+
+  /**
+   * La marge n'est pas une fonction décroissante de la confiance, et c'est ce
+   * qui distingue la voie retenue de celle qui traduisait la confiance en
+   * largeur (§ 9, P6.40) : la confiance vaut Φ((cible − projeté) / σ), donc
+   * resserrer σ la fait monter d'un côté de la cible et baisser de l'autre.
+   */
+  it('resserrer l’enveloppe monte la confiance sous la cible et la baisse au-dessus', () => {
+    const erratiques = [point('2026-08-01', 31), point('2026-09-13', 35), point('2026-10-20', 33.7)]
+    const réguliers = [
+      point('2026-08-01', 33.5),
+      point('2026-09-13', 33.6),
+      point('2026-10-20', 33.7),
+    ]
+
+    const projeté = confidenceHistory(réguliers, PARIS).at(-1)!.projectedS
+
+    const tenable = { ...PARIS, targetS: projeté + 300 }
+    expect(confidenceHistory(réguliers, tenable).at(-1)!.confidencePct).toBeGreaterThan(
+      confidenceHistory(erratiques, tenable).at(-1)!.confidencePct,
+    )
+
+    const horsAtteinte = { ...PARIS, targetS: projeté - 300 }
+    expect(confidenceHistory(réguliers, horsAtteinte).at(-1)!.confidencePct).toBeLessThan(
+      confidenceHistory(erratiques, horsAtteinte).at(-1)!.confidencePct,
+    )
+  })
+
   it('ignore les points de forme postérieurs à la course', () => {
     const series = confidenceHistory([point('2026-10-20', 33.7), point('2027-05-01', 36)], PARIS)
 
