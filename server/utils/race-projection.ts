@@ -1,33 +1,20 @@
 import { desc, eq } from 'drizzle-orm'
 import { FitnessOrigin } from '../domain/fitness/fitness-point'
-import { project, type Projection } from '../domain/fitness/projection'
+import {
+  pausedWeeksUntil,
+  project,
+  weeksAhead,
+  type Projection,
+} from '../domain/fitness/projection'
 import type { Database } from '../infra/db/client'
+import { loadGainPerBlock } from '../infra/db/forecast-repository'
 import { createPlanGateway } from '../infra/db/plan-gateway'
 import { fitnessPoint, pause } from '../infra/db/schema'
 import { systemClock } from './context'
 
-const DAYS_PER_WEEK = 7
-const DAY_MS = 86_400_000
-
-function weeksBetween(from: string, to: string): number {
-  return Math.max(0, (Date.parse(to) - Date.parse(from)) / DAY_MS / DAYS_PER_WEEK)
-}
-
 interface OpenPause {
   startDate: string
   estimatedEndDate: string | null
-}
-
-/**
- * Semaines d'ici la course qu'une pause ouverte couvre : elles ne font pas
- * progresser, donc elles ne comptent pas dans le gain de bloc (§ 5).
- */
-function pausedWeeksUntil(today: string, raceDate: string, openPause: OpenPause | undefined) {
-  if (!openPause) return 0
-  const end = openPause.estimatedEndDate
-  /** Sans date de reprise, la pause couvre tout ce qui vient : aucun gain. */
-  if (!end) return weeksBetween(today, raceDate)
-  return weeksBetween(today, end < raceDate ? end : raceDate)
 }
 
 export interface ProjectionContext {
@@ -35,11 +22,13 @@ export interface ProjectionContext {
   fitness: { vdot: number; isFloor: boolean } | undefined
   testHistory: number[]
   openPause: OpenPause | undefined
+  /** Progression estimée en vigueur, que R9 peut avoir recalée (§ 5). */
+  gainPerBlock: number
 }
 
 /** Tout ce dont la projection a besoin, chargé une fois pour toutes les courses. */
 export async function loadProjectionContext(db: Database): Promise<ProjectionContext> {
-  const [fitness, tests, latestPause] = await Promise.all([
+  const [fitness, tests, latestPause, gainPerBlock] = await Promise.all([
     /** La base vient en paramètre : le seed n'a pas de `useRuntimeConfig`. */
     createPlanGateway(db).loadCurrentFitness(),
     db
@@ -48,6 +37,7 @@ export async function loadProjectionContext(db: Database): Promise<ProjectionCon
       .where(eq(fitnessPoint.origin, FitnessOrigin.Test))
       .orderBy(fitnessPoint.date),
     db.select().from(pause).orderBy(desc(pause.startDate)).limit(1),
+    loadGainPerBlock(db),
   ])
 
   return {
@@ -55,6 +45,7 @@ export async function loadProjectionContext(db: Database): Promise<ProjectionCon
     fitness: fitness ?? undefined,
     testHistory: tests.map((row) => row.vdot),
     openPause: latestPause[0]?.endDate === null ? latestPause[0] : undefined,
+    gainPerBlock,
   }
 }
 
@@ -76,8 +67,9 @@ export function projectRace(
     vdot: context.fitness.vdot,
     isFloor: context.fitness.isFloor,
     testHistory: context.testHistory,
-    weeksToRace: weeksBetween(context.today, target.date),
+    weeksToRace: weeksAhead(context.today, target.date),
     pausedWeeks: pausedWeeksUntil(context.today, target.date, context.openPause),
+    gainPerBlock: context.gainPerBlock,
     distanceM: target.distanceM,
     elevationGainM: target.elevationGainM,
     expectedTempC: target.expectedTempC,

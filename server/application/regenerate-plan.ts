@@ -7,8 +7,10 @@ import { STANDARD_INCREASE_PCT } from '../domain/athlete/profile'
 import type { GeneratedPlan } from '../domain/plan/generate'
 import { addDays } from '../domain/plan/calendar'
 import { generatePlan } from '../domain/plan/generate'
+import { VDOT_GAIN_PER_BLOCK } from '../domain/fitness/projection'
 import { COMEBACK_RATIOS } from '../domain/plan/weeks'
 import type { PlanTrigger } from '../domain/plan/session'
+import { nextTestDate, recordForecasts } from './record-forecasts'
 import type { Clock, PlanGateway } from './ports'
 
 /** Faute de point de forme, le plancher de Daniels le plus bas utilisable. */
@@ -46,6 +48,7 @@ export async function regeneratePlan(
     latestPause.endDate >= addDays(clock.today(), -RESUMPTION_GRACE_DAYS)
 
   const vdot = fitness?.vdot ?? FALLBACK_VDOT
+  const gainPerBlock = athlete?.vdotGainPerBlock ?? VDOT_GAIN_PER_BLOCK
   const baseWeeklyVolumeM = athlete?.startWeeklyVolumeM ?? DEFAULT_START_VOLUME_M
   const peakWeeklyVolumeM = athlete?.peakWeeklyVolumeM ?? DEFAULT_PEAK_VOLUME_M
 
@@ -73,7 +76,17 @@ export async function regeneratePlan(
     peakWeeklyVolumeM,
     vdot,
     vdotIsFloor: fitness?.isFloor ?? true,
+    gainPerBlock,
     provisional: plan.provisional,
+  })
+
+  /** La boucle de crédibilité : ce qui est arrivé, puis ce qu'on annonce (§ 9, P6.6). */
+  await recordForecasts(gateway, {
+    today: clock.today(),
+    fitness,
+    gainPerBlock,
+    nextTestDate: nextTestDate(plan, clock.today()),
+    openPause,
   })
 
   return { planVersionId, plan }

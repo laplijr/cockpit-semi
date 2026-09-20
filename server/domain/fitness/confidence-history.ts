@@ -93,6 +93,7 @@ export function confidenceHistory(
   points: FitnessPointRecord[],
   race: ConfidenceTargetRace,
   pauses: PauseWindow[] = [],
+  gainPerBlock?: number,
 ): ConfidencePoint[] {
   if (race.targetS === null) return []
 
@@ -113,6 +114,7 @@ export function confidenceHistory(
           .map((item) => item.vdot),
         weeksToRace: weeksBetween(point.date, race.date),
         pausedWeeks: paused,
+        gainPerBlock,
         distanceM: race.distanceM,
         elevationGainM: race.elevationGainM,
         expectedTempC: race.expectedTempC,

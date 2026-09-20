@@ -51,6 +51,19 @@ const vdot = computed(() => {
   return parameters?.vdot ?? null
 })
 
+/**
+ * La dernière échéance confrontée au réalisé. Une ligne ici, le détail dans
+ * Progression : le cockpit ne gagne rien à plat (§ 9, P6.6).
+ */
+const lastForecast = computed(() => progression.value?.forecasts.at(0) ?? null)
+
+/** Un VDOT garde sa décimale, même nulle, comme partout ailleurs. */
+const vdotText = (value: number | null | undefined) =>
+  value === null || value === undefined ? '—' : value.toFixed(1).replace('.', ',')
+
+const signedVdot = (value: number | null | undefined) =>
+  value === null || value === undefined ? '—' : `${value > 0 ? '+' : ''}${vdotText(value)}`
+
 const title = computed(
   () =>
     ({
@@ -163,6 +176,14 @@ const title = computed(
           </span>
         </div>
       </div>
+
+      <p v-if="lastForecast" class="text-[13px] text-text-dim">
+        Dernière prévision confrontée : {{ lastForecast.label }} du
+        {{ formatDate(lastForecast.targetDate) }}, annoncé à
+        {{ vdotText(lastForecast.projectedVdot) }} et réalisé à
+        {{ vdotText(lastForecast.actualVdot) }} — écart de
+        {{ signedVdot(lastForecast.gapVdot) }} VDOT.
+      </p>
 
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Allures d'entraînement</span>
@@ -369,10 +390,10 @@ const title = computed(
       </div>
 
       <p class="text-[13px] text-text-dim">
-        La projection part de ton VDOT du jour, y ajoute le gain attendu d'ici la course — 0,4 VDOT
-        par tranche de huit semaines d'entraînement, rien pour les semaines en pause — puis corrige
-        du dénivelé et de la chaleur. L'intervalle vient de la variabilité de tes tests ; la
-        confiance en découle.
+        La projection part de ton VDOT du jour, y ajoute le gain attendu d'ici la course —
+        {{ formatDecimal(progression?.gainPerBlock, 2) }} VDOT par tranche de huit semaines
+        d'entraînement, rien pour les semaines en pause — puis corrige du dénivelé et de la chaleur.
+        L'intervalle vient de la variabilité de tes tests ; la confiance en découle.
         <template v-if="plan.nextTestWeek">
           Prochain test en semaine {{ plan.nextTestWeek.index }}.
         </template>

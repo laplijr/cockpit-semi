@@ -18,7 +18,8 @@ import {
 import type { RunSessionCode, Prescription } from '../../domain/running/session-types'
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
-import { feedback, pause, proposal, race, session, week } from './schema'
+import { loadGainPerBlock, loadResolvedForecasts } from './forecast-repository'
+import { athlete, feedback, pause, proposal, race, session, week } from './schema'
 
 /** Fenêtre de séances passées examinée par les règles. */
 const LOOKBACK_DAYS = 10
@@ -47,6 +48,8 @@ async function buildContext(db: Database, today: string): Promise<RuleContext> {
 
   const anchor = rated[0]?.session.date ?? today
   const horizon = anchor > today ? anchor : today
+
+  const [resolved, gain] = await Promise.all([loadResolvedForecasts(db), loadGainPerBlock(db)])
 
   const [past, future] = await Promise.all([
     Promise.resolve(rated.filter((row) => row.session.date >= addDays(horizon, -LOOKBACK_DAYS))),
@@ -102,6 +105,8 @@ async function buildContext(db: Database, today: string): Promise<RuleContext> {
     sameDayStrength: upcoming.filter((item) => item.sport === Sport.Strength),
     /** Les habitudes acceptées deviennent des règles R100+ (§ 5). */
     personal: adjustmentsFrom(await loadAcceptedHabits(db)),
+    forecasts: resolved,
+    gainPerBlock: gain,
   }
 }
 
@@ -190,6 +195,8 @@ export async function acceptProposal(db: Database, id: number, today: string) {
     await moveRace(db, row.targetId, row.payload)
   }
 
+  if (effect === ProposalEffect.AdjustExpectedGain) await adjustExpectedGain(db, row.payload)
+
   if (effect === ProposalEffect.FreezeProgression) await freezeProgression(db, today)
   if (effect === ProposalEffect.RestoreProgression) await restoreProgression(db, today)
   if (effect === ProposalEffect.ProposePause || effect === ProposalEffect.ForcePause) {
@@ -248,6 +255,17 @@ async function updateSessionPrescription(
       ...(sport ? { sport } : {}),
     })
     .where(eq(session.id, sessionId))
+}
+
+/**
+ * Recale la progression estimée. Elle ne vit nulle part ailleurs que sur
+ * l'athlète : les projections la relisent à chaque calcul (§ 5, R9).
+ */
+async function adjustExpectedGain(db: Database, payload: Record<string, unknown> | null) {
+  const value = Number(payload?.gainPerBlock)
+  if (!Number.isFinite(value)) return
+
+  await db.update(athlete).set({ vdotGainPerBlock: value })
 }
 
 /** Gèle la montée : la semaine suivante reprend le volume de la semaine en cours. */

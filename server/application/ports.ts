@@ -1,4 +1,5 @@
 import type { AthleteConstraints } from '../domain/athlete/constraints'
+import type { ForecastTarget } from '../domain/fitness/accuracy'
 import type { PauseAllowances } from '../domain/pause/pause'
 import type { IsoDate } from '../domain/plan/calendar'
 import type { GeneratedPlan } from '../domain/plan/generate'
@@ -14,6 +15,8 @@ export interface AthleteSnapshot {
   peakWeeklyVolumeM: number
   /** Montée hebdomadaire maximale, en pourcentage ; déduite du profil (§ 5). */
   maxWeeklyIncreasePct: number
+  /** Progression estimée par bloc de huit semaines, celle que R9 recale (§ 5). */
+  vdotGainPerBlock: number
   onboarded: boolean
 }
 
@@ -36,6 +39,54 @@ export interface FitnessSnapshot {
   date: IsoDate
 }
 
+/** Une course telle que la boucle de crédibilité la juge (§ 9, P6.6). */
+export interface ForecastRaceSnapshot {
+  id: number
+  date: IsoDate
+  distanceM: number
+  elevationGainM: number | null
+  expectedTempC: number | null
+  /** Chrono visé, ou record à battre ; nul tant qu'il n'est pas fixé. */
+  targetS: number | null
+  /** Chrono couru et représentatif ; nul tant que la course n'a pas eu lieu. */
+  resultS: number | null
+}
+
+/** Une prévision émise dont l'échéance n'a pas encore été confrontée. */
+export interface OpenForecast {
+  id: number
+  target: ForecastTarget
+  raceId: number | null
+  issuedDate: IsoDate
+  /** Ce qui avait été annoncé : l'écart se mesure contre cette valeur. */
+  projectedVdot: number
+}
+
+export interface ForecastContext {
+  /** Tests 20′ dans l'ordre du temps : ils résolvent les prévisions de test. */
+  tests: { date: IsoDate; vdot: number }[]
+  races: ForecastRaceSnapshot[]
+  open: OpenForecast[]
+}
+
+export interface IssuedForecast {
+  target: ForecastTarget
+  raceId: number | null
+  issuedDate: IsoDate
+  targetDate: IsoDate
+  projectedVdot: number
+  lowVdot: number
+  highVdot: number
+  confidencePct: number | null
+}
+
+export interface ForecastResolution {
+  id: number
+  actualVdot: number
+  gapVdot: number
+  resolvedDate: IsoDate
+}
+
 /** Tout ce dont la génération a besoin pour lire l'état courant et l'écrire. */
 export interface PlanGateway {
   loadAthlete(): Promise<AthleteSnapshot | undefined>
@@ -46,6 +97,10 @@ export interface PlanGateway {
   /** Date du dernier test 20′, qui borne la replanification du suivant. */
   loadLastTestDate(): Promise<IsoDate | null>
   savePlan(plan: GeneratedPlan, trigger: PlanTrigger, parameters: PlanParameters): Promise<number>
+  /** Prévisions ouvertes et ce qui permet d'en émettre de nouvelles (§ 9, P6.6). */
+  loadForecastContext(): Promise<ForecastContext>
+  /** Résout les prévisions échues et enregistre celles du jour, d'un seul bloc. */
+  saveForecasts(resolved: ForecastResolution[], issued: IssuedForecast[]): Promise<void>
 }
 
 /** Une variante prête à être enregistrée, mesurée et classée (§ 4). */
@@ -88,5 +143,7 @@ export interface PlanParameters extends Record<string, unknown> {
   peakWeeklyVolumeM: number
   vdot: number
   vdotIsFloor: boolean
+  /** Progression estimée en vigueur à la génération : le dialog VDOT la cite. */
+  gainPerBlock: number
   provisional: boolean
 }

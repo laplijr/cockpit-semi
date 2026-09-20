@@ -13,6 +13,7 @@ import {
 } from 'drizzle-orm/pg-core'
 import type { AthleteConstraints } from '../../domain/athlete/constraints'
 import { AthleteProfile } from '../../domain/athlete/profile'
+import { ForecastTarget } from '../../domain/fitness/accuracy'
 import { FitnessOrigin } from '../../domain/fitness/fitness-point'
 import { Sensation, type Pain } from '../../domain/load/feedback'
 import { PauseType, type PauseAllowances } from '../../domain/pause/pause'
@@ -38,6 +39,7 @@ import { Sport } from '../../domain/shared/sport'
 export {
   AthleteProfile,
   FitnessOrigin,
+  ForecastTarget,
   LookupStatus,
   UnplannedStatus,
   ProposalStatus,
@@ -75,6 +77,7 @@ export const raceStatusEnum = pgEnum('race_status', enumValues(RaceStatus))
 export const raceSourceEnum = pgEnum('race_source', enumValues(RaceSource))
 export const segmentModeEnum = pgEnum('segment_mode', enumValues(SegmentMode))
 export const fitnessOriginEnum = pgEnum('fitness_origin', enumValues(FitnessOrigin))
+export const forecastTargetEnum = pgEnum('forecast_target', enumValues(ForecastTarget))
 export const phaseTypeEnum = pgEnum('phase_type', enumValues(PhaseType))
 export const planTriggerEnum = pgEnum('plan_trigger', enumValues(PlanTrigger))
 export const sessionStatusEnum = pgEnum('session_status', enumValues(SessionStatus))
@@ -119,6 +122,8 @@ export const athlete = pgTable('athlete', {
   /** Volume hebdomadaire maximal visé sur un cycle, en mètres (§ 5). */
   peakWeeklyVolumeM: integer('peak_weekly_volume_m'),
   onboarded: boolean('onboarded').notNull().default(false),
+  /** Progression estimée par bloc de huit semaines, quand R9 l'a recalée (§ 5). */
+  vdotGainPerBlock: real('vdot_gain_per_block'),
   notes: text('notes'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -522,6 +527,34 @@ export const mealPlan = pgTable(
   },
   (table) => [unique('meal_plan_date').on(table.date)],
 )
+
+/**
+ * Ce que le cockpit avait annoncé, et ce qui est arrivé (§ 9, P6.6). Une ligne
+ * par cible et par régénération, jamais écrasée : c'est l'historique des
+ * annonces qui dit si le moteur mérite qu'on le croie. Le réalisé et l'écart
+ * restent nuls tant que l'échéance n'a pas eu lieu.
+ */
+export const forecast = pgTable('forecast', {
+  id: serial('id').primaryKey(),
+  target: forecastTargetEnum('target').notNull(),
+  /** La course visée ; nulle quand la cible est le prochain test. */
+  raceId: integer('race_id').references(() => race.id, { onDelete: 'cascade' }),
+  issuedDate: date('issued_date').notNull(),
+  targetDate: date('target_date').notNull(),
+  projectedVdot: real('projected_vdot').notNull(),
+  lowVdot: real('low_vdot').notNull(),
+  highVdot: real('high_vdot').notNull(),
+  /** Confiance de tenir l'objectif au moment de l'émission ; nulle sans cible. */
+  confidencePct: integer('confidence_pct'),
+  actualVdot: real('actual_vdot'),
+  /** Réalisé moins projeté : positif quand la forme a dépassé l'annonce. */
+  gapVdot: real('gap_vdot'),
+  resolvedDate: date('resolved_date'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type Forecast = typeof forecast.$inferSelect
+export type NewForecast = typeof forecast.$inferInsert
 
 export type Habit = typeof habit.$inferSelect
 export type NewHabit = typeof habit.$inferInsert

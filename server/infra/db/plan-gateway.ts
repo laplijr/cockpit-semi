@@ -1,7 +1,10 @@
-import { and, desc, eq, notInArray } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, ne, notInArray } from 'drizzle-orm'
 import type {
   AthleteSnapshot,
   FitnessSnapshot,
+  ForecastContext,
+  ForecastResolution,
+  IssuedForecast,
   PauseSnapshot,
   PlanGateway,
   PlanParameters,
@@ -15,14 +18,18 @@ import { STANDARD_INCREASE_PCT, defaultsFor } from '../../domain/athlete/profile
 import type { GeneratedPlan } from '../../domain/plan/generate'
 import type { PlannedRace } from '../../domain/plan/periodization'
 import { SessionStatus, type PlanTrigger } from '../../domain/plan/session'
+import type { ForecastTarget } from '../../domain/fitness/accuracy'
 import { FitnessOrigin } from '../../domain/fitness/fitness-point'
-import { RaceStatus } from '../../domain/races/race'
+import { VDOT_GAIN_PER_BLOCK } from '../../domain/fitness/projection'
+import { ObjectiveMode, RaceStatus } from '../../domain/races/race'
+import { personalRecords, recordFor } from '../../domain/races/records'
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
 import {
   athlete,
   feedback,
   fitnessPoint,
+  forecast,
   pause,
   phase,
   planVersion,
@@ -43,6 +50,7 @@ export function createPlanGateway(db: Database): PlanGateway {
         maxWeeklyIncreasePct: row.profile
           ? defaultsFor(row.profile).maxWeeklyIncreasePct
           : STANDARD_INCREASE_PCT,
+        vdotGainPerBlock: row.vdotGainPerBlock ?? VDOT_GAIN_PER_BLOCK,
         onboarded: row.onboarded,
       }
     },
@@ -181,6 +189,66 @@ export function createPlanGateway(db: Database): PlanGateway {
         )
 
       return planVersionId
+    },
+
+    async loadForecastContext(): Promise<ForecastContext> {
+      const [tests, races, open] = await Promise.all([
+        db
+          .select({ date: fitnessPoint.date, vdot: fitnessPoint.vdot })
+          .from(fitnessPoint)
+          .where(eq(fitnessPoint.origin, FitnessOrigin.Test))
+          .orderBy(asc(fitnessPoint.date)),
+        /** Une course annulée n'annonce rien et ne juge rien : elle sort du lot. */
+        db.select().from(race).where(ne(race.status, RaceStatus.Cancelled)).orderBy(asc(race.date)),
+        db
+          .select()
+          .from(forecast)
+          .where(isNull(forecast.actualVdot))
+          .orderBy(asc(forecast.issuedDate)),
+      ])
+
+      /** En mode record, la cible est le meilleur chrono représentatif (§ 5). */
+      const records = personalRecords(races)
+      const targetOf = (row: (typeof races)[number]) =>
+        row.objectiveMode === ObjectiveMode.Record
+          ? (recordFor(records, row.distanceM)?.timeS ?? null)
+          : row.objectifS
+
+      return {
+        tests,
+        races: races.map((row) => ({
+          id: row.id,
+          date: row.date,
+          distanceM: row.distanceM,
+          elevationGainM: row.elevationGainM,
+          expectedTempC: row.expectedTempC,
+          targetS: targetOf(row),
+          /** Un chrono non représentatif ne dit pas la forme : il ne résout rien. */
+          resultS: row.representative ? row.resultatS : null,
+        })),
+        open: open.map((row) => ({
+          id: row.id,
+          target: row.target as ForecastTarget,
+          raceId: row.raceId,
+          issuedDate: row.issuedDate,
+          projectedVdot: row.projectedVdot,
+        })),
+      }
+    },
+
+    async saveForecasts(resolved: ForecastResolution[], issued: IssuedForecast[]): Promise<void> {
+      for (const item of resolved) {
+        await db
+          .update(forecast)
+          .set({
+            actualVdot: item.actualVdot,
+            gapVdot: item.gapVdot,
+            resolvedDate: item.resolvedDate,
+          })
+          .where(eq(forecast.id, item.id))
+      }
+
+      if (issued.length > 0) await db.insert(forecast).values(issued)
     },
   }
 }

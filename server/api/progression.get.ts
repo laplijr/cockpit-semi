@@ -1,5 +1,6 @@
-import { and, asc, desc, eq, gte, lte } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, isNotNull, lte } from 'drizzle-orm'
 import { z } from 'zod'
+import { ForecastTarget, accuracy, accuracyByHorizon } from '../domain/fitness/accuracy'
 import { confidenceHistory } from '../domain/fitness/confidence-history'
 import { raceTimeForVdot } from '../domain/fitness/vdot'
 import { rpeByCode } from '../domain/learning/calibration'
@@ -14,10 +15,12 @@ import { strengthExercise } from '../domain/strength/exercises'
 import { SessionStatus } from '../domain/plan/session'
 import { RunSessionCode } from '../domain/running/session-types'
 import { useDatabase } from '../infra/db/client'
+import { loadGainPerBlock, loadResolvedForecasts } from '../infra/db/forecast-repository'
 import { loadActivePlanVersion } from '../infra/db/plan-gateway'
 import {
   feedback,
   fitnessPoint,
+  forecast,
   loadDaily,
   pause,
   proposal,
@@ -54,6 +57,9 @@ export default defineEventHandler(async (event) => {
     rated,
     strength,
     pauses,
+    resolvedForecasts,
+    gainPerBlock,
+    forecastRows,
   ] = await Promise.all([
     db.select().from(fitnessPoint).orderBy(asc(fitnessPoint.date)),
     db.select().from(race).orderBy(asc(race.date)),
@@ -98,6 +104,15 @@ export default defineEventHandler(async (event) => {
       .where(and(lte(session.date, today), gte(session.date, since)))
       .orderBy(asc(session.date)),
     db.select().from(pause).orderBy(asc(pause.startDate)),
+    loadResolvedForecasts(db),
+    loadGainPerBlock(db),
+    db
+      .select()
+      .from(forecast)
+      .leftJoin(race, eq(race.id, forecast.raceId))
+      .where(isNotNull(forecast.actualVdot))
+      .orderBy(desc(forecast.resolvedDate), desc(forecast.id))
+      .limit(12),
   ])
 
   /** Une semaine du plan avec sa charge et son réalisé (§ 9, P5.14). */
@@ -153,6 +168,7 @@ export default defineEventHandler(async (event) => {
           targetS: targetOf(targetRace),
         },
         pauses,
+        gainPerBlock,
       )
     : []
 
@@ -255,6 +271,29 @@ export default defineEventHandler(async (event) => {
     /** La course dont la confiance est tracée : le graphe la nomme. */
     confidenceRace: targetRace ? { id: targetRace.id, name: targetRace.name } : null,
     counters,
+    /**
+     * Ce que le cockpit avait prévu, confronté au réalisé. Une ligne par
+     * comparaison résolue, la plus récente en tête, et un verdict par horizon
+     * (§ 9, P6.6).
+     */
+    forecasts: forecastRows.map(({ forecast: row, race: target }) => ({
+      id: row.id,
+      target: row.target,
+      label: row.target === ForecastTarget.Test ? 'Test 20′' : (target?.name ?? 'Course'),
+      issuedDate: row.issuedDate,
+      targetDate: row.targetDate,
+      resolvedDate: row.resolvedDate,
+      projectedVdot: row.projectedVdot,
+      lowVdot: row.lowVdot,
+      highVdot: row.highVdot,
+      actualVdot: row.actualVdot,
+      gapVdot: row.gapVdot,
+    })),
+    /** Le verdict d'ensemble, puis le même horizon par horizon (§ 9, P6.6). */
+    forecastOverall: accuracy(resolvedForecasts) ?? null,
+    forecastAccuracy: accuracyByHorizon(resolvedForecasts),
+    /** Progression estimée en vigueur : le dialog du cadran VDOT la cite. */
+    gainPerBlock,
     resumedOn,
     pausedNow: openPause !== undefined,
     /**

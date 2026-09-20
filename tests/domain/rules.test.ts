@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import type { ResolvedForecast } from '~~/server/domain/fitness/accuracy'
+import { VDOT_GAIN_PER_BLOCK } from '~~/server/domain/fitness/projection'
 import { Sensation } from '~~/server/domain/load/feedback'
 import {
+  BIAS_MIN_FORECASTS,
   ProposalEffect,
   RuleId,
   evaluateRules,
@@ -225,6 +228,53 @@ describe('R8 — conversion course vers vélo sur douleur', () => {
   it('ne déclenche pas sans douleur', () => {
     const proposals = evaluateRules(context({ recent: [outcome()], upcoming: [upcoming()] }))
     expect(idsOf(proposals).has(RuleId.R8)).toBe(false)
+  })
+})
+
+describe('R9 — le moteur se trompe toujours dans le même sens', () => {
+  /** Une prévision à six semaines, résolue avec l'écart qu'on lui donne. */
+  function forecast(gap: number): ResolvedForecast {
+    return {
+      issuedDate: '2026-10-01',
+      targetDate: '2026-11-12',
+      projectedVdot: 34,
+      lowVdot: 33.6,
+      highVdot: 34.4,
+      actualVdot: 34 + gap,
+    }
+  }
+
+  const biased = Array.from({ length: BIAS_MIN_FORECASTS }, () => forecast(0.8))
+
+  it('propose de recaler la progression estimée au-delà de cinq comparaisons', () => {
+    const proposals = evaluateRules(context({ forecasts: biased }))
+    const r9 = proposals.find((p) => p.ruleId === RuleId.R9)!
+
+    expect(r9.effect).toBe(ProposalEffect.AdjustExpectedGain)
+    expect(r9.target).toEqual({ kind: 'plan', id: null })
+    expect(r9.before).toContain('0,4')
+    expect(Number(r9.payload!.gainPerBlock)).toBeGreaterThan(VDOT_GAIN_PER_BLOCK)
+    expect(r9.explanation).toContain('+0,8')
+  })
+
+  it('ne déclenche pas sous le seuil de comptage', () => {
+    const proposals = evaluateRules(context({ forecasts: biased.slice(0, -1) }))
+    expect(idsOf(proposals).has(RuleId.R9)).toBe(false)
+  })
+
+  it('ne déclenche pas quand les écarts s’annulent', () => {
+    const balanced = biased.map((_, index) => forecast(index % 2 === 0 ? 0.8 : -0.8))
+    const proposals = evaluateRules(context({ forecasts: balanced }))
+    expect(idsOf(proposals).has(RuleId.R9)).toBe(false)
+  })
+
+  it('ne propose qu’un seul horizon à la fois', () => {
+    const long = Array.from({ length: BIAS_MIN_FORECASTS }, () => ({
+      ...forecast(0.8),
+      targetDate: '2027-06-01',
+    }))
+    const proposals = evaluateRules(context({ forecasts: [...biased, ...long] }))
+    expect(proposals.filter((p) => p.ruleId === RuleId.R9)).toHaveLength(1)
   })
 })
 

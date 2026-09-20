@@ -85,6 +85,18 @@ export const GLOSSARY = {
     title: 'Confiance',
     text: "Probabilité de tenir l'objectif, déduite de la projection et de son intervalle. Bornée à 2–98 % : aucune course n'est jouée d'avance.",
   },
+  biais: {
+    title: 'Biais',
+    text: 'Écart moyen signé entre ce que le cockpit annonçait et ce qui est arrivé. Positif, il a sous-estimé la forme ; nul, il se trompe autant dans les deux sens.',
+  },
+  intervalle: {
+    title: 'Intervalle',
+    text: "Fourchette annoncée autour d'une projection, large de deux écarts-types des écarts entre tests. La couverture dit quelle part des réalisés y sont tombés.",
+  },
+  horizon: {
+    title: 'Horizon',
+    text: 'Délai entre le jour où une prévision est émise et la date qu’elle vise : moins de 4 semaines, 4 à 12, au-delà. Une projection à six mois ne se juge pas comme une à quinze jours.',
+  },
   ecart: {
     title: 'Écart',
     text: "Différence entre la projection et l'objectif. Positif, la projection est plus lente que ce qui est visé.",

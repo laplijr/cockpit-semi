@@ -1,3 +1,12 @@
+import {
+  ForecastHorizon,
+  accuracy,
+  adjustedGainPerBlock,
+  forecastGap,
+  horizonOf,
+  type ResolvedForecast,
+} from '../fitness/accuracy'
+import { VDOT_GAIN_PER_BLOCK } from '../fitness/projection'
 import { EMPTY_ADJUSTMENTS, type PersonalAdjustments } from '../learning/personal-rules'
 import { FATIGUE_SENSATIONS, type Pain, type Sensation } from '../load/feedback'
 import { addDays, weekday as weekdayOf, type IsoDate } from '../plan/calendar'
@@ -14,6 +23,8 @@ export enum RuleId {
   R6 = 'R6',
   R7 = 'R7',
   R8 = 'R8',
+  /** Le moteur se trompe toujours dans le même sens : sa progression estimée se recale. */
+  R9 = 'R9',
   /** Imprévu : une indisponibilité déclarée en texte libre touche une séance (§ 6). */
   I1 = 'I1',
   /** Calendrier : la date annoncée d'une course a changé depuis la recherche (§ 6). */
@@ -40,6 +51,8 @@ export enum ProposalEffect {
   MoveSession = 'seance_deplacee',
   CancelSession = 'seance_retiree',
   MoveRace = 'course_redatee',
+  /** La progression estimée d'ici une échéance est recalée sur le réalisé. */
+  AdjustExpectedGain = 'progression_estimee_ajustee',
   /** Apprise : le RPE attendu d'une séance est recalé sur le ressenti observé. */
   AdjustExpectedRpe = 'rpe_attendu_ajuste',
 }
@@ -67,6 +80,10 @@ export const PAIN_FORCE_PAUSE = 4
 export const MIN_HOURS_BETWEEN_KEY_SESSIONS = 48
 /** Une règle ne propose jamais d'ajuster plus de séances que ça d'un coup. */
 export const MAX_TARGETS_PER_RULE = 3
+/** Au-delà de cinq comparaisons résolues, un horizon se juge (§ 5, R9). */
+export const BIAS_MIN_FORECASTS = 6
+/** En deçà, l'écart moyen tient dans le bruit des tests (§ 5, R9). */
+export const BIAS_VDOT_THRESHOLD = 0.5
 
 export interface SessionOutcome {
   sessionId: number
@@ -105,6 +122,10 @@ export interface RuleContext {
   sameDayStrength: UpcomingSession[]
   /** Règles apprises acceptées ; sans elles, le moteur se comporte comme avant. */
   personal?: PersonalAdjustments
+  /** Prévisions déjà confrontées au réalisé, matière de R9 (§ 9, P6.6). */
+  forecasts?: ResolvedForecast[]
+  /** Progression estimée en vigueur, que R9 propose de corriger. */
+  gainPerBlock?: number
 }
 
 const isFatigueSensation = (sensation: Sensation) =>
@@ -404,10 +425,69 @@ function learnedRpe(context: RuleContext): Proposal[] {
     .slice(0, MAX_TARGETS_PER_RULE)
 }
 
-const RULES = [r1, r2, r3, r4, r5, r6, r7, r8, learnedMoves, learnedRpe]
+const HORIZON_LABELS: Record<ForecastHorizon, string> = {
+  [ForecastHorizon.Short]: 'à moins de quatre semaines',
+  [ForecastHorizon.Medium]: 'de quatre à douze semaines',
+  [ForecastHorizon.Long]: 'au-delà de douze semaines',
+}
+
+/** Un gain par bloc, tel qu'il se lit dans une proposition. */
+function gainLabel(value: number): string {
+  const rounded = Math.round(value * 100) / 100
+  return `${rounded > 0 ? '+' : ''}${rounded.toFixed(2).replace(/0$/, '').replace('.', ',')} VDOT par bloc de huit semaines`
+}
+
+function gapLabel(value: number): string {
+  const rounded = Math.round(value * 10) / 10
+  return `${rounded > 0 ? '+' : ''}${rounded.toFixed(1).replace('.', ',')}`
+}
 
 /**
- * Évalue les règles R1 à R8 puis les règles apprises, et retourne des
+ * R9 — le moteur se trompe toujours dans le même sens sur un horizon : sa
+ * progression estimée se recale sur ce qui est arrivé. Un seul horizon parle à
+ * la fois, le plus court qui déclenche : trois propositions de plan d'un coup
+ * ne se décident pas (§ 5).
+ */
+function r9(context: RuleContext): Proposal[] {
+  const resolved = context.forecasts ?? []
+  if (resolved.length === 0) return []
+
+  const current = context.gainPerBlock ?? VDOT_GAIN_PER_BLOCK
+
+  return Object.values(ForecastHorizon)
+    .flatMap((horizon) => {
+      const items = resolved.filter(
+        (item) => horizonOf(item.issuedDate, item.targetDate) === horizon,
+      )
+      if (items.length < BIAS_MIN_FORECASTS) return []
+
+      const verdict = accuracy(items)
+      if (!verdict || Math.abs(verdict.biasVdot) <= BIAS_VDOT_THRESHOLD) return []
+
+      const adjusted = adjustedGainPerBlock(current, verdict)
+      if (adjusted === current) return []
+
+      const gaps = items.map(forecastGap).map(gapLabel).join(', ')
+
+      return [
+        {
+          ruleId: RuleId.R9,
+          effect: ProposalEffect.AdjustExpectedGain,
+          target: { kind: 'plan' as const, id: null },
+          before: gainLabel(current),
+          after: gainLabel(adjusted),
+          explanation: `${verdict.count} prévisions ${HORIZON_LABELS[horizon]} : écart moyen de ${gapLabel(verdict.biasVdot)} VDOT (${gaps}).`,
+          payload: { gainPerBlock: adjusted },
+        },
+      ]
+    })
+    .slice(0, 1)
+}
+
+const RULES = [r1, r2, r3, r4, r5, r6, r7, r8, r9, learnedMoves, learnedRpe]
+
+/**
+ * Évalue les règles R1 à R9 puis les règles apprises, et retourne des
  * propositions. Rien n'est appliqué ici : la décision revient à l'athlète
  * (§ 1.3). Une famille refusée systématiquement est retirée en dernier — une
  * règle apprise ne dépasse jamais une règle de sécurité, elle la tait.

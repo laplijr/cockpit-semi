@@ -61,6 +61,30 @@ const WEEK_LABEL_EVERY = 4
 
 const counters = computed(() => data.value?.counters ?? null)
 
+/** Les trois horizons, dans l'ordre du plus court au plus long (§ 9, P6.6). */
+const HORIZON_LABELS: Record<string, string> = {
+  court: 'Moins de 4 semaines',
+  moyen: '4 à 12 semaines',
+  long: 'Au-delà de 12 semaines',
+}
+
+const FORECAST_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
+  { label: 'Émise le' },
+  { label: 'Cible' },
+  { label: 'Projeté', term: 'projection' },
+  { label: 'Réalisé' },
+  { label: 'Écart', term: 'biais' },
+]
+
+const forecasts = computed(() => data.value?.forecasts ?? [])
+
+/** Un VDOT garde sa décimale, même nulle : la colonne s'aligne. */
+const vdotText = (value: number | null | undefined) =>
+  value === null || value === undefined ? '—' : value.toFixed(1).replace('.', ',')
+
+const signedVdot = (value: number | null | undefined) =>
+  value === null || value === undefined ? '—' : `${value > 0 ? '+' : ''}${vdotText(value)}`
+
 /** Le dénivelé n'a pas encore de source : le compteur s'efface plutôt que d'afficher zéro. */
 const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
 </script>
@@ -384,6 +408,113 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
           </div>
         </div>
       </div>
+    </div>
+
+    <!--
+      La boucle de crédibilité : ce que le cockpit annonçait, et ce qui est
+      arrivé. Trois comparaisons valent tous les cadrans du monde, zéro n'en
+      vaut aucun (§ 9, P6.6).
+    -->
+    <div class="tile">
+      <div class="flex items-baseline gap-3">
+        <span class="label">Ce que le cockpit avait prévu</span>
+
+        <span v-if="data?.forecastOverall" class="mono ml-auto text-[11.5px] text-text-dim">
+          <UiInfoHint term="biais">
+            biais {{ signedVdot(data.forecastOverall.biasVdot) }} VDOT
+          </UiInfoHint>
+          · {{ data.forecastOverall.count }} comparaisons ·
+          <UiInfoHint term="intervalle">
+            {{ data.forecastOverall.coveragePct }} % dans l'intervalle
+          </UiInfoHint>
+        </span>
+      </div>
+
+      <p v-if="forecasts.length === 0" class="text-[13px] text-text-dim">
+        Aucune échéance passée depuis la première annonce : la première comparaison tombera au
+        prochain test.
+      </p>
+
+      <template v-else>
+        <div class="grid grid-cols-3 gap-3">
+          <div
+            v-for="verdict in data?.forecastAccuracy ?? []"
+            :key="verdict.horizon"
+            class="flex flex-col"
+          >
+            <span class="label text-[10px]">
+              <UiInfoHint term="horizon">{{ HORIZON_LABELS[verdict.horizon] }}</UiInfoHint>
+            </span>
+
+            <span
+              class="mono text-[17px]"
+              :class="
+                verdict.accuracy === undefined
+                  ? 'text-text-dim'
+                  : Math.abs(verdict.accuracy.biasVdot) >= 0.5 && 'text-warn'
+              "
+            >
+              <template v-if="verdict.accuracy === undefined">—</template>
+              <template v-else>{{ signedVdot(verdict.accuracy.biasVdot) }} VDOT</template>
+            </span>
+
+            <span class="mono text-[10.5px] text-text-dim">
+              <template v-if="verdict.accuracy === undefined">
+                moins de trois comparaisons
+              </template>
+              <template v-else>
+                {{ verdict.accuracy.count }} comparaison{{ verdict.accuracy.count > 1 ? 's' : '' }}
+                ·
+                <UiInfoHint term="intervalle">
+                  {{ verdict.accuracy.coveragePct }} % dans l'intervalle
+                </UiInfoHint>
+              </template>
+            </span>
+          </div>
+        </div>
+
+        <!-- Une liste qui s'allonge défile dans sa tuile au lieu de pousser la page (§ 8). -->
+        <div class="max-h-[196px] overflow-y-auto">
+          <table class="w-full text-[13px]">
+            <thead>
+              <tr class="text-left">
+                <th
+                  v-for="head in FORECAST_COLUMNS"
+                  :key="head.label"
+                  class="label bg-surface pb-2 text-[10px]"
+                >
+                  <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
+                  <template v-else>{{ head.label }}</template>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in forecasts" :key="row.id" class="border-t border-line-soft">
+                <td class="mono py-[6px] text-text-dim">{{ formatDate(row.issuedDate) }}</td>
+                <td class="py-[6px]">
+                  {{ row.label }}
+                  <span class="mono ml-1 text-[11px] text-text-dim">
+                    {{ formatDate(row.targetDate) }}
+                  </span>
+                </td>
+                <td class="mono py-[6px]">
+                  {{ vdotText(row.projectedVdot) }}
+                  <span class="text-[11px] text-text-dim">
+                    {{ vdotText(row.lowVdot) }}–{{ vdotText(row.highVdot) }}
+                  </span>
+                </td>
+                <td class="mono py-[6px]">{{ vdotText(row.actualVdot) }}</td>
+                <td
+                  class="mono py-[6px]"
+                  :class="Math.abs(row.gapVdot ?? 0) > 0.5 ? 'text-warn' : 'text-text-dim'"
+                >
+                  {{ signedVdot(row.gapVdot) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </div>
 
     <div v-if="(data?.strengthLoads.length ?? 0) > 0" class="tile">
