@@ -125,11 +125,9 @@ function drag(event: PointerEvent) {
           <span class="display text-[38px] leading-none font-bold text-accent">
             {{ weeksToTarget }} <span class="text-[17px] font-semibold">sem.</span>
           </span>
-          <span class="mono truncate text-[11.5px] text-text-dim">
-            {{ target.name }} · {{ formatDateWithYear(target.date) }}
-          </span>
-          <span class="mono text-[11.5px] text-text-dim">
-            J−{{ daysUntil(target.date, today) }}
+          <span class="truncate text-[13px]">{{ target.name }}</span>
+          <span class="mono text-[11.5px] whitespace-nowrap text-text-dim">
+            {{ formatDateWithYear(target.date) }} · J−{{ daysUntil(target.date, today) }}
           </span>
         </template>
 
@@ -192,29 +190,39 @@ function drag(event: PointerEvent) {
               <div
                 v-for="(column, index) in view.columns"
                 :key="column.index"
-                class="mono flex min-w-0 flex-1 flex-col items-center gap-px pt-1 text-[10px] text-text-dim"
+                class="mono flex min-w-0 flex-1 flex-col items-center pt-1 text-[10px] text-text-dim"
               >
-                <span :class="column.current && 'text-accent'">S{{ column.index }}</span>
-                <span v-if="column.startDate && index % DATE_EVERY === 0" class="text-[9.5px]">
-                  {{ formatDate(column.startDate) }}
+                <span class="h-[12px] leading-[12px]" :class="column.current && 'text-accent'">
+                  S{{ column.index }}
                 </span>
 
-                <button
-                  v-if="column.race"
-                  type="button"
-                  class="pill tile-action mt-px max-w-full text-[10px]"
-                  :class="column.race.priority === 'A' && 'bg-accent/15 text-accent'"
-                  @click="ui.openModal('course', column.race.id)"
-                >
-                  <span class="truncate">{{ column.race.name }}</span>
-                </button>
-
-                <UiHoverBubble v-else-if="column.test" label="Test 20′ cette semaine" size="sm">
-                  <template #trigger>
-                    <span class="mt-px block size-[6px] rounded-full bg-text-dim" />
+                <!-- Chaque rangée garde sa hauteur, pleine ou vide : sans quoi
+                     la tuile grandirait et rapetisserait au fil du curseur, et
+                     une course remonterait à la place d'une date (§ 8). -->
+                <span class="h-[12px] truncate text-[9.5px] leading-[12px]">
+                  <template v-if="column.startDate && index % DATE_EVERY === 0">
+                    {{ formatDate(column.startDate) }}
                   </template>
-                  <span class="text-[12.5px] text-text-dim">Test 20′ cette semaine</span>
-                </UiHoverBubble>
+                </span>
+
+                <span class="flex h-[18px] max-w-full items-center justify-center">
+                  <button
+                    v-if="column.race"
+                    type="button"
+                    class="pill tile-action max-w-full text-[10px]"
+                    :class="column.race.priority === 'A' && 'bg-accent/15 text-accent'"
+                    @click="ui.openModal('course', column.race.id)"
+                  >
+                    <span class="truncate">{{ column.race.name }}</span>
+                  </button>
+
+                  <UiHoverBubble v-else-if="column.test" label="Test 20′ cette semaine" size="sm">
+                    <template #trigger>
+                      <span class="block size-[6px] rounded-full bg-text-dim" />
+                    </template>
+                    <span class="text-[12.5px] text-text-dim">Test 20′ cette semaine</span>
+                  </UiHoverBubble>
+                </span>
               </div>
             </div>
           </template>
@@ -228,7 +236,7 @@ function drag(event: PointerEvent) {
       un plan non daté elle disparaît, comme les dates : la fenêtre garde ses
       numéros de semaine et ses volumes (§ 9, P6.37).
     -->
-    <div v-if="layout.dated" class="flex items-center gap-3 pt-1">
+    <div v-if="layout.dated" class="flex items-center pt-1">
       <div
         class="relative h-[7px] flex-1 cursor-pointer overflow-hidden rounded-sm"
         role="slider"
@@ -263,15 +271,6 @@ function drag(event: PointerEvent) {
           :style="{ left: `${layout.todayPct}%` }"
         />
       </div>
-
-      <button
-        v-if="anchor !== null"
-        type="button"
-        class="mono shrink-0 text-[11px] text-accent"
-        @click="anchor = null"
-      >
-        revenir à aujourd'hui
-      </button>
     </div>
   </div>
 </template>
