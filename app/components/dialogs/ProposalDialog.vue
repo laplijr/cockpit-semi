@@ -44,7 +44,7 @@ async function refuse() {
       </span>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 gap-4 lean:grid-cols-2">
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Ce qui change</span>
         <span class="mono text-[15px]">
@@ -58,7 +58,9 @@ async function refuse() {
       </div>
     </div>
 
-    <div v-if="pending" class="flex gap-2">
+    <!-- Appliquer et refuser sont les deux faces d'une même décision : côte à
+         côte au clavier, l'une sous l'autre en pleine cible au pouce. -->
+    <div v-if="pending" class="grid grid-cols-1 gap-2 lean:flex">
       <button type="button" class="btn" :disabled="busy" @click="accept">Appliquer</button>
       <button type="button" class="btn btn-ghost" :disabled="busy" @click="refuse">Refuser</button>
     </div>

@@ -28,7 +28,7 @@ const sizing = computed(() => ({ '--modal-width': `${props.width}px`, ...sheet.s
       aria-modal="true"
       :aria-label="title"
       :style="sizing"
-      class="explicable-zone relative flex max-h-[92vh] w-full flex-col gap-4 overflow-hidden rounded-t-md border border-line bg-surface p-0 lean:max-h-full lean:w-(--modal-width) lean:overflow-y-auto lean:rounded-md lean:p-6"
+      class="explicable-zone relative flex max-h-[92dvh] w-full flex-col gap-4 overflow-hidden rounded-t-md border border-line bg-surface p-0 lean:max-h-full lean:w-(--modal-width) lean:overflow-y-auto lean:rounded-md lean:p-6"
     >
       <div
         class="flex touch-none justify-center pt-2 pb-1 lean:hidden"

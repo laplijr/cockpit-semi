@@ -95,11 +95,24 @@ defineExpose({ save })
         <span class="mono text-[11.5px] text-text-dim">{{ row.index }}</span>
         <label class="flex items-center gap-2">
           <span class="label text-[10px]">Rép.</span>
-          <input v-model.number="row.reps" type="number" min="0" class="input mono" />
+          <input
+            v-model.number="row.reps"
+            type="number"
+            inputmode="numeric"
+            min="0"
+            class="input mono"
+          />
         </label>
         <label class="flex items-center gap-2">
           <span class="label text-[10px]">Kg</span>
-          <input v-model.number="row.loadKg" type="number" min="0" step="0.5" class="input mono" />
+          <input
+            v-model.number="row.loadKg"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            step="0.5"
+            class="input mono"
+          />
         </label>
       </div>
     </div>

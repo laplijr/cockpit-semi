@@ -22,7 +22,16 @@ export default defineNuxtConfig({
       title: 'Cockpit',
       meta: [
         { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        /*
+         * `interactive-widget=resizes-content` fait rétrécir la fenêtre de mise
+         * en page quand le clavier virtuel monte, au lieu de la faire glisser
+         * sous lui. C'est ce qui donne son sens au `dvh` des feuilles : le
+         * bouton d'envoi reste au-dessus du clavier (§ 8, P6.8).
+         */
+        {
+          name: 'viewport',
+          content: 'width=device-width, initial-scale=1, interactive-widget=resizes-content',
+        },
         { name: 'color-scheme', content: 'dark' },
       ],
       link: [

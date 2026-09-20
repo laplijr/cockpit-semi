@@ -35,7 +35,19 @@ function draw() {
 
   const latLngs = props.points.map((point) => [point.lat, point.lon] as [number, number])
 
-  map ??= L.map(container.value, { attributionControl: true, zoomControl: true })
+  /*
+   * Dans une feuille qui défile, le glissement d'un doigt appartient à la
+   * feuille : laissé à Leaflet, il l'avale et la feuille se bloque sous le
+   * pouce. Sur pointeur grossier la carte ne se déplace donc plus au doigt —
+   * elle se pince pour zoomer et garde ses boutons + / − (§ 8, P6.8).
+   */
+  const coarse = window.matchMedia('(pointer: coarse)').matches
+
+  map ??= L.map(container.value, {
+    attributionControl: true,
+    zoomControl: true,
+    dragging: !coarse,
+  })
   map.eachLayer((layer) => map!.removeLayer(layer))
 
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {

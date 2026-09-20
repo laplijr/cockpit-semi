@@ -93,7 +93,13 @@ async function save() {
       <span class="label text-[10.5px]">
         <UiInfoHint term="test20">Distance couverte en 20 minutes (m)</UiInfoHint>
       </span>
-      <input v-model.number="testDistanceM" type="number" class="input mono" placeholder="4000" />
+      <input
+        v-model.number="testDistanceM"
+        type="number"
+        inputmode="numeric"
+        class="input mono"
+        placeholder="4000"
+      />
       <p class="text-[12px] text-text-dim">
         Cette distance devient ton VDOT courant et régénère le plan. Laisse vide si le test n'a pas
         été fait dans les conditions prévues.
@@ -103,11 +109,21 @@ async function save() {
     <div class="grid gap-3" :class="isRunning ? 'grid-cols-2' : 'grid-cols-1'">
       <label class="flex flex-col gap-[6px]">
         <span class="label text-[10.5px]">Durée réelle (min)</span>
-        <input v-model.number="form.durationMin" type="number" class="input mono" />
+        <input
+          v-model.number="form.durationMin"
+          type="number"
+          inputmode="numeric"
+          class="input mono"
+        />
       </label>
       <label v-if="isRunning" class="flex flex-col gap-[6px]">
         <span class="label text-[10.5px]">Distance réelle (m)</span>
-        <input v-model.number="form.distanceM" type="number" class="input mono" />
+        <input
+          v-model.number="form.distanceM"
+          type="number"
+          inputmode="numeric"
+          class="input mono"
+        />
       </label>
     </div>
 
@@ -140,7 +156,13 @@ async function save() {
       <span class="label text-[10.5px]">
         <UiInfoHint term="sommeil">Sommeil la nuit dernière (h)</UiInfoHint>
       </span>
-      <input v-model.number="form.sleepHours" type="number" step="0.5" class="input mono" />
+      <input
+        v-model.number="form.sleepHours"
+        type="number"
+        inputmode="decimal"
+        step="0.5"
+        class="input mono"
+      />
     </label>
 
     <div class="flex flex-col gap-[6px]">
@@ -172,7 +194,15 @@ async function save() {
 
     <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
 
-    <button type="button" class="btn btn-lg" :disabled="saving" @click="save">
+    <!-- Une seule action principale, et elle reste sous le pouce : collée au
+         bas de la feuille, elle ne demande pas de faire remonter le corps
+         après le dernier champ (§ 8, P6.8). -->
+    <button
+      type="button"
+      class="btn btn-lg sticky bottom-0 lean:static"
+      :disabled="saving"
+      @click="save"
+    >
       Enregistrer le ressenti
     </button>
   </div>

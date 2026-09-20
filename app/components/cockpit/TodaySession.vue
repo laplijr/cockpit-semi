@@ -42,10 +42,12 @@ const done = computed(() => props.session.status === 'faite')
 </script>
 
 <template>
-  <div class="flex items-center gap-3">
+  <!-- Une seule ligne au clavier, quatre au pouce : l'ordre ne change pas,
+       c'est la ligne qui se replie (§ 8, P6.8). -->
+  <div class="flex flex-col gap-2 lean:flex-row lean:items-center lean:gap-3">
     <button
       type="button"
-      class="tile-action flex min-w-0 flex-1 items-center gap-4 rounded-md border border-transparent px-2 py-2 text-left"
+      class="tile-action flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-transparent px-2 py-2 text-left lean:flex-nowrap lean:gap-4"
       @click="ui.openModal('seance', session.id)"
     >
       <UiAppIcon
@@ -57,7 +59,9 @@ const done = computed(() => props.session.status === 'faite')
 
       <!-- `truncate` rogne l'overflow : sans interligne, les jambages du nom
            sont coupés en haut et en bas (§ 8, P6.35). -->
-      <span class="display min-w-0 flex-1 truncate text-[38px] leading-[1.15] font-semibold">
+      <span
+        class="display min-w-0 flex-1 truncate text-[26px] leading-[1.15] font-semibold lean:text-[38px]"
+      >
         {{ label }}
       </span>
 
@@ -65,8 +69,12 @@ const done = computed(() => props.session.status === 'faite')
       <span v-if="done" class="pill pill-done shrink-0">faite</span>
       <span v-else-if="session.status === 'sautee'" class="pill shrink-0">manquée</span>
 
-      <span class="flex shrink-0 gap-5">
-        <span v-for="figure in figures" :key="figure.key" class="flex flex-col items-end">
+      <span class="flex w-full shrink-0 justify-between gap-5 lean:w-auto lean:justify-start">
+        <span
+          v-for="figure in figures"
+          :key="figure.key"
+          class="flex flex-col items-start lean:items-end"
+        >
           <span class="mono text-[17px]">{{ figure.value }}</span>
           <span class="label text-[9.5px]">{{ figure.label }}</span>
         </span>
@@ -75,7 +83,7 @@ const done = computed(() => props.session.status === 'faite')
 
     <button
       type="button"
-      class="btn shrink-0"
+      class="btn w-full shrink-0 lean:w-auto"
       :class="done && 'btn-ghost'"
       @click="ui.openModal('seance', session.id)"
     >

@@ -338,6 +338,26 @@
       min-height: 44px;
       min-width: 44px;
     }
+
+    /*
+     * Le retour de séance se saisit à bout de bras, essoufflé, d'une main
+     * (§ 8, P6.8) : champs, curseurs et pastilles cliquables prennent la
+     * taille du doigt. Une pastille d'affichage est un `span` — elle ne bouge
+     * pas, seule celle qui se touche grandit.
+     */
+    .input {
+      height: 44px;
+    }
+
+    input[type='range'] {
+      height: 44px;
+    }
+
+    button.pill {
+      height: 44px;
+      padding: 0 12px;
+      font-size: 13px;
+    }
   }
 
   .badge {

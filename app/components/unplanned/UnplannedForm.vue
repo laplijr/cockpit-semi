@@ -76,6 +76,19 @@ async function confirm() {
 function remove(index: number) {
   events.value.splice(index, 1)
 }
+
+/**
+ * L'imprévu se déclare quand il arrive, souvent d'une main : le champ prend le
+ * focus à l'ouverture, donc le clavier est déjà là (§ 8, P6.8). Le `nextTick`
+ * n'est pas de la précaution — sans lui, le panneau hôte reprend le focus
+ * après, son `onMounted` s'exécutant une fois celui de ses enfants passé.
+ */
+const field = useTemplateRef<HTMLTextAreaElement>('field')
+
+onMounted(async () => {
+  await nextTick()
+  field.value?.focus()
+})
 </script>
 
 <template>
@@ -83,6 +96,7 @@ function remove(index: number) {
     <label class="flex flex-col gap-[6px]">
       <span class="label text-[10.5px]">Ce qui s'est passé</span>
       <textarea
+        ref="field"
         v-model="text"
         rows="3"
         class="input h-auto py-2"
@@ -120,7 +134,7 @@ function remove(index: number) {
             <span class="display text-[16px] font-semibold">{{ item.label }}</span>
             <button
               type="button"
-              class="ml-auto text-text-dim hover:text-text"
+              class="tap ml-auto inline-flex items-center justify-center text-text-dim hover:text-text"
               aria-label="Retirer"
               @click="remove(index)"
             >
@@ -128,20 +142,27 @@ function remove(index: number) {
             </button>
           </div>
 
-          <div v-if="isActivity(item)" class="grid grid-cols-3 gap-2">
+          <div v-if="isActivity(item)" class="grid grid-cols-1 gap-2 lean:grid-cols-3">
             <label class="flex flex-col gap-[4px]">
               <span class="label text-[10px]">Date</span>
               <input v-model="item.date" type="date" class="input mono" />
             </label>
             <label class="flex flex-col gap-[4px]">
               <span class="label text-[10px]">Durée (min)</span>
-              <input v-model.number="item.durationMin" type="number" min="1" class="input mono" />
+              <input
+                v-model.number="item.durationMin"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                class="input mono"
+              />
             </label>
             <label class="flex flex-col gap-[4px]">
               <span class="label text-[10px]">RPE</span>
               <input
                 v-model.number="item.rpeEstimate"
                 type="number"
+                inputmode="numeric"
                 min="1"
                 max="10"
                 class="input mono"
@@ -149,7 +170,7 @@ function remove(index: number) {
             </label>
           </div>
 
-          <div v-else class="grid grid-cols-3 gap-2">
+          <div v-else class="grid grid-cols-1 gap-2 lean:grid-cols-3">
             <label class="flex flex-col gap-[4px]">
               <span class="label text-[10px]">Du</span>
               <input v-model="item.from" type="date" class="input mono" />

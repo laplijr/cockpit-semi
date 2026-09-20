@@ -64,7 +64,7 @@ async function suggest() {
     </div>
 
     <!-- Une action principale par ligne : le bouton sert le champ d'à côté. -->
-    <div class="flex items-end gap-2">
+    <div class="flex flex-col gap-2 lean:flex-row lean:items-end">
       <input
         v-model="address"
         class="input"
@@ -73,7 +73,7 @@ async function suggest() {
       />
       <button
         type="button"
-        class="btn shrink-0"
+        class="btn shrink-0 self-stretch lean:self-auto"
         :disabled="generating || address.length < 3"
         @click="suggest"
       >
@@ -118,7 +118,11 @@ async function suggest() {
         </div>
       </div>
 
-      <a :href="`/api/routes/${variant.id}`" class="btn btn-ghost self-start" download>
+      <a
+        :href="`/api/routes/${variant.id}`"
+        class="btn btn-ghost self-stretch lean:self-start"
+        download
+      >
         <UiAppIcon name="route" :size="15" />
         Télécharger le GPX
       </a>

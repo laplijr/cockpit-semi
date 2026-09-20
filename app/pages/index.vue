@@ -51,7 +51,7 @@ async function onResume() {
 <template>
   <div class="flex flex-col gap-4">
     <!-- Course A est le seul cadran qui est un but, pas une mesure (§ 9, P5.19). -->
-    <section class="grid grid-cols-[1.15fr_1fr_1fr_1fr] gap-4">
+    <section class="grid grid-cols-2 gap-4 wide:grid-cols-[1.15fr_1fr_1fr_1fr]">
       <!-- Le décompte se compte depuis aujourd'hui : sans le plan, pas de J−. -->
       <CockpitRaceDial
         :race="raceA"
@@ -65,7 +65,7 @@ async function onResume() {
 
     <!-- Les deux tuiles finissent sur la même ligne : « À décider » est borné à
          trois décisions depuis P5.19, l'étirement ne fuit donc plus (§ 8). -->
-    <section class="grid grid-cols-[1.6fr_1fr] gap-4">
+    <section class="grid grid-cols-1 gap-4 lean:grid-cols-[1.6fr_1fr]">
       <!-- Une seule ligne de séance en squelette : c'est la journée courante. -->
       <div v-if="!plan.loaded" class="tile" aria-busy="true">
         <div class="flex items-baseline gap-3">

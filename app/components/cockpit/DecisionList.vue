@@ -125,14 +125,14 @@ async function apply() {
     >
       <input
         type="checkbox"
-        class="accent-accent"
+        class="h-5 w-5 shrink-0 accent-accent lean:h-auto lean:w-auto"
         :checked="proposals.selected.includes(group.key)"
         :aria-label="titleOf(group)"
         @change="proposals.toggle(group.key)"
       />
       <button
         type="button"
-        class="explicable-zone grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-baseline gap-3 text-left"
+        class="explicable-zone grid min-w-0 flex-1 grid-cols-1 gap-1 text-left wide:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] wide:items-baseline wide:gap-3"
         @click="ui.openModal('proposition', group.ids[0]!)"
       >
         <span class="flex min-w-0 items-baseline gap-2">
@@ -155,12 +155,15 @@ async function apply() {
 
         <!-- Le delta est un texte du moteur, parfois long : il tronque de son
              côté plutôt que d'écraser la cible (§ 8, P6.35). -->
-        <span v-if="group.before && group.after" class="mono truncate text-right text-[12.5px]">
+        <span
+          v-if="group.before && group.after"
+          class="mono truncate text-[12.5px] wide:text-right"
+        >
           <span class="text-text-dim line-through">{{ group.before }}</span>
           <span class="mx-1 text-text-dim">→</span>
           <span>{{ group.after }}</span>
         </span>
-        <span v-else class="mono truncate text-right text-[12.5px] text-text-dim">
+        <span v-else class="mono truncate text-[12.5px] text-text-dim wide:text-right">
           {{ group.ids.length }} ajustements
         </span>
       </button>

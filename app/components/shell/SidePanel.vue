@@ -23,7 +23,7 @@ const sheet = useSheetDrag(() => emit('close'))
       aria-modal="true"
       :aria-label="title"
       :style="sheet.style"
-      class="explicable-zone relative flex max-h-[92vh] w-full flex-col gap-[14px] overflow-hidden rounded-t-md border-t border-line bg-surface p-0 lean:h-full lean:max-h-none lean:w-[480px] lean:overflow-y-auto lean:rounded-none lean:border-t-0 lean:border-l lean:p-6"
+      class="explicable-zone relative flex max-h-[92dvh] w-full flex-col gap-[14px] overflow-hidden rounded-t-md border-t border-line bg-surface p-0 lean:h-full lean:max-h-none lean:w-[480px] lean:overflow-y-auto lean:rounded-none lean:border-t-0 lean:border-l lean:p-6"
     >
       <!-- Poignée : le seul endroit d'où la feuille se pousse vers le bas. -->
       <div

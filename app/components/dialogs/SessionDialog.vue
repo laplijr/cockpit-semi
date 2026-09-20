@@ -93,7 +93,7 @@ const plannedMinutes = computed(() => {
   </div>
 
   <div v-else-if="session" class="flex flex-col gap-4">
-    <div class="flex items-baseline gap-3">
+    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
       <UiAppIcon
         :name="sportStyle(session.sport).icon"
         :size="18"
@@ -110,7 +110,9 @@ const plannedMinutes = computed(() => {
       <span v-else-if="session.status === 'sautee'" class="pill ml-auto">manquée</span>
     </div>
 
-    <div class="grid grid-cols-[1.3fr_1fr] gap-6">
+    <!-- La structure d'abord, le retour de séance ensuite : sur téléphone on
+         lit ce qu'il y avait à faire avant de dire comment ça s'est passé. -->
+    <div class="grid grid-cols-1 gap-4 lean:grid-cols-[1.3fr_1fr] lean:gap-6">
       <div class="flex flex-col gap-4">
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Structure</span>
@@ -167,7 +169,7 @@ const plannedMinutes = computed(() => {
 
           <a
             :href="`/api/sessions/${session.id}/workout.fit`"
-            class="btn btn-ghost self-start"
+            class="btn btn-ghost self-stretch lean:self-start"
             download
           >
             <UiAppIcon name="watch" :size="15" />
@@ -243,7 +245,7 @@ const plannedMinutes = computed(() => {
         </div>
       </div>
 
-      <div class="border-l border-line-soft pl-6">
+      <div class="border-t border-line-soft pt-4 lean:border-t-0 lean:border-l lean:pt-0 lean:pl-6">
         <span class="label text-[10.5px]">Retour de séance</span>
         <FeedbackForm
           :session="session"

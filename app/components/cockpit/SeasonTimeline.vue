@@ -69,51 +69,69 @@ const LEVEL_H = 15
     <!-- Les courses sont des repères sur la barre de phases : la liste de
          libellés en dessous disparaît, sauf si deux d'entre elles se gênent
          (§ 8, P6.35). -->
-    <div class="relative" :class="!crowded && layout.races.length > 0 && 'pt-[30px]'">
-      <div class="flex h-6 w-full overflow-hidden rounded-sm">
-        <div
-          v-for="(segment, index) in layout.segments"
-          :key="segment.id"
-          class="flex items-center justify-center border-r border-ink text-[10px] whitespace-nowrap"
-          :class="
-            segment.current
-              ? 'bg-accent text-on-accent'
-              : index % 2 === 0
-                ? 'bg-surface-raised text-text-dim'
-                : 'bg-surface-inset text-text-dim'
-          "
-          :style="{ width: `${segment.sharePct}%` }"
-        >
-          <span v-if="segment.sharePct > 6">{{ PHASE_LABELS[segment.type] }}</span>
+    <UiAxisScroller>
+      <div
+        class="relative min-w-[900px] lean:min-w-0"
+        :class="!crowded && layout.races.length > 0 && 'lean:pt-[30px]'"
+      >
+        <div class="flex h-6 w-full overflow-hidden rounded-sm">
+          <div
+            v-for="(segment, index) in layout.segments"
+            :key="segment.id"
+            class="flex items-center justify-center border-r border-ink text-[10px] whitespace-nowrap"
+            :class="
+              segment.current
+                ? 'bg-accent text-on-accent'
+                : index % 2 === 0
+                  ? 'bg-surface-raised text-text-dim'
+                  : 'bg-surface-inset text-text-dim'
+            "
+            :style="{ width: `${segment.sharePct}%` }"
+          >
+            <span v-if="segment.sharePct > 6">{{ PHASE_LABELS[segment.type] }}</span>
+          </div>
         </div>
-      </div>
 
-      <template v-if="!crowded">
-        <span
-          v-for="mark in layout.races"
-          :key="mark.race.id"
-          class="absolute bottom-0 flex flex-col gap-px"
-          :class="alignOf(mark.positionPct)"
-          :style="{ left: `${mark.positionPct}%` }"
-        >
-          <UiHoverBubble :label="`${mark.race.name}, le ${formatDate(mark.race.date)}`" size="sm">
-            <template #trigger>
-              <span class="mono text-[10px] whitespace-nowrap text-text-dim">
-                {{ mark.race.name }} · J−{{ mark.daysUntil }}
+        <template v-if="!crowded">
+          <!--
+            Un repère sur la barre demande la place d'un nom : sous la rupture
+            il n'y en a pas, et deux courses proches empilaient leurs libellés.
+            Le téléphone reçoit donc la forme que la barre prend déjà quand
+            deux courses se gênent — la liste en dessous (§ 8, P6.8).
+          -->
+          <span
+            v-for="mark in layout.races"
+            :key="mark.race.id"
+            class="absolute bottom-0 hidden flex-col gap-px lean:flex"
+            :class="alignOf(mark.positionPct)"
+            :style="{ left: `${mark.positionPct}%` }"
+          >
+            <UiHoverBubble :label="`${mark.race.name}, le ${formatDate(mark.race.date)}`" size="sm">
+              <template #trigger>
+                <span class="mono text-[10px] whitespace-nowrap text-text-dim">
+                  {{ mark.race.name }} · J−{{ mark.daysUntil }}
+                </span>
+              </template>
+              <span class="text-[12.5px] text-text-dim">
+                {{ mark.race.name }} · {{ formatDate(mark.race.date) }}
               </span>
-            </template>
-            <span class="text-[12.5px] text-text-dim">
-              {{ mark.race.name }} · {{ formatDate(mark.race.date) }}
-            </span>
-          </UiHoverBubble>
-          <!-- Le trait descend du libellé jusqu'au bas de la barre, quel que
-               soit le niveau où la course a été montée. -->
-          <span class="w-[2px] bg-text" :style="{ height: `${BAR_H + mark.level * LEVEL_H}px` }" />
-        </span>
-      </template>
-    </div>
+            </UiHoverBubble>
+            <!-- Le trait descend du libellé jusqu'au bas de la barre, quel que
+                 soit le niveau où la course a été montée. -->
+            <span
+              class="w-[2px] bg-text"
+              :style="{ height: `${BAR_H + mark.level * LEVEL_H}px` }"
+            />
+          </span>
+        </template>
+      </div>
+    </UiAxisScroller>
 
-    <div v-if="crowded" class="flex flex-wrap gap-x-5 gap-y-1">
+    <div
+      v-if="layout.races.length > 0"
+      class="flex flex-wrap gap-x-5 gap-y-1"
+      :class="!crowded && 'lean:hidden'"
+    >
       <span
         v-for="mark in layout.races"
         :key="mark.race.id"
