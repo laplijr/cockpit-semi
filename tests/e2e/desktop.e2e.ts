@@ -34,14 +34,7 @@ test('une course ajoutée entre dans la liste et régénère le plan', async ({ 
   const upcoming = page.locator('.tile').filter({ hasText: 'Courses à venir' }).last()
   await expect(upcoming).toBeVisible()
 
-  /**
-   * Deux fenêtres portent ce titre : `ModalHost` en ouvre une pour toute
-   * valeur de `ui.modal` sans avoir de contenu pour celle-ci, et la page pose
-   * la vraie par-dessus. On vise celle qui porte le formulaire.
-   */
-  const modal = page
-    .getByRole('dialog', { name: 'Nouvelle course' })
-    .filter({ has: page.getByText('Nom', { exact: true }) })
+  const modal = page.getByRole('dialog', { name: 'Nouvelle course' })
   await clickUntil(upcoming.getByRole('button', { name: 'Ajouter' }), modal)
 
   await modal.getByLabel('Nom').fill(name)

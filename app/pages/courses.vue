@@ -22,7 +22,7 @@ const PRIORITY_TONES: Record<string, string> = {
   C: 'bg-line-strong',
 }
 
-const { data: races, refresh } = await useFetch('/api/races')
+const { data: races } = await useFetch('/api/races')
 
 /**
  * Trois états et non deux : une course dont le jour est passé n'est plus « à
@@ -35,11 +35,6 @@ const toRecord = computed(() => (races.value ?? []).filter((race) => race.awaiti
 const past = computed(() => (races.value ?? []).filter((race) => race.status !== 'planifiee'))
 
 await plan.ensureLoaded()
-
-async function onCreated() {
-  ui.closeModal()
-  await Promise.all([refresh(), plan.load()])
-}
 </script>
 
 <template>
@@ -214,20 +209,5 @@ async function onCreated() {
         </span>
       </div>
     </div>
-
-    <Teleport to="body">
-      <ShellAppModal
-        v-if="ui.modal === 'nouvelle-course'"
-        title="Nouvelle course"
-        :width="1040"
-        @close="ui.closeModal()"
-      >
-        <template #skeleton>
-          <DialogsDialogSkeleton modal="nouvelle-course" />
-        </template>
-
-        <RacesNewRaceWindow @created="onCreated" />
-      </ShellAppModal>
-    </Teleport>
   </div>
 </template>

@@ -63,8 +63,11 @@ async function onDecided() {
         <DialogsDialogSkeleton :modal="ui.modal" />
       </template>
 
+      <!-- Une course créée peut avoir régénéré le plan, comme une course modifiée. -->
+      <RacesNewRaceWindow v-if="ui.modal === 'nouvelle-course'" @created="onRaceChanged" />
+
       <DialogsSessionDialog
-        v-if="ui.modal === 'seance' && (ui.modalTargetId || ui.modalDate)"
+        v-else-if="ui.modal === 'seance' && (ui.modalTargetId || ui.modalDate)"
         :session-id="ui.modalTargetId"
         :date="ui.modalDate"
         @saved="onSessionSaved"
