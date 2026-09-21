@@ -2,7 +2,17 @@
 import { CALL_LABELS } from '~~/server/domain/shared/external-call'
 
 const { clear: clearSession } = useUserSession()
-const { data: account, refresh } = await useFetch('/api/account')
+const { data: account, error: accountError, refresh } = await useFetch('/api/account')
+
+/**
+ * `useFetch` ne lève pas : sans ce garde, une session refusée peignait la
+ * page entière à vide — tuiles sans contenu, section Invitations absente —
+ * au lieu de dire qu'il faut se reconnecter (§ 8).
+ */
+if (accountError.value) {
+  await clearSession()
+  await navigateTo('/login')
+}
 const { data: invitations, refresh: refreshInvitations } = await useFetch('/api/invitations', {
   /** Réservée au compte principal : les autres n'ont rien à y lire. */
   immediate: false,

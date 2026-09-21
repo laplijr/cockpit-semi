@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { asc, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { createClock } from '../domain/shared/clock'
 import { useDatabase } from '../infra/db/client'
 import { createPlanGateway } from '../infra/db/plan-gateway'
@@ -18,40 +18,36 @@ export const systemClock = createClock(process.env.NUXT_COCKPIT_TODAY)
  * le domaine ignore qui est connecté (§ 3), seule la couche application le
  * reçoit en paramètre.
  *
- * La session ne le porte pas encore — c'est P8.4 qui l'y met, avec les vrais
- * comptes. En attendant, la porte est unique et la base n'a qu'un athlète :
- * le plus ancien fait foi.
+ * Depuis P8.4 la session le porte toujours. Une session qui ne le porte pas
+ * date d'avant les comptes : elle est fermée plutôt que rattachée au premier
+ * athlète venu — sinon elle laisse naviguer sous l'identité de quelqu'un
+ * d'autre, et la moitié des écrans se peint à vide.
  */
 export async function currentAthleteId(event: H3Event): Promise<number> {
   const session = await getUserSession(event)
   const fromSession = session.user?.athleteId
 
-  if (typeof fromSession === 'number') {
-    /**
-     * Un compte supprimé laisse une session qui pointe dans le vide. Sans
-     * cette vérification, toutes les requêtes filtreraient sur un athlète
-     * inexistant et rendraient un cockpit vide au lieu d'une erreur (P8.4).
-     */
-    const [row] = await useDatabase()
-      .select({ id: athlete.id })
-      .from(athlete)
-      .where(eq(athlete.id, fromSession))
-      .limit(1)
+  if (typeof fromSession !== 'number') await reject(event, 'Session périmée : reconnecte-toi.')
 
-    if (row) return row.id
-
-    await clearUserSession(event)
-    throw createError({ statusCode: 401, statusMessage: 'Ce compte n’existe plus.' })
-  }
-
+  /**
+   * Un compte supprimé laisse une session qui pointe dans le vide. Sans cette
+   * vérification, toutes les requêtes filtreraient sur un athlète inexistant
+   * et rendraient un cockpit vide au lieu d'une erreur (P8.4).
+   */
   const [row] = await useDatabase()
     .select({ id: athlete.id })
     .from(athlete)
-    .orderBy(asc(athlete.id))
+    .where(eq(athlete.id, fromSession!))
     .limit(1)
 
-  if (!row) throw createError({ statusCode: 409, statusMessage: 'Aucun athlète en base' })
-  return row.id
+  if (!row) await reject(event, 'Ce compte n’existe plus.')
+  return row!.id
+}
+
+/** Ferme la session et le dit : une session à moitié valide ne sert personne. */
+async function reject(event: H3Event, statusMessage: string): Promise<never> {
+  await clearUserSession(event)
+  throw createError({ statusCode: 401, statusMessage })
 }
 
 /** Athlète courant tel que la couche application le lit, ligne complète. */
