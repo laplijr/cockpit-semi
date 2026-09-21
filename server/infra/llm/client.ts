@@ -12,6 +12,15 @@ export const LLM_MODEL = 'claude-sonnet-5'
 let client: Anthropic | undefined
 
 /**
+ * Y a-t-il une clé ? Sans elle les fonctions qui parlent au modèle n'existent
+ * pas : l'écran ne les propose pas et le cron ne les tente pas. Un bouton qui
+ * ne peut que répondre 503 vaut moins qu'un bouton absent (§ 6).
+ */
+export function hasLlmKey(): boolean {
+  return Boolean(useRuntimeConfig().anthropicApiKey)
+}
+
+/**
  * Client Claude, construit à la demande. La clé vient de `runtimeConfig`, donc
  * de `NUXT_ANTHROPIC_API_KEY` ; son absence est une erreur de configuration,
  * pas un cas fonctionnel : mieux vaut le dire que répondre à vide.
@@ -19,15 +28,14 @@ let client: Anthropic | undefined
 export function useLlm(): Anthropic {
   if (client) return client
 
-  const { anthropicApiKey } = useRuntimeConfig()
-  if (!anthropicApiKey) {
+  if (!hasLlmKey()) {
     throw createError({
       statusCode: 503,
       statusMessage: 'Clé Anthropic absente : renseigne NUXT_ANTHROPIC_API_KEY.',
     })
   }
 
-  client = new Anthropic({ apiKey: anthropicApiKey })
+  client = new Anthropic({ apiKey: useRuntimeConfig().anthropicApiKey })
   return client
 }
 

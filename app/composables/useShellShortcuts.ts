@@ -3,11 +3,13 @@
  */
 export function useShellShortcuts() {
   const ui = useUiStore()
+  const llm = useLlmAvailable()
 
   function onKeydown(event: KeyboardEvent) {
     if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault()
-      ui.openPanel('imprevu')
+      /** Sans clé, le raccourci n'ouvre rien : la fonction n'existe pas (§ 6). */
+      if (llm.value) ui.openPanel('imprevu')
       return
     }
     if (event.key === 'Escape') {

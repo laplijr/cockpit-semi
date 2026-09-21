@@ -9,6 +9,7 @@ const { data, refresh } = await useFetch('/api/nutrition/meal-plan', {
 
 const asking = ref(false)
 const error = ref('')
+const llm = useLlmAvailable()
 
 /** Le rôle du créneau se dit en trois mots ; le reste est dans le glossaire. */
 const EMPHASIS_LABELS: Record<string, string> = {
@@ -38,7 +39,7 @@ async function ask() {
       >
       <!-- Ouvrir le jour ne génère rien : seul ce geste appelle le modèle (§ 1). -->
       <button
-        v-if="data?.meals"
+        v-if="data?.meals && llm"
         type="button"
         class="btn btn-ghost ml-auto size-9 shrink-0 p-0"
         :disabled="asking"
@@ -50,6 +51,11 @@ async function ask() {
     </div>
 
     <p v-if="error" class="text-[12.5px] text-warn">{{ error }}</p>
+
+    <!-- Sans clé, il n'y a rien à demander : les repas déjà générés restent lisibles. -->
+    <p v-else-if="!llm && !data?.meals" class="text-[12.5px] text-text-dim">
+      Plan de nutrition indisponible : la clé du modèle est absente.
+    </p>
 
     <button
       v-else-if="!data?.meals"

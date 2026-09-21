@@ -4,6 +4,7 @@ import { generateDueFuelPlans } from '../../application/generate-fuel-plan'
 import { recheckRaces } from '../../application/recheck-races'
 import { ProposalTrigger } from '../../domain/rules/proposal-status'
 import { useDatabase, type Database } from '../../infra/db/client'
+import { hasLlmKey } from '../../infra/llm/client'
 import { evaluateAndStore, expireStaleProposals } from '../../infra/db/proposal-repository'
 import { createRecheckGateway } from '../../infra/db/recheck-gateway'
 import { athlete } from '../../infra/db/schema'
@@ -63,13 +64,19 @@ async function runFor(db: Database, athleteId: number, today: string): Promise<A
   const habits = await detectAndStoreHabits(db, athleteId, today)
   await calibrateWeek(db, athleteId, today)
 
-  /** La revérification des dates de course ne doit pas faire tomber le cron. */
+  /**
+   * La revérification des dates de course ne doit pas faire tomber le cron, et
+   * sans clé elle ne se tente pas : une erreur par athlète et par jour n'est
+   * pas un compte rendu (§ 6).
+   */
   let recheckedRaces = 0
-  try {
-    const gateway = createRecheckGateway(db, athleteId)
-    recheckedRaces = (await recheckRaces(gateway, createRaceSearcher(), today)).length
-  } catch (error) {
-    console.error('Revérification des courses impossible', error)
+  if (hasLlmKey()) {
+    try {
+      const gateway = createRecheckGateway(db, athleteId)
+      recheckedRaces = (await recheckRaces(gateway, createRaceSearcher(), today)).length
+    } catch (error) {
+      console.error('Revérification des courses impossible', error)
+    }
   }
 
   return { athleteId, newProposals: proposals.length, recheckedRaces, fuelPlans, habits }

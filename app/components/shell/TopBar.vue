@@ -2,6 +2,7 @@
 const ui = useUiStore()
 const proposals = usePropositionsStore()
 const plan = usePlanStore()
+const llm = useLlmAvailable()
 
 const { data: athlete } = await useFetch('/api/athlete')
 
@@ -38,14 +39,25 @@ function go(path: string) {
     <h1 class="heading min-w-0 flex-1 truncate text-[18px] lean:hidden">{{ pageTitle }}</h1>
     <div class="hidden flex-1 lean:block" />
 
+    <!--
+      Sans clé, l'Imprévu n'existe pas : le champ reste à sa place pour ne pas
+      déplacer la coque, mais il dit pourquoi il ne répond plus (§ 6).
+    -->
     <button
       type="button"
-      class="hidden h-9 w-[440px] items-center gap-[10px] rounded-md border border-line bg-surface-inset px-3 text-[13px] text-text-dim hover:border-line-strong lean:flex"
+      class="hidden h-9 w-[440px] items-center gap-[10px] rounded-md border border-line bg-surface-inset px-3 text-[13px] text-text-dim hover:border-line-strong disabled:opacity-50 disabled:hover:border-line lean:flex"
+      :disabled="!llm"
       @click="ui.openPanel('imprevu')"
     >
       <UiAppIcon name="pen" class="text-icon" />
-      <span>Signaler un imprévu ou une indisponibilité</span>
-      <span class="mono ml-auto rounded-sm border border-line px-[5px] py-px text-[11px]">⌘K</span>
+      <span v-if="llm">Signaler un imprévu ou une indisponibilité</span>
+      <span v-else>Imprévu indisponible : la clé du modèle est absente</span>
+      <span
+        v-if="llm"
+        class="mono ml-auto rounded-sm border border-line px-[5px] py-px text-[11px]"
+      >
+        ⌘K
+      </span>
     </button>
 
     <!--
@@ -55,8 +67,13 @@ function go(path: string) {
     -->
     <button
       type="button"
-      class="tap -mr-2 inline-flex items-center justify-center text-text-dim lean:hidden"
-      aria-label="Signaler un imprévu ou une indisponibilité"
+      class="tap -mr-2 inline-flex items-center justify-center text-text-dim disabled:opacity-50 lean:hidden"
+      :aria-label="
+        llm
+          ? 'Signaler un imprévu ou une indisponibilité'
+          : 'Imprévu indisponible : la clé du modèle est absente'
+      "
+      :disabled="!llm"
       @click="ui.openPanel('imprevu')"
     >
       <UiAppIcon name="pen" :size="18" />
