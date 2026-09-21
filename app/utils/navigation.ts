@@ -1,3 +1,4 @@
+import { Sport } from '~~/server/domain/shared/sport'
 import type { IconName } from '~/components/ui/AppIcon.vue'
 
 export interface NavItem {
@@ -66,6 +67,36 @@ export const BOTTOM_BAR_ITEMS: NavItem[] = NAV_GROUPS.filter(
 export const MORE_GROUPS: NavGroup[] = NAV_GROUPS.filter(
   (group) => group.title !== BOTTOM_BAR_GROUP,
 )
+
+/**
+ * Bibliothèques dont l'entrée dépend d'un sport déclaré : une personne qui ne
+ * fait ni vélo ni muscu ne voit pas des pages qui ne lui serviront pas, et le
+ * générateur ne lui pose de toute façon aucune de ces séances (§ 5, P8.1).
+ */
+const SPORT_BY_PATH: Record<string, Sport> = {
+  '/renforcement': Sport.Strength,
+  '/velo': Sport.Cycling,
+}
+
+/**
+ * Navigation d'un athlète donné. Sans liste de sports déclarée, c'est
+ * `NAV_GROUPS` sans retrait : le cockpit de Ronan ne bouge pas.
+ */
+export function navGroupsFor(sports?: Sport[]): NavGroup[] {
+  if (!sports) return NAV_GROUPS
+
+  return NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => {
+      const sport = SPORT_BY_PATH[item.to]
+      return sport === undefined || sports.includes(sport)
+    }),
+  })).filter((group) => group.items.length > 0)
+}
+
+export function moreGroupsFor(sports?: Sport[]): NavGroup[] {
+  return navGroupsFor(sports).filter((group) => group.title !== BOTTOM_BAR_GROUP)
+}
 
 const BY_PATH = new Map(NAV_GROUPS.flatMap((group) => group.items).map((item) => [item.to, item]))
 

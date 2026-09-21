@@ -1,6 +1,9 @@
 <script setup lang="ts">
 const route = useRoute()
 const emit = defineEmits<{ navigate: [] }>()
+const athlete = useAthleteStore()
+
+const groups = computed(() => moreGroupsFor(athlete.sports))
 
 async function go(path: string) {
   emit('navigate')
@@ -10,7 +13,7 @@ async function go(path: string) {
 
 <template>
   <div class="flex flex-col gap-4">
-    <nav v-for="group in MORE_GROUPS" :key="group.title" class="flex flex-col">
+    <nav v-for="group in groups" :key="group.title" class="flex flex-col">
       <span class="pb-1 text-[10px] font-semibold tracking-[0.12em] text-text-dim uppercase">{{
         group.title
       }}</span>

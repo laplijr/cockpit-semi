@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { PendingInstrument } from '~/components/cockpit/FirstDaysTile.vue'
+
 const plan = usePlanStore()
 const proposals = usePropositionsStore()
 
@@ -39,6 +41,36 @@ const vdotIsFloor = computed(() => {
   return parameters?.vdotIsFloor ?? true
 })
 
+/**
+ * Ce qui n'a pas encore de quoi s'afficher. Les cadrans concernés cèdent leur
+ * place à une seule tuile qui dit ce qui s'allumera et quand : elle remplace,
+ * elle n'ajoute pas (§ 11, P8.2).
+ */
+const { data: coverage } = await useFetch('/api/coverage')
+
+const loadDark = computed(() => (coverage.value?.loadDaysMissing ?? 0) > 0)
+const readinessDark = computed(() => (coverage.value?.feedbacksMissing ?? 0) > 0)
+const vdotDark = computed(() => coverage.value?.fitnessPoints === 0)
+
+const pending = computed(() => {
+  if (!coverage.value) return []
+  const items: PendingInstrument[] = []
+
+  if (vdotDark.value) items.push({ label: 'Forme mesurée', when: 'au premier test' })
+  if (loadDark.value) {
+    items.push({ label: 'Charge combinée', when: `dans ${coverage.value.loadDaysMissing} j` })
+  }
+  if (readinessDark.value) {
+    const missing = coverage.value.feedbacksMissing
+    items.push({
+      label: 'Forme du jour',
+      when: `après ${missing} ressenti${missing > 1 ? 's' : ''}`,
+    })
+  }
+
+  return items
+})
+
 const currentWeekSessions = computed(() =>
   plan.currentWeek ? (plan.sessionsByWeek.get(plan.currentWeek.id) ?? []) : [],
 )
@@ -58,9 +90,20 @@ async function onResume() {
         :today="plan.today"
         :loading="isLoading(racesStatus) || !plan.loaded"
       />
-      <CockpitVdotDial :vdot="vdot" :is-floor="vdotIsFloor" :loading="!plan.loaded" />
-      <CockpitLoadDial />
-      <CockpitReadinessDial />
+      <CockpitVdotDial
+        v-if="!vdotDark"
+        :vdot="vdot"
+        :is-floor="vdotIsFloor"
+        :loading="!plan.loaded"
+      />
+      <CockpitLoadDial v-if="!loadDark" />
+      <CockpitReadinessDial v-if="!readinessDark" />
+
+      <CockpitFirstDaysTile
+        v-if="pending.length > 0"
+        :pending="pending"
+        :style="{ gridColumn: `span ${pending.length}` }"
+      />
     </section>
 
     <!-- Les deux tuiles finissent sur la même ligne : « À décider » est borné à

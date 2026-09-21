@@ -1,13 +1,11 @@
 import { and, desc, eq, gte } from 'drizzle-orm'
 import { loadRatio, type DailyLoad } from '../domain/load/load'
 import { addDays, type IsoDate } from '../domain/plan/calendar'
-import { readiness, type Readiness } from '../domain/readiness/readiness'
+import { READINESS_SESSIONS, readiness, type Readiness } from '../domain/readiness/readiness'
 import { Sport } from '../domain/shared/sport'
 import type { Database } from '../infra/db/client'
 import { feedback, loadDaily, session } from '../infra/db/schema'
 
-/** Trois dernières séances notées : c'est la fenêtre du § 5. */
-const RECENT_SESSIONS = 3
 const RECENT_DAYS = 14
 
 /**
@@ -22,7 +20,7 @@ export async function currentReadiness(db: Database, today: IsoDate): Promise<Re
       .innerJoin(feedback, eq(feedback.sessionId, session.id))
       .where(and(gte(session.date, addDays(today, -RECENT_DAYS))))
       .orderBy(desc(session.date))
-      .limit(RECENT_SESSIONS),
+      .limit(READINESS_SESSIONS),
     db.select().from(loadDaily).orderBy(loadDaily.date),
   ])
 

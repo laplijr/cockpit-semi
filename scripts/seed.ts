@@ -74,7 +74,8 @@ async function seed() {
     availableDays: [1, 2, 3, 4, 5, 6, 7],
     startWeeklyVolumeM: 20_000,
     peakWeeklyVolumeM: 45_000,
-    onboarded: false,
+    /** Ronan a déjà son cockpit : le middleware de P8.2 ne le renvoie pas à l'accueil. */
+    onboarded: true,
   })
 
   /**

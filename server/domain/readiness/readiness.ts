@@ -9,6 +9,9 @@ export const WEIGHTS = {
   load: 0.15,
 } as const
 
+/** Fenêtre du RPE vs prévu : les trois dernières séances notées (§ 5). */
+export const READINESS_SESSIONS = 3
+
 export const READY_THRESHOLD = 65
 export const CAUTION_THRESHOLD = 40
 

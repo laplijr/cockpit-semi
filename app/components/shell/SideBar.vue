@@ -1,5 +1,8 @@
 <script setup lang="ts">
 const route = useRoute()
+const athlete = useAthleteStore()
+
+const groups = computed(() => navGroupsFor(athlete.sports))
 </script>
 
 <template>
@@ -20,7 +23,7 @@ const route = useRoute()
       <span class="hidden wide:inline">Cockpit</span>
     </NuxtLink>
 
-    <nav v-for="group in NAV_GROUPS" :key="group.title" class="flex flex-col gap-[2px]">
+    <nav v-for="group in groups" :key="group.title" class="flex flex-col gap-[2px]">
       <span
         class="hidden px-[10px] pb-[6px] text-[10px] font-semibold tracking-[0.12em] text-text-dim uppercase wide:block"
       >

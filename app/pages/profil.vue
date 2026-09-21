@@ -1,26 +1,15 @@
 <script setup lang="ts">
-import {
-  PROFILES_BY_LOAD,
-  PROFILE_DESCRIPTIONS,
-  PROFILE_LABELS,
-  defaultsFor,
-  type AthleteProfile,
-} from '~~/server/domain/athlete/profile'
+import { MIN_AVAILABLE_DAYS } from '~~/server/domain/athlete/onboarding'
+import { defaultsFor, type AthleteProfile } from '~~/server/domain/athlete/profile'
+import { Sport } from '~~/server/domain/shared/sport'
 
 const { clear: clearSession } = useUserSession()
 const ui = useUiStore()
 const plan = usePlanStore()
+const athleteStore = useAthleteStore()
 const { data: athlete, refresh } = await useFetch('/api/athlete')
 
-const WEEKDAYS = [
-  { value: 1, label: 'Lundi' },
-  { value: 2, label: 'Mardi' },
-  { value: 3, label: 'Mercredi' },
-  { value: 4, label: 'Jeudi' },
-  { value: 5, label: 'Vendredi' },
-  { value: 6, label: 'Samedi' },
-  { value: 7, label: 'Dimanche' },
-]
+const DEFAULT_SPORTS = [Sport.Running, Sport.Cycling, Sport.Strength]
 
 const form = reactive({
   firstName: athlete.value?.firstName ?? '',
@@ -34,6 +23,7 @@ const form = reactive({
   longRunDay: athlete.value?.constraints?.longRunDay ?? 7,
   easyDays: [...(athlete.value?.constraints?.easyDays ?? [1])],
   runsPerWeek: athlete.value?.constraints?.runsPerWeek ?? null,
+  sports: [...(athlete.value?.constraints?.sports ?? DEFAULT_SPORTS)],
   startWeeklyVolumeM: athlete.value?.startWeeklyVolumeM ?? 20000,
   peakWeeklyVolumeM: athlete.value?.peakWeeklyVolumeM ?? 45000,
 })
@@ -51,8 +41,11 @@ const avatarSrc = computed(() => form.avatar ?? avatarDataUrl(form.firstName))
  * Choisir un profil ne fait que pré-remplir : les trois champs restent
  * modifiables, et rien n'est écrit sans « Enregistrer » (§ 9, P5.7).
  */
-function applyProfile(profile: AthleteProfile) {
-  form.profile = profile
+function onProfileChosen(profile: AthleteProfile | null) {
+  if (!profile) {
+    replaced.value = null
+    return
+  }
   const defaults = defaultsFor(profile)
 
   replaced.value = {
@@ -64,17 +57,6 @@ function applyProfile(profile: AthleteProfile) {
   form.startWeeklyVolumeM = defaults.startWeeklyVolumeM
   form.peakWeeklyVolumeM = defaults.peakWeeklyVolumeM
   form.runsPerWeek = defaults.runsPerWeek
-}
-
-/** Le `select` rend une chaîne : « non renseigné » vaut nul, pas une chaîne vide. */
-function onProfileChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value
-  if (!value) {
-    form.profile = null
-    replaced.value = null
-    return
-  }
-  applyProfile(value as AthleteProfile)
 }
 
 async function onPhoto(event: Event) {
@@ -89,13 +71,7 @@ async function onPhoto(event: Event) {
   }
 }
 
-function toggle(list: number[], day: number) {
-  const index = list.indexOf(day)
-  if (index === -1) list.push(day)
-  else list.splice(index, 1)
-}
-
-const canSave = computed(() => form.availableDays.length >= 3)
+const canSave = computed(() => form.availableDays.length >= MIN_AVAILABLE_DAYS)
 
 async function save() {
   saving.value = true
@@ -117,11 +93,14 @@ async function save() {
           availableDays: [...form.availableDays].sort((a, b) => a - b),
           longRunDay: form.longRunDay,
           easyDays: [...form.easyDays].sort((a, b) => a - b),
+          sports: form.sports,
           ...(form.runsPerWeek ? { runsPerWeek: form.runsPerWeek } : {}),
         },
       },
     })
     await refresh()
+    /** La navigation lit les sports déclarés : elle suit l'enregistrement (§ 9, P8.2). */
+    await athleteStore.load()
     replaced.value = null
     saved.value = true
   } finally {
@@ -138,13 +117,6 @@ async function logout() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <div v-if="!athlete?.onboarded" class="tile" style="border-color: rgba(242, 162, 58, 0.35)">
-      <span class="label">Première configuration</span>
-      <p class="text-[13px] text-text-dim">
-        Ces contraintes déterminent la semaine type. Le plan se régénère à chaque enregistrement.
-      </p>
-    </div>
-
     <div class="tile">
       <span class="label">Identité</span>
 
@@ -172,20 +144,11 @@ async function logout() {
         </div>
       </div>
 
-      <div class="fold-3 grid gap-4">
-        <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Prénom</span>
-          <input v-model="form.firstName" type="text" class="input" placeholder="Ronan" />
-        </label>
-        <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Date de naissance</span>
-          <input v-model="form.birthDate" type="date" class="input mono" />
-        </label>
-        <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Poids (kg)</span>
-          <input v-model.number="form.weightKg" type="number" step="0.1" class="input mono" />
-        </label>
-      </div>
+      <ProfilIdentityFields
+        v-model:first-name="form.firstName"
+        v-model:birth-date="form.birthDate"
+        v-model:weight-kg="form.weightKg"
+      />
 
       <div class="fold-3 grid gap-4">
         <label class="flex flex-col gap-[6px]">
@@ -211,29 +174,9 @@ async function logout() {
         </label>
       </div>
 
-      <label class="flex flex-col gap-[6px] border-t border-line-soft pt-3">
-        <span class="label text-[10.5px]">
-          <UiInfoHint term="profilPhysique">Profil physique</UiInfoHint>
-        </span>
-        <select class="input" :value="form.profile ?? ''" @change="onProfileChange">
-          <option value="">Au choix, non renseigné</option>
-          <option v-for="item in PROFILES_BY_LOAD" :key="item" :value="item">
-            {{ PROFILE_LABELS[item] }}
-          </option>
-        </select>
-        <!-- Une seule ligne : les cinq descriptions ne se lisent qu'au profil choisi. -->
-        <span v-if="form.profile" class="text-[12px] text-text-dim">
-          {{ PROFILE_DESCRIPTIONS[form.profile] }} Pré-remplit
-          {{ Math.round(defaultsFor(form.profile).startWeeklyVolumeM / 1000) }} à
-          {{ Math.round(defaultsFor(form.profile).peakWeeklyVolumeM / 1000) }} km et
-          {{ defaultsFor(form.profile).runsPerWeek }} courses par semaine, montée bornée à
-          {{ defaultsFor(form.profile).maxWeeklyIncreasePct }} % par semaine.
-        </span>
-        <span v-else class="text-[12px] text-text-dim">
-          Le profil pré-remplit le volume, le pic et le nombre de courses, et borne la montée
-          hebdomadaire. Tout reste modifiable ensuite.
-        </span>
-      </label>
+      <div class="border-t border-line-soft pt-3">
+        <ProfilLevelField v-model="form.profile" @chosen="onProfileChosen" />
+      </div>
     </div>
 
     <div class="tile">
@@ -243,101 +186,32 @@ async function logout() {
         {{ form.profile ? defaultsFor(form.profile).maxWeeklyIncreasePct : 10 }} % par semaine au
         maximum et plafonne au pic.
       </p>
-      <div class="fold-2 grid gap-4">
-        <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">
-            <UiInfoHint term="volumeDepart">Volume de départ (m / semaine)</UiInfoHint>
-            <span v-if="replaced" class="mono text-text-dim line-through">
-              {{ replaced.start }}
-            </span>
-          </span>
-          <input
-            v-model.number="form.startWeeklyVolumeM"
-            type="number"
-            step="1000"
-            class="input mono"
-          />
-        </label>
-        <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">
-            <UiInfoHint term="pic">Pic (m / semaine)</UiInfoHint>
-            <span v-if="replaced" class="mono text-text-dim line-through">
-              {{ replaced.peak }}
-            </span>
-          </span>
-          <input
-            v-model.number="form.peakWeeklyVolumeM"
-            type="number"
-            step="1000"
-            class="input mono"
-          />
-        </label>
-      </div>
+      <ProfilVolumeFields
+        v-model:start="form.startWeeklyVolumeM"
+        v-model:peak="form.peakWeeklyVolumeM"
+        :replaced="replaced"
+      />
     </div>
 
     <div class="tile">
       <span class="label">Jours d'entraînement</span>
-      <p class="text-[13px] text-text-dim">
-        Coche les jours où tu peux courir. Les jours disponibles disent
-        <em>où</em> courir, pas <em>combien</em> de fois.
-      </p>
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="day in WEEKDAYS"
-          :key="day.value"
-          type="button"
-          class="btn btn-ghost"
-          :class="form.availableDays.includes(day.value) && 'border-accent bg-accent/15 text-text'"
-          @click="toggle(form.availableDays, day.value)"
-        >
-          {{ day.label }}
-        </button>
-      </div>
+      <ProfilTrainingDaysFields
+        v-model:available-days="form.availableDays"
+        v-model:long-run-day="form.longRunDay"
+        v-model:runs-per-week="form.runsPerWeek"
+        :replaced-runs="replaced?.runs ?? null"
+      />
 
-      <div class="fold-2 grid gap-4 border-t border-line-soft pt-3">
-        <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Jour de la sortie longue</span>
-          <select v-model.number="form.longRunDay" class="input">
-            <option v-for="day in WEEKDAYS" :key="day.value" :value="day.value">
-              {{ day.label }}
-            </option>
-          </select>
-        </label>
-        <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">
-            <UiInfoHint term="coursesParSemaine">Courses par semaine</UiInfoHint>
-            <span v-if="replaced?.runs" class="mono text-text-dim line-through">
-              {{ replaced.runs }}
-            </span>
-          </span>
-          <select v-model.number="form.runsPerWeek" class="input">
-            <option :value="null">Au choix du plan selon la phase</option>
-            <option v-for="count in [2, 3, 4, 5, 6]" :key="count" :value="count">
-              {{ count }} courses
-            </option>
-          </select>
-        </label>
+      <div class="flex flex-col gap-[6px] border-t border-line-soft pt-3">
+        <span class="label text-[10.5px]">
+          <UiInfoHint term="joursFaciles">Jours qui restent faciles</UiInfoHint>
+        </span>
+        <ProfilWeekdayPicker v-model="form.easyDays" short />
       </div>
+    </div>
 
-      <div class="fold-2 grid gap-4 border-t border-line-soft pt-3">
-        <div class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">
-            <UiInfoHint term="joursFaciles">Jours qui restent faciles</UiInfoHint>
-          </span>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="day in WEEKDAYS"
-              :key="day.value"
-              type="button"
-              class="pill pill-tap"
-              :class="form.easyDays.includes(day.value) && 'bg-accent/15 text-text'"
-              @click="toggle(form.easyDays, day.value)"
-            >
-              {{ day.label.slice(0, 3) }}
-            </button>
-          </div>
-        </div>
-      </div>
+    <div class="tile">
+      <ProfilSportsField v-model="form.sports" />
     </div>
 
     <!-- Déclarer une pause est une décision d'entraînement, au même titre que
@@ -373,7 +247,9 @@ async function logout() {
       <button type="button" class="btn btn-lg" :disabled="saving || !canSave" @click="save">
         Enregistrer et régénérer le plan
       </button>
-      <span v-if="!canSave" class="text-[13px] text-text-dim">Choisis au moins trois jours.</span>
+      <span v-if="!canSave" class="text-[13px] text-text-dim">
+        Choisis au moins {{ MIN_AVAILABLE_DAYS }} jours.
+      </span>
       <span v-else-if="saved" class="text-[13px] text-ok">Plan régénéré.</span>
       <button type="button" class="btn btn-ghost ml-auto" @click="logout">Se déconnecter</button>
     </div>

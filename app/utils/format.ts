@@ -64,6 +64,17 @@ export function formatLongDate(iso: string): string {
 
 export const WEEKDAY_LABELS = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'] as const
 
+/** Jours de la semaine tels que les champs de profil les proposent, 1 = lundi. */
+export const WEEKDAYS = [
+  { value: 1, label: 'Lundi' },
+  { value: 2, label: 'Mardi' },
+  { value: 3, label: 'Mercredi' },
+  { value: 4, label: 'Jeudi' },
+  { value: 5, label: 'Vendredi' },
+  { value: 6, label: 'Samedi' },
+  { value: 7, label: 'Dimanche' },
+] as const
+
 /** Jours restants avant une date, négatif une fois la date passée. */
 export function daysUntil(iso: string, from: string): number {
   return Math.round((Date.parse(iso) - Date.parse(from)) / 86_400_000)
