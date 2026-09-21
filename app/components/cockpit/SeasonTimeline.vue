@@ -23,6 +23,17 @@ const target = computed(() => {
 })
 
 /**
+ * Sans course visée, le plan tourne en cycle d'entretien (§ 5, P8.1) : la
+ * frise dit son horizon au lieu de laisser sa phrase en suspens — « douze
+ * semaines jusqu'à » et rien derrière ne veut rien dire.
+ */
+const caption = computed(() =>
+  target.value
+    ? `${layout.value.totalWeeks} semaines jusqu'à ${target.value.name}`
+    : `entretien · ${layout.value.totalWeeks} semaines, aucune course visée`,
+)
+
+/**
  * Le repère porte le nom de la course et son décompte. Deux courses qui se
  * gênent ne se chevauchent pas : `seasonLayout` monte la seconde d'un niveau
  * (`RACE_COLLISION_PCT`). La frise ne replie sur la liste de libellés que
@@ -61,9 +72,7 @@ const LEVEL_H = 15
   <div v-else-if="layout.segments.length > 0" class="tile">
     <div class="flex items-baseline gap-3">
       <span class="label">Cap</span>
-      <span class="mono text-[11.5px] text-text-dim">
-        {{ layout.totalWeeks }} semaines jusqu'à {{ target?.name }}
-      </span>
+      <span class="mono text-[11.5px] text-text-dim">{{ caption }}</span>
     </div>
 
     <!-- Les courses sont des repères sur la barre de phases : la liste de

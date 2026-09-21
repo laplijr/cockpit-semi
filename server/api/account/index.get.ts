@@ -1,4 +1,4 @@
-import { STORED_DATA } from '../../application/accounts'
+import { STORED_DATA } from '../../domain/account/account'
 import { currentAthleteId } from '../../utils/context'
 import { currentUser, currentUserId, isOwner } from '../../utils/owner'
 import { usageToday } from '../../utils/quota'

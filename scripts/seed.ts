@@ -1,6 +1,8 @@
 import { neon } from '@neondatabase/serverless'
 import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
+import { newInvitationToken } from '../server/application/accounts'
+import { invitationExpiry } from '../server/domain/account/account'
 import { regeneratePlan } from '../server/application/regenerate-plan'
 import { vdotFloorFrom } from '../server/domain/fitness/floor'
 import { vdotFromRace } from '../server/domain/fitness/vdot'
@@ -89,6 +91,27 @@ const SEED_PASSWORD = 'cockpit-dev-2026'
 async function createAccount(login: string, athleteId: number) {
   await db.insert(schema.user).values({ login, passwordHash: await hashSeedPassword(), athleteId })
   return login
+}
+
+/** Adresse de l'app en développement ; le lien d'invitation se colle tel quel. */
+const APP_ORIGIN = process.env.NUXT_APP_ORIGIN ?? 'http://localhost:3000'
+
+/**
+ * Une invitation ouverte, à chaque seed : c'est ce qui permet de dérouler le
+ * parcours d'un arrivant — cliquer le lien, ouvrir un compte, enchaîner sur
+ * l'onboarding — sans avoir à en générer une à la main (§ 9, P8.4).
+ */
+async function createInvitation() {
+  const [row] = await db
+    .insert(schema.invitation)
+    .values({
+      token: newInvitationToken(),
+      label: 'Parcours d’invitation',
+      expiresAt: invitationExpiry(new Date()),
+    })
+    .returning({ token: schema.invitation.token })
+
+  return `${APP_ORIGIN}/rejoindre/${row!.token}`
 }
 
 async function seed() {
@@ -262,6 +285,8 @@ async function seed() {
 
   console.log('')
   console.log(`Comptes du seed : mot de passe « ${SEED_PASSWORD} ».`)
+  console.log('Invitation ouverte, à coller dans une fenêtre privée :')
+  console.log(`  ${await createInvitation()}`)
   console.log(`export NUXT_COCKPIT_TODAY=${scenario.simulatedDay}`)
 }
 

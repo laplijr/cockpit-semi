@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless'
 import { asc, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
-import { loginRefusal, passwordRefusal } from '../server/application/accounts'
+import { loginRefusal, passwordRefusal } from '../server/domain/account/account'
 import * as schema from '../server/infra/db/schema'
 import { hashPassword, verifyPassword } from './password'
 

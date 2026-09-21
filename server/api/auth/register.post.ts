@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { invitationRefusal, loginRefusal, passwordRefusal } from '../../application/accounts'
+import { invitationRefusal, loginRefusal, passwordRefusal } from '../../domain/account/account'
 import { useDatabase } from '../../infra/db/client'
 import { athlete, invitation, user } from '../../infra/db/schema'
 

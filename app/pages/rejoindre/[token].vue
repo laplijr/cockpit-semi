@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MIN_LOGIN_LENGTH, MIN_PASSWORD_LENGTH } from '~~/server/application/accounts'
+import { MIN_LOGIN_LENGTH, MIN_PASSWORD_LENGTH } from '~~/server/domain/account/account'
 
 definePageMeta({ layout: false })
 
@@ -10,7 +10,13 @@ const login = ref('')
 const password = ref('')
 const error = ref('')
 const pending = ref(false)
-const { fetch: refreshSession } = useUserSession()
+const { fetch: refreshSession, clear: clearSession, loggedIn, user } = useUserSession()
+
+/** Un lien d'invitation ouvre un compte : il n'en remplace pas un déjà ouvert. */
+async function leave() {
+  await $fetch('/api/auth/logout', { method: 'POST' })
+  await clearSession()
+}
 
 const canSubmit = computed(
   () =>
@@ -45,29 +51,42 @@ async function submit() {
         <UiAppIcon name="logo" :size="20" class="text-accent" />
         <span>Cockpit</span>
       </div>
-      <p class="text-[14px]">
-        Tu as reçu une invitation. Choisis un identifiant et un mot de passe : le cockpit te posera
-        ensuite six questions pour construire ton plan.
-      </p>
-      <label class="flex flex-col gap-[6px]">
-        <span class="label">Identifiant</span>
-        <input v-model="login" type="text" class="input" autocomplete="username" />
-        <span class="text-[12px] text-text-dim">
-          Minuscules, chiffres, point, tiret ou souligné. {{ MIN_LOGIN_LENGTH }} caractères au
-          moins.
-        </span>
-      </label>
-      <label class="flex flex-col gap-[6px]">
-        <span class="label">Mot de passe</span>
-        <input v-model="password" type="password" class="input" autocomplete="new-password" />
-        <span class="text-[12px] text-text-dim">
-          {{ MIN_PASSWORD_LENGTH }} caractères au moins.
-        </span>
-      </label>
-      <span v-if="error" class="text-[13px] text-warn">{{ error }}</span>
-      <button type="submit" class="btn btn-lg" :disabled="pending || !canSubmit">
-        Créer mon compte
-      </button>
+      <template v-if="loggedIn">
+        <p class="text-[14px]">
+          Tu es déjà connecté en tant que
+          <span class="mono">{{ user?.login }}</span
+          >. Une invitation ouvre un compte, elle n'en remplace pas un : déconnecte-toi pour
+          l'utiliser, ou reste où tu es.
+        </p>
+        <button type="button" class="btn btn-lg" @click="leave">Se déconnecter</button>
+        <NuxtLink to="/" class="text-[13px] text-text-dim">Retourner au cockpit</NuxtLink>
+      </template>
+
+      <template v-else>
+        <p class="text-[14px]">
+          Tu as reçu une invitation. Choisis un identifiant et un mot de passe : le cockpit te
+          posera ensuite six questions pour construire ton plan.
+        </p>
+        <label class="flex flex-col gap-[6px]">
+          <span class="label">Identifiant</span>
+          <input v-model="login" type="text" class="input" autocomplete="username" />
+          <span class="text-[12px] text-text-dim">
+            Minuscules, chiffres, point, tiret ou souligné. {{ MIN_LOGIN_LENGTH }} caractères au
+            moins.
+          </span>
+        </label>
+        <label class="flex flex-col gap-[6px]">
+          <span class="label">Mot de passe</span>
+          <input v-model="password" type="password" class="input" autocomplete="new-password" />
+          <span class="text-[12px] text-text-dim">
+            {{ MIN_PASSWORD_LENGTH }} caractères au moins.
+          </span>
+        </label>
+        <span v-if="error" class="text-[13px] text-warn">{{ error }}</span>
+        <button type="submit" class="btn btn-lg" :disabled="pending || !canSubmit">
+          Créer mon compte
+        </button>
+      </template>
     </form>
   </div>
 </template>

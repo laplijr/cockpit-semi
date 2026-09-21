@@ -4,14 +4,14 @@ import { eq, sql } from 'drizzle-orm'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { Hash } from '@adonisjs/hash'
 import { Scrypt } from '@adonisjs/hash/drivers/scrypt'
+import { newInvitationToken } from '~~/server/application/accounts'
 import {
   INVITATION_DAYS,
   invitationExpiry,
   invitationRefusal,
   loginRefusal,
-  newInvitationToken,
   passwordRefusal,
-} from '~~/server/application/accounts'
+} from '~~/server/domain/account/account'
 import * as schema from '~~/server/infra/db/schema'
 
 const url = process.env.NUXT_DATABASE_URL

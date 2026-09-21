@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { invitationExpiry, newInvitationToken } from '../../application/accounts'
+import { newInvitationToken } from '../../application/accounts'
+import { invitationExpiry } from '../../domain/account/account'
 import { useDatabase } from '../../infra/db/client'
 import { invitation } from '../../infra/db/schema'
 import { currentUserId, requireOwner } from '../../utils/owner'

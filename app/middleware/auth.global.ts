@@ -5,7 +5,7 @@ export default defineNuxtRouteMiddleware((to) => {
     return navigateTo('/login')
   }
 
-  if (loggedIn.value && isPublicPath(to.path)) {
+  if (loggedIn.value && redirectsWhenLoggedIn(to.path)) {
     return navigateTo('/')
   }
 })
