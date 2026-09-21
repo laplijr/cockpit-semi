@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless'
-import { sql } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { newInvitationToken } from '../server/application/accounts'
 import { invitationExpiry } from '../server/domain/account/account'
@@ -8,11 +8,13 @@ import { vdotFloorFrom } from '../server/domain/fitness/floor'
 import { vdotFromRace } from '../server/domain/fitness/vdot'
 import { FitnessOrigin } from '../server/domain/fitness/fitness-point'
 import { PauseType } from '../server/domain/pause/pause'
-import { PlanTrigger } from '../server/domain/plan/session'
 import { ObjectiveMode, RacePriority, RaceStatus, SegmentMode } from '../server/domain/races/race'
 import { Sport } from '../server/domain/shared/sport'
 import { fixedClock } from '../server/domain/shared/clock'
-import { createPlanGateway } from '../server/infra/db/plan-gateway'
+import { publishSession, weekOf } from '../server/domain/circle/post'
+import { PlanTrigger, SessionStatus } from '../server/domain/plan/session'
+import { insertComment, insertPost, toggleBravo } from '../server/infra/db/circle-gateway'
+import { athleteWeekIds, createPlanGateway } from '../server/infra/db/plan-gateway'
 import { hashPassword } from './password'
 import { resolveScenario } from './scenarios'
 import { simulate } from './simulate'
@@ -281,7 +283,10 @@ async function seed() {
     )
   }
 
-  if (scenario.second) await seedSecondAthlete()
+  if (scenario.second) {
+    const secondId = await seedSecondAthlete()
+    if (scenario.circle) await seedCircle(athleteId, secondId)
+  }
 
   console.log('')
   console.log(`Comptes du seed : mot de passe « ${SEED_PASSWORD} ».`)
@@ -295,7 +300,7 @@ async function seed() {
  * d'autres jours, d'autres courses, un autre niveau — pour que le moindre
  * mélange se voie du premier coup d'œil (§ 9, P8.3).
  */
-async function seedSecondAthlete() {
+async function seedSecondAthlete(): Promise<number> {
   const athleteId = await createAthlete({
     firstName: 'Nour',
     constraints: { availableDays: [2, 4, 6], longRunDay: 6, sports: [Sport.Running] },
@@ -324,9 +329,14 @@ async function seedSecondAthlete() {
     notes: 'Course de Nour : elle ne doit jamais apparaître dans le cockpit de Ronan.',
   })
 
+  /**
+   * Même horloge que Ronan : deux personnes qui s'entraînent côte à côte ont
+   * des semaines qui se recouvrent, et sans ça le cercle n'aurait rien à
+   * montrer d'elle la semaine affichée (P9.1).
+   */
   const { plan } = await regeneratePlan(
     createPlanGateway(db, athleteId),
-    fixedClock(scenario.simulatedDay),
+    fixedClock(scenario.resumeDate ?? scenario.simulatedDay),
     PlanTrigger.Onboarding,
   )
 
@@ -335,6 +345,120 @@ async function seedSecondAthlete() {
   console.log(
     `Second athlète ${athleteId} — Nour, ${plan.weeks.length} semaines jusqu'au marathon de Nantes.`,
   )
+
+  return athleteId
+}
+
+/**
+ * Le cercle rempli (§ 9, P9.1). Sans publications, la page ne montrerait
+ * rien — et la moitié des écrans livrés depuis P6 ont déjà payé cette leçon.
+ * Les posts passent par `publishSession` : le seed ne sait pas en fabriquer
+ * autrement que par la liste blanche, comme l'application.
+ */
+async function seedCircle(ronanId: number, nourId: number) {
+  const week = weekOf(scenario.simulatedDay)
+
+  const mine = await db
+    .select()
+    .from(schema.session)
+    .where(
+      and(
+        inArray(schema.session.weekId, athleteWeekIds(db, ronanId)),
+        eq(schema.session.status, SessionStatus.Done),
+        gte(schema.session.date, week.from),
+        lte(schema.session.date, week.to),
+      ),
+    )
+    .orderBy(asc(schema.session.date))
+
+  /** Un mot par nature de séance : une légende qui colle à ce qui a eu lieu. */
+  const NOTES: Record<string, string> = {
+    EF: 'Premier footing sans douleur au pied depuis la reprise.',
+    Z2: 'Sortie d’avant-boulot, il faisait trois degrés.',
+    VMA: 'Dix fois trois cents. Les jambes ont suivi.',
+    legs: 'Squat 4 × 5 à 62,5 kg, enfin.',
+  }
+
+  const ids: number[] = []
+  for (const row of mine.filter((one) => NOTES[one.code]).slice(0, 3)) {
+    const note = NOTES[row.code]!
+    const outcome = publishSession(
+      {
+        id: row.id,
+        sport: row.sport,
+        code: row.code,
+        date: row.date,
+        status: row.status,
+        actualDistanceM: row.actualDistanceM,
+        actualDurationMin: row.actualDurationMin,
+        plannedDistanceM: null,
+        plannedDurationMin: null,
+      },
+      note,
+    )
+    if (outcome.ok) ids.push(await insertPost(db, ronanId, outcome.post))
+  }
+
+  /** Nour n'a pas d'historique simulé : deux de ses séances se font ici. */
+  const hers = await db
+    .select()
+    .from(schema.session)
+    .where(
+      and(
+        inArray(schema.session.weekId, athleteWeekIds(db, nourId)),
+        gte(schema.session.date, week.from),
+        lte(schema.session.date, week.to),
+      ),
+    )
+    .orderBy(asc(schema.session.date))
+
+  const NOUR_SESSIONS = [
+    { distanceM: 16_400, durationMin: 107, note: 'Seize bornes, les dernières au mental.' },
+    { distanceM: 8_000, durationMin: 46, note: 'Footing court avant le boulot.' },
+  ]
+
+  for (const [index, done] of NOUR_SESSIONS.entries()) {
+    const row = hers[index]
+    if (!row) continue
+    await db
+      .update(schema.session)
+      .set({
+        status: SessionStatus.Done,
+        actualDistanceM: done.distanceM,
+        actualDurationMin: done.durationMin,
+      })
+      .where(eq(schema.session.id, row.id))
+
+    const outcome = publishSession(
+      {
+        id: row.id,
+        sport: row.sport,
+        code: row.code,
+        date: row.date,
+        status: SessionStatus.Done,
+        actualDistanceM: done.distanceM,
+        actualDurationMin: done.durationMin,
+        plannedDistanceM: null,
+        plannedDurationMin: null,
+      },
+      done.note,
+    )
+    if (outcome.ok) ids.push(await insertPost(db, nourId, outcome.post))
+  }
+
+  const [first, second, third] = ids
+  if (first) {
+    await toggleBravo(db, nourId, first)
+    await insertComment(db, nourId, first, 'Bonne nouvelle pour ce pied.')
+  }
+  if (second) await toggleBravo(db, nourId, second)
+  if (third) {
+    await toggleBravo(db, ronanId, third)
+    await insertComment(db, ronanId, third, 'Seize bornes en novembre, chapeau.')
+    await insertComment(db, nourId, third, 'Merci, on remet ça dimanche ?')
+  }
+
+  console.log(`Cercle — ${ids.length} publications, entre Ronan et Nour.`)
 }
 
 await seed()

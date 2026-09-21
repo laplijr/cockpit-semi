@@ -1,18 +1,32 @@
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
-import { eq, sql } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { detectAndStoreHabits } from '~~/server/application/detect-habits'
 import { generateDueFuelPlans } from '~~/server/application/generate-fuel-plan'
 import { regeneratePlan } from '~~/server/application/regenerate-plan'
-import { PlanTrigger } from '~~/server/domain/plan/session'
+import { PlanTrigger, SessionStatus } from '~~/server/domain/plan/session'
 import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
 import { fixedClock } from '~~/server/domain/shared/clock'
 import { Sport } from '~~/server/domain/shared/sport'
 import { createFitnessGateway, createPauseGateway } from '~~/server/infra/db/feedback-gateway'
 import { FitnessOrigin } from '~~/server/domain/fitness/fitness-point'
 import { PauseType } from '~~/server/domain/pause/pause'
-import { createPlanGateway, loadActivePlanVersion } from '~~/server/infra/db/plan-gateway'
+import { publishSession, weekOf } from '~~/server/domain/circle/post'
+import {
+  circleMembers,
+  insertComment,
+  insertPost,
+  isMember,
+  postsOfWeek,
+  setMembership,
+  toggleBravo,
+} from '~~/server/infra/db/circle-gateway'
+import {
+  athleteWeekIds,
+  createPlanGateway,
+  loadActivePlanVersion,
+} from '~~/server/infra/db/plan-gateway'
 import { recomputeLoadFor } from '~~/server/infra/db/load-repository'
 import { listProposals } from '~~/server/infra/db/proposal-repository'
 import { readMealPlan } from '~~/server/infra/db/meal-plan-gateway'
@@ -143,6 +157,70 @@ describe.skipIf(!db)('deux athlètes sur la même base', () => {
       .from(schema.race)
       .where(sql`${schema.race.fuelPlan} is not null`)
     expect(withPlan.map((row) => row.athleteId)).toEqual([ids.alice])
+  })
+
+  /**
+   * Le cercle est la seule chose que les deux voient ensemble (P9). Ce qui se
+   * vérifie ici n'est pas une requête mais la frontière : la publication
+   * traverse, la séance dont elle est née ne traverse pas.
+   */
+  it('montre à chacun la publication de l’autre, et jamais sa séance', async () => {
+    const week = weekOf(TODAY)
+    const [session] = await db!
+      .select()
+      .from(schema.session)
+      .where(inArray(schema.session.weekId, athleteWeekIds(db!, ids.bob)))
+      .limit(1)
+
+    const outcome = publishSession(
+      {
+        id: session!.id,
+        sport: session!.sport,
+        code: session!.code,
+        date: week.from,
+        status: SessionStatus.Done,
+        actualDistanceM: 12_000,
+        actualDurationMin: 68,
+        plannedDistanceM: null,
+        plannedDurationMin: null,
+      },
+      'Douze bornes au frais.',
+    )
+    expect(outcome.ok).toBe(true)
+    if (!outcome.ok) return
+    await insertPost(db!, ids.bob, outcome.post)
+
+    const seen = await postsOfWeek(db!, ids.alice, week)
+    expect(seen).toHaveLength(1)
+    expect(seen[0]!.note).toBe('Douze bornes au frais.')
+    expect(seen[0]!.athleteId).toBe(ids.bob)
+
+    /** La séance d'origine, elle, reste de l'autre côté du mur. */
+    const hers = await loadActivePlanVersion(db!, ids.alice)
+    expect(hers!.sessions.some((one) => one.id === session!.id)).toBe(false)
+  })
+
+  it('ferme la lecture à qui quitte le cercle, sans rien détruire', async () => {
+    await setMembership(db!, ids.alice, false)
+    expect(await isMember(db!, ids.alice)).toBe(false)
+    expect((await circleMembers(db!)).map((one) => one.id)).toEqual([ids.bob])
+
+    /** Ce qu'elle avait lu existe toujours : quitter ferme, il n'efface pas. */
+    expect(await postsOfWeek(db!, ids.bob, weekOf(TODAY))).toHaveLength(1)
+
+    await setMembership(db!, ids.alice, true)
+  })
+
+  it('emporte les publications, les bravos et les commentaires d’un compte supprimé', async () => {
+    const [published] = await db!.select({ id: schema.post.id }).from(schema.post)
+    await toggleBravo(db!, ids.alice, published!.id)
+    await insertComment(db!, ids.alice, published!.id, 'Belle sortie.')
+
+    await db!.delete(schema.athlete).where(eq(schema.athlete.id, ids.bob))
+
+    expect(await db!.select().from(schema.post)).toEqual([])
+    expect(await db!.select().from(schema.postReaction)).toEqual([])
+    expect(await db!.select().from(schema.postComment)).toEqual([])
   })
 
   it('efface tout ce qui est à lui, et rien d’autre, quand un athlète part', async () => {

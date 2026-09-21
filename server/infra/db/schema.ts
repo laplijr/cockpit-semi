@@ -35,12 +35,14 @@ import {
 import { HabitStatus, HabitType } from '../../domain/learning/habit'
 import type { FuelPlan } from '../../domain/nutrition/fuel-plan'
 import type { Meal } from '../../domain/nutrition/meal'
+import { PostSource } from '../../domain/circle/post'
 import { ExternalCall } from '../../domain/shared/external-call'
 import { Sport } from '../../domain/shared/sport'
 
 export {
   AthleteProfile,
   ExternalCall,
+  PostSource,
   FitnessOrigin,
   ForecastTarget,
   LookupStatus,
@@ -92,6 +94,7 @@ export const unplannedStatusEnum = pgEnum('unplanned_status', enumValues(Unplann
 export const habitTypeEnum = pgEnum('habit_type', enumValues(HabitType))
 export const habitStatusEnum = pgEnum('habit_status', enumValues(HabitStatus))
 export const externalCallEnum = pgEnum('external_call', enumValues(ExternalCall))
+export const postSourceEnum = pgEnum('post_source', enumValues(PostSource))
 
 /** Conserve les types littéraux de l'énumération pour que Drizzle les propage. */
 function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], ...T[keyof T][]] {
@@ -127,6 +130,13 @@ export const athlete = pgTable('athlete', {
   /** Volume hebdomadaire maximal visé sur un cycle, en mètres (§ 5). */
   peakWeeklyVolumeM: integer('peak_weekly_volume_m'),
   onboarded: boolean('onboarded').notNull().default(false),
+  /**
+   * Appartenance au cercle, **vraie par défaut** (§ 4, P9). Il n'y a pas de
+   * table `circle` : le cercle est l'ensemble des athlètes dont la colonne
+   * est vraie. Appartenir n'est pas publier — le défaut n'ouvre que la
+   * lecture, et quitter ferme l'appartenance sans rien détruire.
+   */
+  inCircle: boolean('in_circle').notNull().default(true),
   /** Progression estimée par bloc de huit semaines, quand R9 l'a recalée (§ 5). */
   vdotGainPerBlock: real('vdot_gain_per_block'),
   notes: text('notes'),
@@ -527,6 +537,64 @@ export const apiUsage = pgTable(
   },
   (table) => [primaryKey({ columns: [table.athleteId, table.date, table.kind] })],
 )
+
+/**
+ * Une publication au cercle (§ 4, P9). C'est la seule table du schéma qui se
+ * lit d'un athlète à l'autre, et elle ne porte qu'un **instantané** : le post
+ * est une copie, jamais une jointure vers la séance. Modifier ou supprimer
+ * celle-ci ne réécrit pas ce que les autres ont lu, et le fil ne touche alors
+ * aucune table d'entraînement d'autrui. Les colonnes sont la liste blanche de
+ * `domain/circle` — elle doit se lire ici.
+ */
+export const post = pgTable('post', {
+  id: serial('id').primaryKey(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
+  source: postSourceEnum('source').notNull(),
+  /** Nul quand la séance ou la course d'origine a été supprimée : le post reste. */
+  sourceId: integer('source_id'),
+  sport: sportEnum('sport').notNull(),
+  code: text('code'),
+  date: date('date').notNull(),
+  label: text('label'),
+  distanceM: real('distance_m'),
+  durationMin: real('duration_min'),
+  note: text('note'),
+  publishedAt: timestamp('published_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/** Une seule réaction, donc pas de colonne de type : dire bravo ou rien. */
+export const postReaction = pgTable(
+  'post_reaction',
+  {
+    postId: integer('post_id')
+      .notNull()
+      .references(() => post.id, { onDelete: 'cascade' }),
+    athleteId: integer('athlete_id')
+      .notNull()
+      .references(() => athlete.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.postId, table.athleteId] })],
+)
+
+export const postComment = pgTable('post_comment', {
+  id: serial('id').primaryKey(),
+  postId: integer('post_id')
+    .notNull()
+    .references(() => post.id, { onDelete: 'cascade' }),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
+  text: text('text').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type Post = typeof post.$inferSelect
+export type NewPost = typeof post.$inferInsert
+export type PostComment = typeof postComment.$inferSelect
+export type NewPostComment = typeof postComment.$inferInsert
 
 export type User = typeof user.$inferSelect
 export type NewUser = typeof user.$inferInsert

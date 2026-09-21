@@ -31,10 +31,25 @@ const SCOPED = [
 const INHERITED = ['week', 'session', 'phase', 'feedback', 'strengthSet', 'raceSegment', 'route']
 
 /**
- * Ce qui prouve qu'une requête sur une table d'athlète est cloisonnée : elle
- * nomme l'athlète, directement ou par la liste de ses semaines.
+ * Les trois tables du cercle (P9). Elles se lisent d'un athlète à l'autre —
+ * c'est leur raison d'être — et l'exemption n'est donc pas un trou : elle est
+ * bornée aux deux fichiers de portes ci-dessous, et toute route qui les sert
+ * doit passer par l'une d'elles.
  */
-const SCOPED_MARKERS = /\bathleteId\b|\bathleteWeekIds\b|\bmine\b/
+const CIRCLE = ['post', 'postReaction', 'postComment']
+
+const CIRCLE_DOORS = ['server/utils/scope.ts', 'server/infra/db/circle-gateway.ts']
+
+const DOOR_NAMES = /\bcircleMember\b|\bvisiblePost\b|\bownedPost\b|\bremovableComment\b/
+
+/**
+ * Ce qui prouve qu'une requête sur une table d'athlète est cloisonnée : elle
+ * nomme l'athlète, directement ou par la liste de ses semaines. Les deux
+ * derniers marqueurs sont ceux du cercle : `inCircle` borne la lecture aux
+ * membres — une portée, pas une absence de portée —, et `circleIds` nomme des
+ * identifiants qui viennent de publications déjà bornées par le cercle.
+ */
+const SCOPED_MARKERS = /\bathleteId\b|\bathleteWeekIds\b|\bmine\b|\binCircle\b|\bcircleIds\b/
 
 /**
  * Une table fille se cloisonne par son parent : soit elle passe par la même
@@ -44,7 +59,7 @@ const SCOPED_MARKERS = /\bathleteId\b|\bathleteWeekIds\b|\bmine\b/
 const INHERITED_MARKERS =
   /\bathleteId\b|\bathleteWeekIds\b|\bmine\b|planVersionId|weekId|sessionId|previousWeeks|raceId|target\.id|owned/
 
-const TABLES = [...SCOPED, ...INHERITED]
+const TABLES = [...SCOPED, ...INHERITED, ...CIRCLE]
 
 interface Query {
   file: string
@@ -143,6 +158,22 @@ describe('cloisonnement par athlète (§ 11, P8.3)', () => {
       .filter((query) => !INHERITED_MARKERS.test(query.chain))
 
     expect(unscoped.map((query) => `${query.file}:${query.line} ${query.table}`)).toEqual([])
+  })
+
+  it('ne laisse les tables du cercle qu’aux deux fichiers de portes (P9)', () => {
+    const outside = ALL.filter((query) => CIRCLE.includes(query.table))
+      .filter((query) => !CIRCLE_DOORS.includes(query.file))
+      .filter((query) => query.file !== 'server/infra/db/schema.ts')
+
+    expect(outside.map((query) => `${query.file}:${query.line} ${query.table}`)).toEqual([])
+  })
+
+  it('fait passer chaque route du cercle par une porte (P9)', () => {
+    const doorless = filesUnder('server/api/circle')
+      .filter((path) => path.endsWith('.ts'))
+      .filter((path) => !DOOR_NAMES.test(readFileSync(path, 'utf8')))
+
+    expect(doorless).toEqual([])
   })
 
   it('ne laisse plus une seule lecture d’athlète non filtrée', () => {

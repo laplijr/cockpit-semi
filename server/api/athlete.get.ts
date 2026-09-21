@@ -31,5 +31,7 @@ export default defineEventHandler(async (event) => {
     peakWeeklyVolumeM: row?.peakWeeklyVolumeM ?? DEFAULT_PEAK_VOLUME_M,
     constraints: row?.constraints ?? DEFAULT_CONSTRAINTS,
     onboarded: row?.onboarded ?? false,
+    /** Appartenance au cercle : elle décide de l'entrée de navigation (§ 8, P9). */
+    inCircle: row?.inCircle ?? false,
   }
 })
