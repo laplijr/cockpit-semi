@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNull, ne, notInArray } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNull, lte, ne, notInArray, or, sql } from 'drizzle-orm'
 import type {
   AthleteSnapshot,
   FitnessSnapshot,
@@ -217,6 +217,15 @@ export function createPlanGateway(db: Database, athleteId: number): PlanGateway 
       return planVersionId
     },
 
+    async withPlanLock<T>(run: () => Promise<T>): Promise<T> {
+      await acquirePlanLock(db, athleteId)
+      try {
+        return await run()
+      } finally {
+        await db.update(athlete).set({ planLockedUntil: null }).where(eq(athlete.id, athleteId))
+      }
+    },
+
     async loadForecastContext(): Promise<ForecastContext> {
       const [tests, races, open] = await Promise.all([
         db
@@ -284,6 +293,55 @@ export function createPlanGateway(db: Database, athleteId: number): PlanGateway 
         await db.insert(forecast).values(issued.map((item) => ({ ...item, athleteId })))
       }
     },
+  }
+}
+
+/** Au-delà, le verrou d'un porteur mort avant de le rendre se reprend. */
+const PLAN_LOCK_LEASE_S = 60
+/**
+ * Une régénération tient en deux à trois secondes — une quarantaine de
+ * semaines écrites une par une sur un transport HTTP. Ce budget en laisse
+ * donc passer trois à la queue leu leu ; au-delà, la dernière est refusée
+ * plutôt que de faire expirer la requête côté plateforme.
+ */
+const PLAN_LOCK_WAIT_MS = 8_000
+const PLAN_LOCK_POLL_MS = 150
+
+/**
+ * Le driver `neon-http` n'a pas de transactions et son transport n'a pas de
+ * connexion persistante : ni `db.transaction()` ni verrou consultatif de
+ * session. Le bail tient donc dans une colonne, pris par un `UPDATE`
+ * conditionnel — atomique à lui seul, puisque chaque requête est sa propre
+ * transaction implicite.
+ *
+ * Les deux bornes du bail se lisent sur l'horloge de la base et non sur celle
+ * de l'app : `NUXT_COCKPIT_TODAY` déplace le temps du domaine, pas celui d'un
+ * verrou.
+ */
+async function acquirePlanLock(db: Database, athleteId: number) {
+  const deadline = Date.now() + PLAN_LOCK_WAIT_MS
+
+  for (;;) {
+    const taken = await db
+      .update(athlete)
+      .set({ planLockedUntil: sql`now() + make_interval(secs => ${PLAN_LOCK_LEASE_S})` })
+      .where(
+        and(
+          eq(athlete.id, athleteId),
+          or(isNull(athlete.planLockedUntil), lte(athlete.planLockedUntil, sql`now()`)),
+        ),
+      )
+      .returning({ id: athlete.id })
+    if (taken.length > 0) return
+
+    /**
+     * Une erreur simple et non un `createError` : cette passerelle sert aussi
+     * le seed, qui tourne hors de Nitro et n'a pas ses auto-imports.
+     */
+    if (Date.now() >= deadline) {
+      throw new Error('Une régénération du plan est déjà en cours.')
+    }
+    await new Promise((resolve) => setTimeout(resolve, PLAN_LOCK_POLL_MS))
   }
 }
 

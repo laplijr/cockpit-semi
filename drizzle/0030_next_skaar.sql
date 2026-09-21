@@ -1,0 +1,1 @@
+ALTER TABLE "athlete" ADD COLUMN "plan_locked_until" timestamp with time zone;

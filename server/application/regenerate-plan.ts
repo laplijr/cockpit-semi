@@ -37,6 +37,19 @@ export async function regeneratePlan(
   clock: Clock,
   trigger: PlanTrigger,
 ): Promise<RegenerateResult> {
+  /**
+   * Sous verrou de bout en bout, et pas seulement autour de l'écriture : deux
+   * régénérations qui lisent le même état avant que l'autre écrive rendraient
+   * un plan qui ignore ce qui vient de le déclencher (§ 5, P8.5).
+   */
+  return gateway.withPlanLock(() => regenerate(gateway, clock, trigger))
+}
+
+async function regenerate(
+  gateway: PlanGateway,
+  clock: Clock,
+  trigger: PlanTrigger,
+): Promise<RegenerateResult> {
   const [athlete, races, latestPause, fitness, lastTestDate] = await Promise.all([
     gateway.loadAthlete(),
     gateway.loadRaces(),

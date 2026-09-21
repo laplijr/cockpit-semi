@@ -130,6 +130,12 @@ export const athlete = pgTable('athlete', {
   /** Progression estimée par bloc de huit semaines, quand R9 l'a recalée (§ 5). */
   vdotGainPerBlock: real('vdot_gain_per_block'),
   notes: text('notes'),
+  /**
+   * Bail du verrou de régénération : deux régénérations simultanées se
+   * suppriment leurs séances (§ 5, P8.5). Nul quand personne ne régénère ; une
+   * date passée quand le porteur est mort avant de le rendre.
+   */
+  planLockedUntil: timestamp('plan_locked_until', { withTimezone: true }),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 

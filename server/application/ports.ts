@@ -97,6 +97,11 @@ export interface PlanGateway {
   /** Date du dernier test 20′, qui borne la replanification du suivant. */
   loadLastTestDate(): Promise<IsoDate | null>
   savePlan(plan: GeneratedPlan, trigger: PlanTrigger, parameters: PlanParameters): Promise<number>
+  /**
+   * Sérialise les régénérations d'un même athlète. Deux qui s'entrelacent se
+   * suppriment leurs séances et laissent une version active vide (§ 5, P8.5).
+   */
+  withPlanLock<T>(run: () => Promise<T>): Promise<T>
   /** Prévisions ouvertes et ce qui permet d'en émettre de nouvelles (§ 9, P6.6). */
   loadForecastContext(): Promise<ForecastContext>
   /** Résout les prévisions échues et enregistre celles du jour, d'un seul bloc. */
