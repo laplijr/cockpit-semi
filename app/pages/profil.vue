@@ -214,6 +214,10 @@ async function logout() {
       <ProfilSportsField v-model="form.sports" />
     </div>
 
+    <!-- Un rappel est un réglage d'appareil et non de compte : il vit avec
+         les autres réglages, pas dans une page à lui (§ 8). -->
+    <ProfilNoticesField />
+
     <!-- Déclarer une pause est une décision d'entraînement, au même titre que
          le volume ou les jours : elle vit ici et non dans le menu du compte
          (§ 8, P6.35). -->

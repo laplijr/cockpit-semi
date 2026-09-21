@@ -44,5 +44,6 @@ onBeforeUnmount(() => {
     <ShellBottomBar />
     <ShellPanelHost />
     <ShellModalHost />
+    <ShellNotices />
   </div>
 </template>
