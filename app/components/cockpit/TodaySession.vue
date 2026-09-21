@@ -9,6 +9,7 @@ import type { PlanSession } from '~/stores/plan'
 const props = defineProps<{ session: PlanSession }>()
 
 const ui = useUiStore()
+const plan = usePlanStore()
 
 const sport = computed(() => sportStyle(props.session.sport))
 
@@ -96,6 +97,45 @@ const figures = computed<Figure[]>(() => {
     return figure.value === before.value ? figure : { ...figure, planned: before.value }
   })
 })
+
+/**
+ * Courir la séance depuis l'app (§ 9, P10). L'action principale de la ligne
+ * change avec l'état du jour : « Courir » prend la place, et « Ressenti »
+ * recule d'un cran — la capture pose le ressenti à l'arrivée. Rien n'est
+ * ajouté à l'écran, c'est le rang des gestes qui change (§ 11).
+ */
+const runnable = computed(
+  () =>
+    props.session.sport === 'course' &&
+    props.session.date === plan.today &&
+    !done.value &&
+    props.session.status !== 'annulee',
+)
+
+/** Sortie en cours côté serveur : elle se reprend au lieu d'en ouvrir une autre. */
+const { data: liveRun } = useFetch<{
+  run: { id: number; sessionId: number | null; distanceM: number } | null
+}>('/api/runs/live', { lazy: true, server: false, default: () => ({ run: null }) })
+
+const live = computed(() =>
+  liveRun.value?.run?.sessionId === props.session.id ? liveRun.value.run : null,
+)
+
+/**
+ * Sortie finie sur cet appareil mais pas enregistrée — le réseau a refusé.
+ * Seul l'appareil qui l'a courue le sait : la trace y est, pas ailleurs.
+ */
+const pending = ref(false)
+onMounted(() => {
+  const stored = storedRun()
+  pending.value = stored?.sessionId === props.session.id && stored.finished
+})
+
+const runHref = computed(() => {
+  const base = `/en-course?seance=${props.session.id}`
+  if (pending.value) return `${base}&reprise=1&bilan=1`
+  return live.value ? `${base}&reprise=1` : base
+})
 </script>
 
 <template>
@@ -141,10 +181,19 @@ const figures = computed<Figure[]>(() => {
       </span>
     </button>
 
+    <!-- Une seule action principale par ligne : quand il y a une sortie à
+         courir, c'est elle, et le ressenti passe en fantôme (§ 8). -->
+    <NuxtLink v-if="runnable" :to="runHref" class="btn w-full shrink-0 lean:w-auto">
+      <UiAppIcon name="run" :size="15" />
+      <template v-if="pending">Terminer l'enregistrement</template>
+      <template v-else-if="live">Reprendre · {{ formatDistance(live.distanceM) }}</template>
+      <template v-else>Courir</template>
+    </NuxtLink>
+
     <button
       type="button"
       class="btn w-full shrink-0 lean:w-auto"
-      :class="done && 'btn-ghost'"
+      :class="(done || runnable) && 'btn-ghost'"
       @click="ui.openModal('seance', session.id)"
     >
       Ressenti

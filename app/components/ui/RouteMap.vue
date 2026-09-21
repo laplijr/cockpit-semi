@@ -10,8 +10,15 @@ import 'leaflet/dist/leaflet.css'
  * tuiles, repérées par leur seule coordonnée.
  */
 const props = withDefaults(
-  defineProps<{ points: { lat: number; lon: number }[]; height?: number }>(),
-  { height: 220 },
+  defineProps<{
+    points: { lat: number; lon: number }[]
+    height?: number
+    /** Trace à suivre, dessinée sous la trace principale (§ 9, P10). */
+    guide?: { lat: number; lon: number }[]
+    /** Position courante, pendant une sortie. */
+    position?: { lat: number; lon: number } | null
+  }>(),
+  { height: 220, guide: undefined, position: null },
 )
 
 const container = ref<HTMLElement>()
@@ -31,7 +38,8 @@ function refit() {
 }
 
 function draw() {
-  if (!container.value || props.points.length < 2) return
+  const hasGuide = (props.guide?.length ?? 0) > 1
+  if (!container.value || (props.points.length < 2 && !hasGuide)) return
 
   const latLngs = props.points.map((point) => [point.lat, point.lon] as [number, number])
 
@@ -55,6 +63,14 @@ function draw() {
     attribution: '© OpenStreetMap',
   }).addTo(map)
 
+  /** La boucle proposée passe dessous, en gris : c'est un repère, pas la course. */
+  if (props.guide && props.guide.length > 1) {
+    L.polyline(
+      props.guide.map((point) => [point.lat, point.lon] as [number, number]),
+      { color: '#6d665c', weight: 3, opacity: 0.9 },
+    ).addTo(map)
+  }
+
   L.polyline(latLngs, { color: '#f2a23a', weight: 4, opacity: 0.95 }).addTo(map)
   /** Le départ est aussi l'arrivée : un seul repère suffit à s'orienter. */
   L.circleMarker(latLngs[0]!, {
@@ -65,7 +81,21 @@ function draw() {
     weight: 3,
   }).addTo(map)
 
-  bounds = L.latLngBounds(latLngs)
+  /** Le point courant se lit en blanc : c'est le seul repère qui bouge. */
+  if (props.position) {
+    L.circleMarker([props.position.lat, props.position.lon], {
+      radius: 7,
+      color: '#161514',
+      fillColor: '#f3efe8',
+      fillOpacity: 1,
+      weight: 2,
+    }).addTo(map)
+  }
+
+  bounds = L.latLngBounds([
+    ...latLngs,
+    ...(props.guide ?? []).map((p) => [p.lat, p.lon] as [number, number]),
+  ])
   refit()
 }
 
@@ -75,7 +105,7 @@ onMounted(() => {
   if (container.value) observer.observe(container.value)
 })
 
-watch(() => props.points, draw, { deep: true })
+watch([() => props.points, () => props.guide, () => props.position], draw, { deep: true })
 
 onBeforeUnmount(() => {
   observer?.disconnect()
@@ -88,7 +118,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    v-if="points.length > 1"
+    v-if="points.length > 1 || (guide && guide.length > 1)"
     ref="container"
     class="route-map w-full rounded-md border border-line"
     :style="{ height: `${height}px` }"

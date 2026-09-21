@@ -1,7 +1,33 @@
 <script setup lang="ts">
 import type { PlanSession } from '~/stores/plan'
 
-const props = defineProps<{ session: PlanSession; watchZones: string[] }>()
+/** Ce que le ressenti envoie, quand c'est un autre chemin qui l'enregistre. */
+interface FeedbackPayload {
+  rpe: number
+  sensations: string[]
+  sleepHours: number | null
+  pain: { zone: string; intensity: number } | null
+  durationMin: number
+  distanceM: number | null
+  notes: string | null
+}
+
+const props = withDefaults(
+  defineProps<{
+    session: PlanSession
+    watchZones: string[]
+    /**
+     * Enregistrement de remplacement. Une sortie courue dans l'app poste le
+     * ressenti avec sa trace, en un seul appel (§ 9, P10) : le formulaire reste
+     * le même, c'est sa destination qui change.
+     */
+    submit?: (payload: FeedbackPayload) => Promise<void>
+    /** Réalisé mesuré, quand il vient d'ailleurs que de la prescription. */
+    measured?: { durationMin: number; distanceM: number | null }
+    action?: string
+  }>(),
+  { submit: undefined, measured: undefined, action: 'Enregistrer le ressenti' },
+)
 const emit = defineEmits<{ saved: [] }>()
 
 const SENSATIONS = [
@@ -26,8 +52,8 @@ const form = reactive({
   sleepHours: null as number | null,
   painZone: '',
   painIntensity: 0,
-  durationMin: plannedMinutes.value,
-  distanceM: props.session.prescription.totalDistanceM || null,
+  durationMin: props.measured?.durationMin ?? plannedMinutes.value,
+  distanceM: props.measured?.distanceM ?? props.session.prescription.totalDistanceM ?? null,
   notes: '',
 })
 
@@ -54,21 +80,23 @@ async function save() {
       })
     }
 
-    await $fetch(`/api/sessions/${props.session.id}/feedback`, {
-      method: 'PUT',
-      body: {
-        rpe: form.rpe,
-        sensations: form.sensations,
-        sleepHours: form.sleepHours,
-        pain: form.painZone ? { zone: form.painZone, intensity: form.painIntensity } : null,
-        durationMin: form.durationMin,
-        distanceM: form.distanceM,
-        notes: form.notes || null,
-      },
-    })
+    const payload: FeedbackPayload = {
+      rpe: form.rpe,
+      sensations: form.sensations,
+      sleepHours: form.sleepHours,
+      pain: form.painZone ? { zone: form.painZone, intensity: form.painIntensity } : null,
+      durationMin: form.durationMin,
+      distanceM: form.distanceM,
+      notes: form.notes || null,
+    }
+
+    if (props.submit) await props.submit(payload)
+    else
+      await $fetch(`/api/sessions/${props.session.id}/feedback`, { method: 'PUT', body: payload })
+
     emit('saved')
-  } catch {
-    error.value = 'Enregistrement impossible.'
+  } catch (cause) {
+    error.value = apiMessage(cause, 'Enregistrement impossible.')
   }
 }
 </script>
@@ -194,7 +222,7 @@ async function save() {
          bas de la feuille, elle ne demande pas de faire remonter le corps
          après le dernier champ (§ 8, P6.8). -->
     <UiActionButton class="btn btn-lg sticky bottom-0 lean:static" :action="save">
-      Enregistrer le ressenti
+      {{ action }}
     </UiActionButton>
   </div>
 </template>

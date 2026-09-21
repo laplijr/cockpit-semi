@@ -82,33 +82,9 @@ async function onResume() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <!-- Course A est le seul cadran qui est un but, pas une mesure (§ 9, P5.19). -->
-    <section class="grid grid-cols-2 gap-4 wide:grid-cols-[1.15fr_1fr_1fr_1fr]">
-      <!-- Le décompte se compte depuis aujourd'hui : sans le plan, pas de J−. -->
-      <CockpitRaceDial
-        :race="raceA"
-        :today="plan.today"
-        :loading="isLoading(racesStatus) || !plan.loaded"
-      />
-      <CockpitVdotDial
-        v-if="!vdotDark"
-        :vdot="vdot"
-        :is-floor="vdotIsFloor"
-        :loading="!plan.loaded"
-      />
-      <CockpitLoadDial v-if="!loadDark" />
-      <CockpitReadinessDial v-if="!readinessDark" />
-
-      <CockpitFirstDaysTile
-        v-if="pending.length > 0"
-        :pending="pending"
-        :style="{ gridColumn: `span ${pending.length}` }"
-      />
-    </section>
-
-    <!-- Les deux tuiles finissent sur la même ligne : « À décider » est borné à
-         trois décisions depuis P5.19, l'étirement ne fuit donc plus (§ 8). -->
-    <section class="grid grid-cols-1 gap-4 lean:grid-cols-[1.6fr_1fr]">
+    <!-- La journée passe devant les instruments (§ 8, P10) : l'écran s'ouvre sur
+         ce qu'il y a à faire, et « Courir » est la première action du pouce. -->
+    <section class="grid grid-cols-1 gap-4">
       <!-- Une seule ligne de séance en squelette : c'est la journée courante. -->
       <div v-if="!plan.loaded" class="tile" aria-busy="true">
         <div class="flex items-baseline gap-3">
@@ -194,7 +170,35 @@ async function onResume() {
           <CockpitNutritionPill class="ml-auto" />
         </div>
       </div>
+    </section>
 
+    <!-- Course A est le seul cadran qui est un but, pas une mesure (§ 9, P5.19). -->
+    <section class="grid grid-cols-2 gap-4 wide:grid-cols-[1.15fr_1fr_1fr_1fr]">
+      <!-- Le décompte se compte depuis aujourd'hui : sans le plan, pas de J−. -->
+      <CockpitRaceDial
+        :race="raceA"
+        :today="plan.today"
+        :loading="isLoading(racesStatus) || !plan.loaded"
+      />
+      <CockpitVdotDial
+        v-if="!vdotDark"
+        :vdot="vdot"
+        :is-floor="vdotIsFloor"
+        :loading="!plan.loaded"
+      />
+      <CockpitLoadDial v-if="!loadDark" />
+      <CockpitReadinessDial v-if="!readinessDark" />
+
+      <CockpitFirstDaysTile
+        v-if="pending.length > 0"
+        :pending="pending"
+        :style="{ gridColumn: `span ${pending.length}` }"
+      />
+    </section>
+
+    <!-- « À décider » reste borné à trois décisions (P5.19) : sa hauteur ne fuit
+         pas, et il se lit après les instruments qui l'expliquent (§ 8). -->
+    <section class="grid grid-cols-1 gap-4">
       <CockpitPauseCard v-if="plan.pause" :pause="plan.pause" @resume="onResume" />
       <CockpitDecisionList v-else :limit="3" />
     </section>
