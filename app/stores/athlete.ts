@@ -16,6 +16,7 @@ export interface AthleteView {
   peakWeeklyVolumeM: number
   constraints: AthleteConstraints
   onboarded: boolean
+  inCircle: boolean
 }
 
 /**
@@ -54,5 +55,12 @@ export const useAthleteStore = defineStore('athlete', () => {
   /** Sans liste déclarée, les trois sports : la navigation ne cache rien (§ 5, P8.1). */
   const sports = computed(() => athlete.value?.constraints?.sports)
 
-  return { athlete, rejected, load, ensureLoaded, onboarded, sports }
+  /** Appartenance au cercle : elle décide de l'entrée de navigation (§ 8, P9). */
+  const inCircle = computed(() => athlete.value?.inCircle ?? false)
+
+  function setMembership(member: boolean) {
+    if (athlete.value) athlete.value.inCircle = member
+  }
+
+  return { athlete, rejected, load, ensureLoaded, onboarded, sports, inCircle, setMembership }
 })

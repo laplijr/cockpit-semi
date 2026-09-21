@@ -58,6 +58,15 @@ const ICONS = {
   plus: [path('M12 5v14M5 12h14')],
   more: [circle(5, 12, 1), circle(12, 12, 1), circle(19, 12, 1)],
   shield: [path('M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z')],
+  /** Les trois du cercle (P9) : les membres, le bravo, le commentaire. */
+  people: [
+    circle(9, 8, 3.4),
+    path('M3 20a6 6 0 0 1 12 0'),
+    path('M16.2 5.4a3 3 0 0 1 0 5.6'),
+    path('M17.6 20a5.6 5.6 0 0 0-2.6-4.4'),
+  ],
+  bravo: [path('M12 3.5l1.9 5.3 5.6.2-4.4 3.5 1.5 5.4L12 14.8l-4.6 3.1 1.5-5.4L4.5 9l5.6-.2z')],
+  chat: [path('M4 6h16v10H9l-5 4z')],
 } satisfies Record<string, Shape[]>
 
 export type IconName = keyof typeof ICONS

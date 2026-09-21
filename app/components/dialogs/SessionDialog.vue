@@ -402,6 +402,9 @@ const plannedMinutes = computed(() => {
           </span>
         </div>
 
+        <!-- Une séance faite peut aller au cercle, et rien d'autre (§ 8, P9.2). -->
+        <CircleShareRow v-if="session.status === 'faite'" source="seance" :source-id="session.id" />
+
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Prescrit contre réalisé</span>
           <UiAxisScroller>

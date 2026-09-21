@@ -50,6 +50,13 @@ async function copy(item: { id: number; token: string }) {
   copied.value = item.id
 }
 
+/** Rejoindre ou quitter : une colonne, et la navigation suit (§ 8, P9). */
+async function setMembership(member: boolean) {
+  await $fetch('/api/account/circle', { method: 'PUT', body: { member } })
+  useAthleteStore().setMembership(member)
+  await refresh()
+}
+
 async function removeAccount() {
   error.value = ''
   try {
@@ -88,6 +95,46 @@ async function removeAccount() {
           <span class="text-[12px] text-text-dim">{{ item.why }}</span>
         </li>
       </ul>
+    </div>
+
+    <!--
+      Le cercle vit ici, à côté de ce que le cockpit garde et pourquoi : c'est
+      la page où l'on vient savoir ce que les autres voient de soi (§ 9, P9.2).
+    -->
+    <div class="tile">
+      <span class="label">Le cercle</span>
+      <p class="text-[13px] text-text-dim">
+        Tout le monde en fait partie par défaut. Les membres voient les séances et les courses que
+        vous publiez vous-même, avec le mot que vous y mettez — jamais votre plan, vos ressentis,
+        vos douleurs, votre poids, votre adresse ni vos itinéraires.
+      </p>
+
+      <template v-if="account?.circle?.member">
+        <div class="flex flex-wrap items-center gap-2">
+          <span
+            v-for="one in account.circle.members"
+            :key="one.id"
+            class="flex items-center gap-2 pr-2"
+          >
+            <UiAvatar :first-name="one.firstName" :avatar="one.avatar" :size="24" />
+            <span class="text-[13px]">{{ one.firstName ?? 'Quelqu’un' }}</span>
+          </span>
+        </div>
+        <p class="text-[12px] text-text-dim">
+          Quitter ferme la lecture et vous retire de la liste ; vos publications restent. Pour tout
+          effacer, supprimez votre compte.
+        </p>
+        <UiActionButton class="btn btn-ghost self-start" :action="() => setMembership(false)">
+          Quitter le cercle
+        </UiActionButton>
+      </template>
+
+      <template v-else>
+        <span class="mono text-[12px] text-text-dim">Vous n'êtes plus dans le cercle.</span>
+        <UiActionButton class="btn btn-ghost self-start" :action="() => setMembership(true)">
+          Rejoindre le cercle
+        </UiActionButton>
+      </template>
     </div>
 
     <div class="tile">

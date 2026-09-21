@@ -309,6 +309,13 @@ async function remove() {
         @generated="refreshRaces()"
       />
 
+      <!-- Une course courue et chronométrée : la publication la plus attendue (P9.2). -->
+      <CircleShareRow
+        v-if="race.status === 'courue' && race.resultatS !== null"
+        source="course"
+        :source-id="raceId"
+      />
+
       <p class="text-[13px] text-text-dim">{{ PRIORITY_MEANING[form.priority] }}</p>
 
       <p v-if="regenerates" class="text-[13px] text-warn">
