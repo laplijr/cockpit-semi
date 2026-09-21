@@ -34,7 +34,6 @@ const form = reactive({
 const isTest = computed(() => props.session.code === 'test')
 const testDistanceM = ref<number | null>(null)
 
-const saving = ref(false)
 const error = ref('')
 
 function toggleSensation(value: string) {
@@ -44,7 +43,6 @@ function toggleSensation(value: string) {
 }
 
 async function save() {
-  saving.value = true
   error.value = ''
   try {
     if (isStrength.value) await strengthSets.value?.save()
@@ -71,8 +69,6 @@ async function save() {
     emit('saved')
   } catch {
     error.value = 'Enregistrement impossible.'
-  } finally {
-    saving.value = false
   }
 }
 </script>
@@ -197,13 +193,8 @@ async function save() {
     <!-- Une seule action principale, et elle reste sous le pouce : collée au
          bas de la feuille, elle ne demande pas de faire remonter le corps
          après le dernier champ (§ 8, P6.8). -->
-    <button
-      type="button"
-      class="btn btn-lg sticky bottom-0 lean:static"
-      :disabled="saving"
-      @click="save"
-    >
+    <UiActionButton class="btn btn-lg sticky bottom-0 lean:static" :action="save">
       Enregistrer le ressenti
-    </button>
+    </UiActionButton>
   </div>
 </template>

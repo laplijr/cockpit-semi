@@ -10,6 +10,7 @@ const proposal = computed(() =>
 )
 
 const pending = computed(() => proposal.value?.status === 'proposee')
+/** Verrou de rangée : celle des deux qui ne travaille pas se verrouille aussi. */
 const busy = ref(false)
 
 async function accept() {
@@ -61,8 +62,10 @@ async function refuse() {
     <!-- Appliquer et refuser sont les deux faces d'une même décision : côte à
          côte au clavier, l'une sous l'autre en pleine cible au pouce. -->
     <div v-if="pending" class="grid grid-cols-1 gap-2 lean:flex">
-      <button type="button" class="btn" :disabled="busy" @click="accept">Appliquer</button>
-      <button type="button" class="btn btn-ghost" :disabled="busy" @click="refuse">Refuser</button>
+      <UiActionButton class="btn" :pending="busy" :action="accept">Appliquer</UiActionButton>
+      <UiActionButton class="btn btn-ghost" :pending="busy" :action="refuse">
+        Refuser
+      </UiActionButton>
     </div>
     <p v-else class="text-[13px] text-text-dim">Décision déjà prise : {{ proposal.status }}.</p>
   </div>

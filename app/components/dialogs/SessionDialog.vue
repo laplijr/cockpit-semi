@@ -153,21 +153,17 @@ async function restoreDay() {
   }
 }
 
-const swapping = ref(false)
 const swapError = ref('')
 
 async function replaceWithRun() {
   if (!session.value) return
 
-  swapping.value = true
   swapError.value = ''
   try {
     await $fetch(`/api/sessions/${session.value.id}/run-swap`, { method: 'POST' })
     emit('saved')
   } catch (failure) {
     swapError.value = apiMessage(failure, 'Remplacement impossible.')
-  } finally {
-    swapping.value = false
   }
 }
 
@@ -212,14 +208,13 @@ const plannedMinutes = computed(() => {
         Poser une séance ce jour-là
       </button>
 
-      <button
+      <UiActionButton
         v-if="manualDay"
-        type="button"
         class="btn btn-ghost self-stretch lean:self-start"
-        @click="restoreDay"
+        :action="restoreDay"
       >
         Rendre la journée au moteur
-      </button>
+      </UiActionButton>
       <p v-if="editError" class="text-[13px] text-warn">{{ editError }}</p>
     </div>
 
@@ -331,19 +326,18 @@ const plannedMinutes = computed(() => {
             <button type="button" class="btn btn-ghost flex-1" @click="editing = true">
               Remplacer
             </button>
-            <button type="button" class="btn btn-ghost flex-1" @click="cancelSession">
+            <UiActionButton class="btn btn-ghost flex-1" :action="cancelSession">
               Retirer du plan
-            </button>
+            </UiActionButton>
           </div>
 
-          <button
+          <UiActionButton
             v-if="manualDay"
-            type="button"
             class="btn btn-ghost self-stretch lean:self-start"
-            @click="restoreDay"
+            :action="restoreDay"
           >
             Rendre la journée au moteur
-          </button>
+          </UiActionButton>
           <p v-if="editError" class="text-[13px] text-warn">{{ editError }}</p>
         </div>
 
@@ -370,15 +364,14 @@ const plannedMinutes = computed(() => {
 
             <span class="text-[12px] text-text-dim">{{ givebackText }}</span>
 
-            <button
-              type="button"
+            <UiActionButton
               class="btn btn-ghost self-stretch lean:self-start"
-              :disabled="swapping"
-              @click="replaceWithRun"
+              icon="run"
+              :icon-size="15"
+              :action="replaceWithRun"
             >
-              <UiAppIcon name="run" :size="15" />
               Remplacer par une sortie course
-            </button>
+            </UiActionButton>
           </template>
 
           <span v-else-if="swap" class="text-[12px] text-text-dim">{{ swap.refusal }}</span>

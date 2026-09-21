@@ -86,11 +86,9 @@ function addSegment() {
   form.segments.push({ kmDebut: null, kmFin: null, mode: SegmentMode.Running, allure: '' })
 }
 
-const saving = ref(false)
 const error = ref('')
 
 async function save() {
-  saving.value = true
   error.value = ''
   try {
     await $fetch(`/api/races/${props.raceId}/result`, {
@@ -113,8 +111,6 @@ async function save() {
     emit('saved')
   } catch (failure) {
     error.value = apiMessage(failure, 'Enregistrement impossible.')
-  } finally {
-    saving.value = false
   }
 }
 </script>
@@ -231,8 +227,8 @@ async function save() {
 
     <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
 
-    <button type="button" class="btn btn-lg" :disabled="saving || resultatS <= 0" @click="save">
+    <UiActionButton class="btn btn-lg" :disabled="resultatS <= 0" :action="save">
       Enregistrer le résultat
-    </button>
+    </UiActionButton>
   </div>
 </template>

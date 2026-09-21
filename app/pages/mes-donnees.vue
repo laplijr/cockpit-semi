@@ -22,9 +22,7 @@ const { data: invitations, refresh: refreshInvitations } = await useFetch('/api/
 if (account.value?.owner) await refreshInvitations()
 
 const label = ref('')
-const creating = ref(false)
 const confirmation = ref('')
-const deleting = ref(false)
 const error = ref('')
 const copied = ref<number | null>(null)
 
@@ -32,7 +30,6 @@ const origin = computed(() => (import.meta.client ? window.location.origin : '')
 const linkFor = (token: string) => `${origin.value}/rejoindre/${token}`
 
 async function createInvitation() {
-  creating.value = true
   error.value = ''
   try {
     await $fetch('/api/invitations', { method: 'POST', body: { label: label.value || null } })
@@ -40,8 +37,6 @@ async function createInvitation() {
     await refreshInvitations()
   } catch (failure) {
     error.value = apiMessage(failure, 'Invitation impossible.')
-  } finally {
-    creating.value = false
   }
 }
 
@@ -56,7 +51,6 @@ async function copy(item: { id: number; token: string }) {
 }
 
 async function removeAccount() {
-  deleting.value = true
   error.value = ''
   try {
     await $fetch('/api/account', { method: 'DELETE', body: { login: confirmation.value } })
@@ -65,8 +59,6 @@ async function removeAccount() {
   } catch (failure) {
     error.value = apiMessage(failure, 'Suppression impossible.')
     await refresh()
-  } finally {
-    deleting.value = false
   }
 }
 </script>
@@ -132,9 +124,7 @@ async function removeAccount() {
           <span class="label text-[10.5px]">Pour qui (facultatif)</span>
           <input v-model="label" type="text" class="input" placeholder="Camille" />
         </label>
-        <button type="button" class="btn" :disabled="creating" @click="createInvitation">
-          Générer un lien
-        </button>
+        <UiActionButton class="btn" :action="createInvitation"> Générer un lien </UiActionButton>
       </div>
 
       <div
@@ -142,9 +132,13 @@ async function removeAccount() {
         :key="item.id"
         class="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-line-soft pt-2"
       >
-        <span class="text-[13px]">{{ item.label ?? 'Sans nom' }}</span>
+        <!-- Le sujet de la ligne est l'invitation, pas la personne : « Louise
+             utilisée par… » faisait porter l'accord sur le mauvais mot. -->
+        <span class="text-[13px]">
+          {{ item.label ? `Pour ${item.label}` : 'Sans destinataire' }}
+        </span>
         <span v-if="item.consumedAt" class="mono text-[12px] text-ok">
-          utilisée par {{ item.consumedLogin }}
+          compte ouvert : {{ item.consumedLogin }}
         </span>
         <span v-else class="mono text-[12px] text-text-dim">
           expire le {{ formatDate(String(item.expiresAt).slice(0, 10)) }}
@@ -153,7 +147,9 @@ async function removeAccount() {
           <button type="button" class="btn btn-ghost ml-auto" @click="copy(item)">
             {{ copied === item.id ? 'Lien copié' : 'Copier le lien' }}
           </button>
-          <button type="button" class="btn btn-ghost" @click="revoke(item.id)">Révoquer</button>
+          <UiActionButton class="btn btn-ghost" :action="() => revoke(item.id)">
+            Révoquer
+          </UiActionButton>
         </template>
       </div>
     </div>
@@ -175,14 +171,13 @@ async function removeAccount() {
             :placeholder="account?.login ?? ''"
           />
         </label>
-        <button
-          type="button"
+        <UiActionButton
           class="btn"
-          :disabled="deleting || confirmation.trim().toLowerCase() !== account?.login"
-          @click="removeAccount"
+          :disabled="confirmation.trim().toLowerCase() !== account?.login"
+          :action="removeAccount"
         >
           Supprimer définitivement
-        </button>
+        </UiActionButton>
       </div>
     </div>
 

@@ -171,11 +171,17 @@
     cursor: pointer;
   }
 
-  .btn:hover:not(:disabled) {
+  .btn:hover:not(:disabled):not([aria-disabled='true']) {
     background: var(--color-accent-hover);
   }
 
-  .btn:disabled {
+  /*
+   * Un bouton qui travaille se dit inactif par `aria-disabled` et jamais par
+   * `disabled`, qui lui ferait perdre le focus au milieu du geste (§ 8, P7.3).
+   * Les deux se ressemblent donc à l'œil.
+   */
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -187,7 +193,7 @@
     font-weight: 500;
   }
 
-  .btn-ghost:hover:not(:disabled) {
+  .btn-ghost:hover:not(:disabled):not([aria-disabled='true']) {
     background: var(--color-surface-raised);
     color: var(--color-text);
   }

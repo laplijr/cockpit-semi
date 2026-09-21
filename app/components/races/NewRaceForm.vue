@@ -25,7 +25,6 @@ const form = reactive({
 
 const levels = ref<ObjectiveLevelValues>({ ambitionS: null, realisticS: null, floorS: null })
 
-const saving = ref(false)
 const error = ref('')
 
 /** Meilleur résultat représentatif sur la distance choisie : la référence du mode record (§ 5). */
@@ -88,7 +87,6 @@ watch(
 const canSave = computed(() => form.name.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(form.date))
 
 async function save() {
-  saving.value = true
   error.value = ''
   try {
     await $fetch('/api/races', {
@@ -109,8 +107,6 @@ async function save() {
     emit('created')
   } catch (failure) {
     error.value = apiMessage(failure, 'Enregistrement impossible. Vérifie la date et la distance.')
-  } finally {
-    saving.value = false
   }
 }
 </script>
@@ -164,9 +160,9 @@ async function save() {
     <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
 
     <div class="flex items-center gap-3">
-      <button type="button" class="btn btn-lg" :disabled="saving || !canSave" @click="save">
+      <UiActionButton class="btn btn-lg" :disabled="!canSave" :action="save">
         Ajouter et régénérer le plan
-      </button>
+      </UiActionButton>
       <span class="text-[13px] text-text-dim">
         Chaque valeur reste modifiable avant l'enregistrement.
       </span>

@@ -48,7 +48,6 @@ const fitness = ref<FitnessStartValue>(emptyFitnessStart(state.value!.today))
 /** L'objectif se répond aussi par « aucune course » : c'est le cycle d'entretien (§ 5). */
 const noRace = ref(false)
 
-const saving = ref(false)
 const error = ref('')
 
 const hasRace = computed(() => (races.value ?? []).length > 0)
@@ -124,7 +123,6 @@ async function persist() {
 }
 
 async function next() {
-  saving.value = true
   error.value = ''
   try {
     await persist()
@@ -137,8 +135,6 @@ async function next() {
     step.value = (step.value + 1) as OnboardingStep
   } catch (failure) {
     error.value = apiMessage(failure, 'Enregistrement impossible.')
-  } finally {
-    saving.value = false
   }
 }
 
@@ -282,14 +278,9 @@ async function onRaceCreated() {
         >
           Retour
         </button>
-        <button
-          type="button"
-          class="btn btn-lg ml-auto"
-          :disabled="saving || !canAdvance"
-          @click="next"
-        >
+        <UiActionButton class="btn btn-lg ml-auto" :disabled="!canAdvance" :action="next">
           {{ isLast ? 'Générer mon plan' : 'Continuer' }}
-        </button>
+        </UiActionButton>
       </div>
 
       <p

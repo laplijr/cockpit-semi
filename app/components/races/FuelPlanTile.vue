@@ -11,19 +11,15 @@ interface FuelPlanView {
 const props = defineProps<{ raceId: number; fuelPlan: FuelPlanView | null }>()
 const emit = defineEmits<{ generated: [] }>()
 
-const generating = ref(false)
 const error = ref('')
 
 async function generate() {
-  generating.value = true
   error.value = ''
   try {
     await $fetch(`/api/races/${props.raceId}/fuel-plan`, { method: 'POST' })
     emit('generated')
   } catch (cause) {
     error.value = apiMessage(cause, 'Génération impossible.')
-  } finally {
-    generating.value = false
   }
 }
 </script>
@@ -37,15 +33,12 @@ async function generate() {
         <template v-if="fuelPlan.tempC !== null"> · {{ fuelPlan.tempC }} °C attendus</template>
       </span>
       <!-- Action secondaire : bouton fantôme dans la rangée qu'elle sert (§ 8). -->
-      <button
-        type="button"
+      <UiActionButton
         class="btn btn-ghost ml-auto size-9 shrink-0 p-0"
-        :disabled="generating"
+        icon="wand"
         :aria-label="fuelPlan ? 'Régénérer le plan ravito' : 'Générer le plan ravito'"
-        @click="generate"
-      >
-        <UiAppIcon name="wand" :size="16" />
-      </button>
+        :action="generate"
+      />
     </div>
 
     <p v-if="error" class="text-[12.5px] text-warn">{{ error }}</p>

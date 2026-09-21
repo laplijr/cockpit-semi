@@ -5,6 +5,10 @@ defineProps<{ pause: OpenPause }>()
 const emit = defineEmits<{ resume: [] }>()
 
 const plan = usePlanStore()
+/**
+ * Exception à la règle du § 8 : le libellé se réécrit. L'attente dure des
+ * secondes et le mot nomme ce qui se passe ; ailleurs, le dessin suffit.
+ */
 const pending = ref(false)
 
 async function resume() {
@@ -57,9 +61,9 @@ async function resume() {
     </div>
 
     <div>
-      <button type="button" class="btn" :disabled="pending" @click="resume">
+      <UiActionButton class="btn" :action="resume">
         {{ pending ? 'Régénération du plan…' : 'Marquer la reprise' }}
-      </button>
+      </UiActionButton>
     </div>
   </div>
 </template>

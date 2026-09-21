@@ -6,7 +6,6 @@ const props = defineProps<{ sessionId: number; distanceM: number }>()
 const { data, refresh } = await useFetch(() => `/api/sessions/${props.sessionId}/routes`)
 
 const address = ref('')
-const generating = ref(false)
 const error = ref('')
 const routing = useRoutingAvailable()
 /** Variante montrée : la mieux classée, jusqu'à ce qu'on en demande une autre. */
@@ -38,7 +37,6 @@ const offTarget = computed(
 const hilly = computed(() => rejections.value.includes(RouteRejection.TooHilly))
 
 async function suggest() {
-  generating.value = true
   error.value = ''
   try {
     await $fetch(`/api/sessions/${props.sessionId}/routes`, {
@@ -49,8 +47,6 @@ async function suggest() {
     await refresh()
   } catch (cause) {
     error.value = apiMessage(cause, 'Suggestion impossible.')
-  } finally {
-    generating.value = false
   }
 }
 </script>
@@ -73,14 +69,13 @@ async function suggest() {
         placeholder="Adresse de départ"
         aria-label="Adresse de départ"
       />
-      <button
-        type="button"
+      <UiActionButton
         class="btn shrink-0 self-stretch lean:self-auto"
-        :disabled="generating || address.length < 3"
-        @click="suggest"
+        :disabled="address.length < 3"
+        :action="suggest"
       >
         {{ routes.length > 0 ? 'Autre boucle' : 'Proposer' }}
-      </button>
+      </UiActionButton>
     </div>
 
     <p v-if="error" class="text-[12px] text-warn">{{ error }}</p>

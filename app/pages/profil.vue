@@ -28,7 +28,6 @@ const form = reactive({
   peakWeeklyVolumeM: athlete.value?.peakWeeklyVolumeM ?? 45000,
 })
 
-const saving = ref(false)
 const saved = ref(false)
 const photoError = ref('')
 
@@ -74,38 +73,33 @@ async function onPhoto(event: Event) {
 const canSave = computed(() => form.availableDays.length >= MIN_AVAILABLE_DAYS)
 
 async function save() {
-  saving.value = true
   saved.value = false
-  try {
-    await $fetch('/api/athlete', {
-      method: 'PUT',
-      body: {
-        firstName: form.firstName.trim() || null,
-        birthDate: form.birthDate || null,
-        profile: form.profile,
-        avatar: form.avatar,
-        weightKg: form.weightKg,
-        homeAddress: form.homeAddress.trim() || null,
-        maxHr: form.maxHr,
-        startWeeklyVolumeM: form.startWeeklyVolumeM,
-        peakWeeklyVolumeM: form.peakWeeklyVolumeM,
-        constraints: {
-          availableDays: [...form.availableDays].sort((a, b) => a - b),
-          longRunDay: form.longRunDay,
-          easyDays: [...form.easyDays].sort((a, b) => a - b),
-          sports: form.sports,
-          ...(form.runsPerWeek ? { runsPerWeek: form.runsPerWeek } : {}),
-        },
+  await $fetch('/api/athlete', {
+    method: 'PUT',
+    body: {
+      firstName: form.firstName.trim() || null,
+      birthDate: form.birthDate || null,
+      profile: form.profile,
+      avatar: form.avatar,
+      weightKg: form.weightKg,
+      homeAddress: form.homeAddress.trim() || null,
+      maxHr: form.maxHr,
+      startWeeklyVolumeM: form.startWeeklyVolumeM,
+      peakWeeklyVolumeM: form.peakWeeklyVolumeM,
+      constraints: {
+        availableDays: [...form.availableDays].sort((a, b) => a - b),
+        longRunDay: form.longRunDay,
+        easyDays: [...form.easyDays].sort((a, b) => a - b),
+        sports: form.sports,
+        ...(form.runsPerWeek ? { runsPerWeek: form.runsPerWeek } : {}),
       },
-    })
-    await refresh()
-    /** La navigation lit les sports déclarés : elle suit l'enregistrement (§ 9, P8.2). */
-    await athleteStore.load()
-    replaced.value = null
-    saved.value = true
-  } finally {
-    saving.value = false
-  }
+    },
+  })
+  await refresh()
+  /** La navigation lit les sports déclarés : elle suit l'enregistrement (§ 9, P8.2). */
+  await athleteStore.load()
+  replaced.value = null
+  saved.value = true
 }
 
 async function logout() {
@@ -248,14 +242,14 @@ async function logout() {
     </div>
 
     <div class="flex items-center gap-3">
-      <button type="button" class="btn btn-lg" :disabled="saving || !canSave" @click="save">
+      <UiActionButton class="btn btn-lg" :disabled="!canSave" :action="save">
         Enregistrer et régénérer le plan
-      </button>
+      </UiActionButton>
       <span v-if="!canSave" class="text-[13px] text-text-dim">
         Choisis au moins {{ MIN_AVAILABLE_DAYS }} jours.
       </span>
       <span v-else-if="saved" class="text-[13px] text-ok">Plan régénéré.</span>
-      <button type="button" class="btn btn-ghost ml-auto" @click="logout">Se déconnecter</button>
+      <UiActionButton class="btn btn-ghost ml-auto" :action="logout">Se déconnecter</UiActionButton>
     </div>
   </div>
 </template>

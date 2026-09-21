@@ -26,6 +26,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const query = ref('')
 const fields = ref<LookupFields | null>(null)
+/** Sert le libellé et la phrase qui prévient des deux minutes : il reste. */
 const pending = ref(false)
 const error = ref('')
 
@@ -69,14 +70,9 @@ async function search() {
     </label>
 
     <div>
-      <button
-        type="button"
-        class="btn"
-        :disabled="pending || query.trim().length < 3"
-        @click="search"
-      >
+      <UiActionButton class="btn" :disabled="query.trim().length < 3" :action="search">
         {{ pending ? 'Recherche…' : 'Chercher' }}
-      </button>
+      </UiActionButton>
     </div>
 
     <p class="text-[12px] text-text-dim">

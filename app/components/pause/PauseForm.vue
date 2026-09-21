@@ -25,6 +25,10 @@ const form = reactive({
   notes: '',
 })
 
+/**
+ * Exception à la règle du § 8 : le libellé se réécrit. L'attente dure des
+ * secondes et le mot nomme ce qui se passe ; ailleurs, le dessin suffit.
+ */
 const pending = ref(false)
 const error = ref('')
 
@@ -130,8 +134,8 @@ async function declare() {
 
     <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
 
-    <button type="button" class="btn btn-lg" :disabled="pending" @click="declare">
+    <UiActionButton class="btn btn-lg" :action="declare">
       {{ pending ? 'Régénération du plan…' : 'Déclarer la pause et régénérer le plan' }}
-    </button>
+    </UiActionButton>
   </div>
 </template>

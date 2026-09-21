@@ -4,6 +4,7 @@ definePageMeta({ layout: false })
 const login = ref('')
 const password = ref('')
 const error = ref('')
+/** Verrou du chemin clavier : Entrée passe par le formulaire, pas par le bouton. */
 const pending = ref(false)
 const { fetch: refreshSession } = useUserSession()
 
@@ -45,9 +46,15 @@ async function submit() {
         <input v-model="password" type="password" class="input" autocomplete="current-password" />
       </label>
       <span v-if="error" class="text-[13px] text-warn">{{ error }}</span>
-      <button type="submit" class="btn btn-lg" :disabled="pending || !login || !password">
+      <UiActionButton
+        type="submit"
+        class="btn btn-lg"
+        :disabled="!login || !password"
+        :pending="pending"
+        :action="submit"
+      >
         Entrer
-      </button>
+      </UiActionButton>
       <p class="text-[12px] text-text-dim">
         Pas de mot de passe oublié : le cockpit est fermé, une nouvelle invitation le remplace.
       </p>

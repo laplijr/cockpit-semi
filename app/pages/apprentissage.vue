@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { data, refresh } = await useFetch('/api/learning')
 
+/** Verrou de rangée : l'habitude qu'on décide, pas le bouton qui la décide. */
 const busy = ref(0)
 
 const habits = computed(() => data.value?.habits ?? [])
@@ -68,22 +69,20 @@ async function decide(id: number, status: string) {
         </div>
 
         <div class="flex shrink-0 gap-2">
-          <button
-            type="button"
+          <UiActionButton
             class="btn btn-ghost"
-            :disabled="busy === item.id"
-            @click="decide(item.id, 'acceptee')"
+            :pending="busy === item.id"
+            :action="() => decide(item.id, 'acceptee')"
           >
             Accepter
-          </button>
-          <button
-            type="button"
+          </UiActionButton>
+          <UiActionButton
             class="btn btn-ghost"
-            :disabled="busy === item.id"
-            @click="decide(item.id, 'refusee')"
+            :pending="busy === item.id"
+            :action="() => decide(item.id, 'refusee')"
           >
             Refuser
-          </button>
+          </UiActionButton>
         </div>
       </div>
 
@@ -108,14 +107,13 @@ async function decide(id: number, status: string) {
               {{ Math.round(item.confidence * 100) }} %
             </span>
           </div>
-          <button
-            type="button"
+          <UiActionButton
             class="btn btn-ghost shrink-0"
-            :disabled="busy === item.id"
-            @click="decide(item.id, 'detectee')"
+            :pending="busy === item.id"
+            :action="() => decide(item.id, 'detectee')"
           >
             Retirer
-          </button>
+          </UiActionButton>
         </div>
 
         <UiPager v-model="appliedPage.page" :total="appliedPage.total" :per-page="PER_PAGE" />
@@ -197,14 +195,13 @@ async function decide(id: number, status: string) {
         class="flex items-center gap-3 border-t border-line-soft py-2 first:border-t-0"
       >
         <span class="min-w-0 flex-1 text-[13px] text-text-dim">{{ item.statement }}</span>
-        <button
-          type="button"
+        <UiActionButton
           class="btn btn-ghost ml-auto shrink-0"
-          :disabled="busy === item.id"
-          @click="decide(item.id, 'detectee')"
+          :pending="busy === item.id"
+          :action="() => decide(item.id, 'detectee')"
         >
           Remettre à décider
-        </button>
+        </UiActionButton>
       </div>
 
       <UiPager v-model="refusedPage.page" :total="refusedPage.total" :per-page="PER_PAGE" />

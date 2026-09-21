@@ -9,6 +9,7 @@ const token = computed(() => String(route.params.token))
 const login = ref('')
 const password = ref('')
 const error = ref('')
+/** Verrou du chemin clavier : Entrée passe par le formulaire, pas par le bouton. */
 const pending = ref(false)
 /**
  * Le compte vient d'être ouvert : la session passe à « connectée » avant que
@@ -90,9 +91,15 @@ async function submit() {
           </span>
         </label>
         <span v-if="error" class="text-[13px] text-warn">{{ error }}</span>
-        <button type="submit" class="btn btn-lg" :disabled="pending || !canSubmit">
+        <UiActionButton
+          type="submit"
+          class="btn btn-lg"
+          :disabled="!canSubmit"
+          :pending="pending"
+          :action="submit"
+        >
           Créer mon compte
-        </button>
+        </UiActionButton>
       </template>
     </form>
   </div>

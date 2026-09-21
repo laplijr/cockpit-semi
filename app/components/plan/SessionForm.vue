@@ -82,11 +82,9 @@ watchEffect(async () => {
 
 const impact = computed(() => (preview.value?.ok ? preview.value.impact : undefined))
 
-const saving = ref(false)
 const error = ref('')
 
 async function save() {
-  saving.value = true
   error.value = ''
   try {
     if (replacing.value) {
@@ -100,8 +98,6 @@ async function save() {
     emit('saved')
   } catch (failure) {
     error.value = apiMessage(failure, 'Enregistrement impossible.')
-  } finally {
-    saving.value = false
   }
 }
 </script>
@@ -166,13 +162,8 @@ async function save() {
     <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
 
     <!-- Fantôme : la fenêtre garde le retour de séance comme action principale (§ 8). -->
-    <button
-      type="button"
-      class="btn btn-ghost self-stretch lean:self-start"
-      :disabled="saving"
-      @click="save"
-    >
+    <UiActionButton class="btn btn-ghost self-stretch lean:self-start" :action="save">
       {{ replacing ? 'Remplacer la séance' : 'Ajouter la séance' }}
-    </button>
+    </UiActionButton>
   </div>
 </template>

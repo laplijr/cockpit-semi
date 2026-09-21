@@ -7,6 +7,10 @@ const { data, refresh } = await useFetch('/api/nutrition/meal-plan', {
   query: { date: computed(() => props.date) },
 })
 
+/**
+ * Exception à la règle du § 8 : le libellé se réécrit. L'attente dure des
+ * secondes et le mot nomme ce qui se passe ; ailleurs, le dessin suffit.
+ */
 const asking = ref(false)
 const error = ref('')
 const llm = useLlmAvailable()
@@ -39,29 +43,20 @@ async function ask() {
         ><UiInfoHint term="repasDuJour">Repas du jour</UiInfoHint></span
       >
       <!-- Ouvrir le jour ne génère rien : seul ce geste appelle le modèle (§ 1). -->
-      <button
+      <UiActionButton
         v-if="data?.meals && llm"
-        type="button"
         class="btn btn-ghost ml-auto size-9 shrink-0 p-0"
-        :disabled="asking"
+        icon="wand"
         aria-label="Régénérer les repas du jour"
-        @click="ask"
-      >
-        <UiAppIcon name="wand" :size="16" />
-      </button>
+        :action="ask"
+      />
     </div>
 
     <p v-if="error" class="text-[12.5px] text-warn">{{ error }}</p>
 
-    <button
-      v-else-if="!data?.meals && llm"
-      type="button"
-      class="btn self-start"
-      :disabled="asking"
-      @click="ask"
-    >
+    <UiActionButton v-else-if="!data?.meals && llm" class="btn self-start" :action="ask">
       {{ asking ? 'Génération…' : 'Demander le plan de nutrition' }}
-    </button>
+    </UiActionButton>
 
     <div
       v-for="meal in data?.meals ?? []"

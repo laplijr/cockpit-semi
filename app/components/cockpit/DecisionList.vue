@@ -7,7 +7,6 @@ const props = withDefaults(defineProps<{ limit?: number }>(), { limit: 0 })
 const proposals = usePropositionsStore()
 const plan = usePlanStore()
 const ui = useUiStore()
-const applying = ref(false)
 
 const visible = computed(() =>
   props.limit > 0 ? proposals.groups.slice(0, props.limit) : proposals.groups,
@@ -59,13 +58,8 @@ function sportOf(group: ProposalGroup): string | null {
 }
 
 async function apply() {
-  applying.value = true
-  try {
-    await proposals.applySelected()
-    await plan.load()
-  } finally {
-    applying.value = false
-  }
+  await proposals.applySelected()
+  await plan.load()
 }
 </script>
 
@@ -94,15 +88,9 @@ async function apply() {
          (§ 8, P6.35). -->
     <div class="flex min-h-[32px] items-center gap-3">
       <span class="label">À décider</span>
-      <button
-        v-if="proposals.selected.length > 0"
-        type="button"
-        class="btn ml-auto"
-        :disabled="applying"
-        @click="apply"
-      >
+      <UiActionButton v-if="proposals.selected.length > 0" class="btn ml-auto" :action="apply">
         Appliquer {{ proposals.selected.length }}
-      </button>
+      </UiActionButton>
     </div>
 
     <!-- Le compteur est le chiffre de la tuile : il dit d'un coup combien de

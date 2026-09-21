@@ -31,6 +31,10 @@ const SCOPE_LABELS: Record<string, string> = {
 const text = ref('')
 const draftId = ref<number | null>(null)
 const events = ref<UnplannedEvent[]>([])
+/**
+ * Exception à la règle du § 8 : le libellé se réécrit. L'attente dure des
+ * secondes et le mot nomme ce qui se passe ; ailleurs, le dessin suffit.
+ */
 const pending = ref(false)
 const error = ref('')
 
@@ -110,14 +114,9 @@ onMounted(async () => {
     </p>
 
     <div v-if="draftId === null">
-      <button
-        type="button"
-        class="btn btn-lg"
-        :disabled="pending || text.trim().length < 3"
-        @click="interpret"
-      >
+      <UiActionButton class="btn btn-lg" :disabled="text.trim().length < 3" :action="interpret">
         {{ pending ? 'Lecture…' : 'Lire le texte' }}
-      </button>
+      </UiActionButton>
     </div>
 
     <template v-if="events.length > 0">
@@ -191,9 +190,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <button type="button" class="btn btn-lg" :disabled="pending" @click="confirm">
-        Confirmer
-      </button>
+      <UiActionButton class="btn btn-lg" :action="confirm">Confirmer</UiActionButton>
     </template>
 
     <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>

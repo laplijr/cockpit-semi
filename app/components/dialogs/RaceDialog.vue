@@ -113,6 +113,10 @@ const regenerates = computed(
  */
 const mode = ref<'result' | 'edit'>(race.value?.awaitingResult ? 'result' : 'edit')
 
+/**
+ * Verrou de rangée et non état de bouton : pendant qu'Enregistrer travaille,
+ * Supprimer se verrouille sans prétendre travailler (§ 8, P7.3).
+ */
 const saving = ref(false)
 const error = ref('')
 const confirmingDelete = ref(false)
@@ -313,15 +317,15 @@ async function remove() {
       <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
 
       <div class="flex items-center gap-3">
-        <button type="button" class="btn btn-lg" :disabled="saving" @click="save">
+        <UiActionButton class="btn btn-lg" :pending="saving" :action="save">
           Enregistrer
-        </button>
+        </UiActionButton>
 
         <template v-if="confirmingDelete">
           <span class="ml-auto text-[13px] text-warn">Supprimer cette course ?</span>
-          <button type="button" class="btn btn-ghost" :disabled="saving" @click="remove">
+          <UiActionButton class="btn btn-ghost" :pending="saving" :action="remove">
             Oui, supprimer
-          </button>
+          </UiActionButton>
           <button type="button" class="btn btn-ghost" @click="confirmingDelete = false">
             Annuler
           </button>
