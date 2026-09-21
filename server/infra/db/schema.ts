@@ -18,6 +18,8 @@ import { ForecastTarget } from '../../domain/fitness/accuracy'
 import { FitnessOrigin } from '../../domain/fitness/fitness-point'
 import { Sensation, type Pain } from '../../domain/load/feedback'
 import { PauseType, type PauseAllowances } from '../../domain/pause/pause'
+import type { GeoFix } from '../../domain/tracking/fix'
+import { RunStatus } from '../../domain/tracking/run'
 import { ProposalStatus, ProposalTrigger } from '../../domain/rules/proposal-status'
 import type { UnplannedEvent } from '../../domain/unplanned/events'
 import { UnplannedStatus } from '../../domain/unplanned/events'
@@ -95,6 +97,7 @@ export const habitTypeEnum = pgEnum('habit_type', enumValues(HabitType))
 export const habitStatusEnum = pgEnum('habit_status', enumValues(HabitStatus))
 export const externalCallEnum = pgEnum('external_call', enumValues(ExternalCall))
 export const postSourceEnum = pgEnum('post_source', enumValues(PostSource))
+export const runStatusEnum = pgEnum('run_status', enumValues(RunStatus))
 
 /** Conserve les types littéraux de l'énumération pour que Drizzle les propage. */
 function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], ...T[keyof T][]] {
@@ -131,7 +134,7 @@ export const athlete = pgTable('athlete', {
   peakWeeklyVolumeM: integer('peak_weekly_volume_m'),
   onboarded: boolean('onboarded').notNull().default(false),
   /**
-   * Appartenance au cercle, **vraie par défaut** (§ 4, P9). Il n'y a pas de
+   * Appartenance au cercle, **vraie par défaut** (§ 4, P10). Il n'y a pas de
    * table `circle` : le cercle est l'ensemble des athlètes dont la colonne
    * est vraie. Appartenir n'est pas publier — le défaut n'ouvre que la
    * lecture, et quitter ferme l'appartenance sans rien détruire.
@@ -377,6 +380,32 @@ export const activity = pgTable(
   (table) => [unique('activity_external').on(table.athleteId, table.externalId)],
 )
 
+/**
+ * Une sortie courue dans l'app (§ 9, P10). Les relevés bruts y sont écrits au
+ * fil de la course : c'est ce qui permet de reprendre une sortie après un
+ * onglet rechargé, et de la terminer plus tard si le réseau refuse.
+ */
+export const run = pgTable('run', {
+  id: serial('id').primaryKey(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
+  /** Nulle pour une sortie libre, hors de toute séance prévue. */
+  sessionId: integer('session_id').references(() => session.id, { onDelete: 'set null' }),
+  status: runStatusEnum('status').notNull().default(RunStatus.Live),
+  /** Date locale de l'appareil : lui seul connaît le fuseau de la sortie. */
+  date: date('date').notNull(),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+  endedAt: timestamp('ended_at', { withTimezone: true }),
+  fixes: jsonb('fixes').$type<GeoFix[]>().notNull().default([]),
+  distanceM: real('distance_m'),
+  durationS: integer('duration_s'),
+  elevationGainM: real('elevation_gain_m'),
+  /** Activité produite à la fin ; nulle tant que la sortie n'est pas enregistrée. */
+  activityId: integer('activity_id').references(() => activity.id, { onDelete: 'set null' }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const feedback = pgTable('feedback', {
   id: serial('id').primaryKey(),
   sessionId: integer('session_id')
@@ -539,7 +568,7 @@ export const apiUsage = pgTable(
 )
 
 /**
- * Une publication au cercle (§ 4, P9). C'est la seule table du schéma qui se
+ * Une publication au cercle (§ 4, P10). C'est la seule table du schéma qui se
  * lit d'un athlète à l'autre, et elle ne porte qu'un **instantané** : le post
  * est une copie, jamais une jointure vers la séance. Modifier ou supprimer
  * celle-ci ne réécrit pas ce que les autres ont lu, et le fil ne touche alors

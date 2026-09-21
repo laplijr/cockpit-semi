@@ -1,5 +1,10 @@
-import { and, eq, gte, inArray, lte } from 'drizzle-orm'
-import type { ActivityImportGateway, ActivityRow } from '../../application/import-activities'
+import { and, eq, gte, inArray, like, lte } from 'drizzle-orm'
+import type {
+  ActivityImportGateway,
+  ActivityRow,
+  CapturedOuting,
+} from '../../application/import-activities'
+import { RUN_EXTERNAL_PREFIX } from '../../application/record-run'
 import type { CandidateSession } from '../../domain/matching/match-activity'
 import type { IsoDate } from '../../domain/plan/calendar'
 import { SessionStatus } from '../../domain/plan/session'
@@ -21,6 +26,22 @@ export function createActivityImportGateway(
         .from(activity)
         .where(and(eq(activity.athleteId, athleteId), inArray(activity.externalId, ids)))
       return rows.map((row) => row.externalId)
+    },
+
+    /** Sorties capturées dans l'app : leur identifiant externe les signe (§ 9, P10). */
+    async capturedOutings(from: IsoDate, to: IsoDate): Promise<CapturedOuting[]> {
+      const rows = await db
+        .select({ sport: activity.sport, date: activity.date, durationS: activity.durationS })
+        .from(activity)
+        .where(
+          and(
+            eq(activity.athleteId, athleteId),
+            gte(activity.date, from),
+            lte(activity.date, to),
+            like(activity.externalId, `${RUN_EXTERNAL_PREFIX}%`),
+          ),
+        )
+      return rows
     },
 
     async maxHeartRate(): Promise<number | null> {
@@ -52,8 +73,8 @@ export function createActivityImportGateway(
       }))
     },
 
-    async saveActivity(row: ActivityRow): Promise<void> {
-      await db.insert(activity).values({
+    async saveActivity(row: ActivityRow): Promise<number> {
+      const values = {
         athleteId,
         externalId: row.externalId,
         name: null,
@@ -70,7 +91,20 @@ export function createActivityImportGateway(
         elevationGainM: row.elevationGainM,
         rpe: row.rpe,
         sessionId: row.sessionId,
-      })
+      }
+
+      /**
+       * Une sortie capturée dans l'app se termine parfois deux fois — un
+       * enregistrement refusé par le réseau, repris plus tard : l'identifiant
+       * externe la reconnaît et la ligne est mise à jour au lieu d'échouer.
+       */
+      const [row_] = await db
+        .insert(activity)
+        .values(values)
+        .onConflictDoUpdate({ target: [activity.athleteId, activity.externalId], set: values })
+        .returning({ id: activity.id })
+
+      return row_!.id
     },
 
     async sessionCode(sessionId: number): Promise<string | undefined> {

@@ -6,6 +6,7 @@ import {
   importActivities,
   type ActivityImportGateway,
   type ActivityRow,
+  type CapturedOuting,
   type DecodedFile,
 } from '~~/server/application/import-activities'
 import type { FeedbackGateway, FeedbackInput } from '~~/server/application/record-feedback'
@@ -70,7 +71,11 @@ interface Spy {
   recomputed: string[]
 }
 
-function spy(sessions: CandidateSession[] = [], known: string[] = []): Spy {
+function spy(
+  sessions: CandidateSession[] = [],
+  known: string[] = [],
+  captured: CapturedOuting[] = [],
+): Spy {
   const saved: ActivityRow[] = []
   const recorded: FeedbackInput[] = []
   const recomputed: string[] = []
@@ -81,9 +86,10 @@ function spy(sessions: CandidateSession[] = [], known: string[] = []): Spy {
     recomputed,
     gateway: {
       knownExternalIds: async (ids) => ids.filter((id) => known.includes(id)),
+      capturedOutings: async () => captured,
       maxHeartRate: async () => 185,
       candidateSessions: async () => sessions,
-      saveActivity: async (row) => void saved.push(row),
+      saveActivity: async (row) => saved.push(row),
       sessionCode: async () => 'EF',
       recomputeLoad: async (date) => void recomputed.push(date),
     },
@@ -188,6 +194,27 @@ describe('import d’un lot d’activités (§ 9, P6.7)', () => {
 
     expect(report.linked).toBe(1)
     expect(report.unplanned).toBe(1)
+  })
+
+  it('reconnaît une sortie déjà courue dans le cockpit et ne la compte pas deux fois', async () => {
+    const tools = spy(planned, [], [{ sport: Sport.Running, date: '2027-03-01', durationS: 3500 }])
+    const report = await importActivities(tools.gateway, tools.feedback, fixedClock(TODAY), [
+      fileNamed('2027-03-01-08-00-00.fit', fitActivity()),
+    ])
+
+    expect(report.duplicates).toBe(1)
+    expect(report.unplanned).toBe(0)
+    expect(tools.saved).toHaveLength(0)
+  })
+
+  it('n’écarte pas une sortie de durée franchement différente le même jour', async () => {
+    const tools = spy(planned, [], [{ sport: Sport.Running, date: '2027-03-01', durationS: 1200 }])
+    const report = await importActivities(tools.gateway, tools.feedback, fixedClock(TODAY), [
+      fileNamed('2027-03-01-08-00-00.fit', fitActivity()),
+    ])
+
+    expect(report.duplicates).toBe(0)
+    expect(report.linked).toBe(1)
   })
 
   it('traverse un lot mixte sans qu’un fichier corrompu arrête les autres', async () => {

@@ -16,6 +16,27 @@ export interface ImportedActivity {
   averageHr?: number | null
 }
 
+/**
+ * Écart de durée sous lequel deux activités du même jour et du même sport sont
+ * la même sortie. Depuis P10 une séance peut être courue dans l'app puis
+ * réimportée depuis la montre : sans cette reconnaissance, la séance étant
+ * déjà faite, le fichier tomberait « hors plan » et la charge du jour
+ * compterait la sortie deux fois.
+ */
+export const SAME_OUTING_TOLERANCE = 0.1
+
+export function isSameOuting(
+  activity: Pick<ImportedActivity, 'sport' | 'date' | 'durationS'>,
+  known: Pick<ImportedActivity, 'sport' | 'date' | 'durationS'>,
+): boolean {
+  if (activity.sport !== known.sport || activity.date !== known.date) return false
+
+  const longest = Math.max(activity.durationS, known.durationS)
+  if (longest <= 0) return false
+
+  return Math.abs(activity.durationS - known.durationS) / longest <= SAME_OUTING_TOLERANCE
+}
+
 export interface CandidateSession {
   id: number
   date: IsoDate

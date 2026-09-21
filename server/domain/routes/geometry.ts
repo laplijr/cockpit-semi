@@ -34,8 +34,12 @@ export function totalDistance(points: GeoPoint[]): number {
   )
 }
 
-/** Somme des montées, une fois le bruit d'altitude filtré. */
-export function elevationGain(points: GeoPoint[]): number {
+/**
+ * Somme des montées, une fois le bruit d'altitude filtré. Le seuil se règle :
+ * un service de routage se trompe de deux mètres, un GPS de téléphone de bien
+ * plus (§ 9, P10).
+ */
+export function elevationGain(points: GeoPoint[], noiseM = ELEVATION_NOISE_M): number {
   let gain = 0
   let reference: number | undefined
 
@@ -47,7 +51,7 @@ export function elevationGain(points: GeoPoint[]): number {
     }
 
     const rise = point.elevationM - reference
-    if (rise >= ELEVATION_NOISE_M) {
+    if (rise >= noiseM) {
       gain += rise
       reference = point.elevationM
     } else if (rise < 0) {

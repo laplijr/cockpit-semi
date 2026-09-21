@@ -1,4 +1,4 @@
-import { estimateRpe, matchActivity } from '../domain/matching/match-activity'
+import { estimateRpe, isSameOuting, matchActivity } from '../domain/matching/match-activity'
 import type { CandidateSession } from '../domain/matching/match-activity'
 import { addDays, type IsoDate } from '../domain/plan/calendar'
 import type { Sport } from '../domain/shared/sport'
@@ -37,13 +37,28 @@ export interface ActivityRow extends ImportedActivityFile {
   sessionId: number | null
 }
 
+/** Une sortie déjà enregistrée, réduite à ce qui permet de la reconnaître. */
+export interface CapturedOuting {
+  sport: Sport
+  date: IsoDate
+  durationS: number
+}
+
 export interface ActivityImportGateway {
   /** Identifiants déjà en base : ils rendent l'import idempotent. */
   knownExternalIds(ids: string[]): Promise<string[]>
+  /**
+   * Sorties déjà capturées dans l'app sur la période (§ 9, P10). Le même
+   * entraînement peut être couru dans le cockpit puis réimporté depuis la
+   * montre : c'est la seule façon de le reconnaître, l'identifiant du fichier
+   * n'ayant rien à voir avec celui de la capture.
+   */
+  capturedOutings(from: IsoDate, to: IsoDate): Promise<CapturedOuting[]>
   /** FC maximale déclarée, qui sert à déduire l'effort depuis la FC moyenne. */
   maxHeartRate(): Promise<number | null>
   candidateSessions(from: IsoDate, to: IsoDate): Promise<CandidateSession[]>
-  saveActivity(row: ActivityRow): Promise<void>
+  /** Rend l'identifiant de l'activité écrite : une sortie capturée s'y rattache. */
+  saveActivity(row: ActivityRow): Promise<number>
   /** Code de la séance rattachée : l'écran le traduit, le serveur ne le fait pas. */
   sessionCode(sessionId: number): Promise<string | undefined>
   recomputeLoad(date: IsoDate): Promise<void>
@@ -111,9 +126,10 @@ export async function importActivities(
     await gateway.knownExternalIds(readable.map((file) => file.activity.externalId)),
   )
   const dates = readable.map((file) => file.activity.date).sort()
-  const [maxHr, candidates] = await Promise.all([
+  const [maxHr, candidates, captured] = await Promise.all([
     gateway.maxHeartRate(),
     gateway.candidateSessions(addDays(dates[0]!, -1), addDays(dates.at(-1)!, 1)),
+    gateway.capturedOutings(dates[0]!, dates.at(-1)!),
   ])
 
   const matched = new Set<number>()
@@ -127,6 +143,12 @@ export async function importActivities(
       continue
     }
     known.add(activity.externalId)
+
+    /** Déjà courue dans le cockpit : le fichier de la montre la redit (§ 9, P10). */
+    if (captured.some((outing) => isSameOuting(activity, outing))) {
+      lines.push({ file: file.name, outcome: ImportOutcome.Duplicate, ...summary(activity) })
+      continue
+    }
 
     const result = matchActivity(
       activity,

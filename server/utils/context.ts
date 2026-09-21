@@ -4,6 +4,9 @@ import { createClock } from '../domain/shared/clock'
 import { useDatabase } from '../infra/db/client'
 import { createPlanGateway } from '../infra/db/plan-gateway'
 import { createRouteGateway } from '../infra/db/route-gateway'
+import { createRunGateway } from '../infra/db/run-gateway'
+import { createActivityImportGateway } from '../infra/db/activity-repository'
+import { createFeedbackGateway } from '../infra/db/feedback-gateway'
 import { createRoutingService } from '../infra/routing/openrouteservice'
 import { athlete } from '../infra/db/schema'
 
@@ -62,6 +65,23 @@ export function planGateway(athleteId: number) {
 
 export function routeGateway(athleteId: number) {
   return createRouteGateway(useDatabase(), athleteId)
+}
+
+export function runGateway(athleteId: number) {
+  return createRunGateway(useDatabase(), athleteId)
+}
+
+/**
+ * Les trois portes d'une fin de sortie : la sortie elle-même, l'activité
+ * qu'elle produit, et le ressenti qui fait passer la séance à « faite ».
+ */
+export function runGateways(athleteId: number) {
+  const db = useDatabase()
+  return {
+    runs: createRunGateway(db, athleteId),
+    activities: createActivityImportGateway(db, athleteId),
+    feedback: createFeedbackGateway(db, athleteId),
+  }
 }
 
 export function routingService() {
