@@ -19,16 +19,36 @@ describe('saisie du niveau de course (§ 9, P8.2)', () => {
     expect(fitnessStartBody(BLANK)).toEqual({ kind: FitnessDeclaration.Unknown })
   })
 
-  it('compose le chrono à partir des trois champs', () => {
-    const value = { ...BLANK, hours: 1, minutes: 42, seconds: 17 }
-    expect(chronoSeconds(value)).toBe(3600 + 42 * 60 + 17)
+  it('lit le chrono d’un seul champ : trois nombres font des heures', () => {
+    const at = (text: string) => chronoSeconds({ ...BLANK, chrono: text })
+
+    expect(at('1:42:17')).toBe(3600 + 42 * 60 + 17)
+    expect(at('1h42:17')).toBe(3600 + 42 * 60 + 17)
+    expect(at(' 2.05.00 ')).toBe(2 * 3600 + 5 * 60)
+  })
+
+  it('lit deux nombres comme des minutes et des secondes', () => {
+    const at = (text: string) => chronoSeconds({ ...BLANK, chrono: text })
+
+    expect(at('47:20')).toBe(47 * 60 + 20)
+    expect(at('112:30')).toBe(112 * 60 + 30)
+  })
+
+  it('refuse un chrono illisible, nul ou aux minutes impossibles', () => {
+    const at = (text: string) => chronoSeconds({ ...BLANK, chrono: text })
+
+    expect(at('')).toBeNull()
+    expect(at('4720')).toBeNull()
+    expect(at('47:75')).toBeNull()
+    expect(at('1:75:00')).toBeNull()
+    expect(at('0:00')).toBeNull()
   })
 
   it('refuse un chrono vide et accepte un chrono daté', () => {
     const empty = { ...BLANK, kind: FitnessDeclaration.Chrono }
     expect(fitnessStartIsAnswered(empty)).toBe(false)
 
-    const filled = { ...empty, minutes: 56, seconds: 40, date: '2026-06-21' }
+    const filled = { ...empty, chrono: '56:40', date: '2026-06-21' }
     expect(fitnessStartIsAnswered(filled)).toBe(true)
     expect(fitnessStartBody(filled)).toEqual({
       kind: FitnessDeclaration.Chrono,

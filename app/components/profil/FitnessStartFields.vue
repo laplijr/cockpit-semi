@@ -33,7 +33,7 @@ const CHOICES = [
 const preview = computed(() => {
   if (!fitnessStartIsAnswered(value.value)) return null
   if (value.value.kind === FitnessDeclaration.Chrono) {
-    return vdotFromRace(value.value.distanceM, chronoSeconds(value.value))
+    return vdotFromRace(value.value.distanceM, chronoSeconds(value.value)!)
   }
   if (value.value.kind === FitnessDeclaration.EasyPace) {
     return vdotFromEasyPace(easyPaceSeconds(value.value)!)
@@ -75,38 +75,16 @@ const previewLabel = computed(() => {
           </option>
         </select>
       </label>
-      <div class="flex flex-col gap-[6px]">
+      <label class="flex flex-col gap-[6px]">
         <span class="label text-[10.5px]">Chrono</span>
-        <div class="flex items-center gap-2">
-          <input
-            v-model.number="value.hours"
-            type="number"
-            min="0"
-            max="9"
-            class="input mono w-full"
-            aria-label="Heures"
-            placeholder="h"
-          />
-          <input
-            v-model.number="value.minutes"
-            type="number"
-            min="0"
-            max="59"
-            class="input mono w-full"
-            aria-label="Minutes"
-            placeholder="min"
-          />
-          <input
-            v-model.number="value.seconds"
-            type="number"
-            min="0"
-            max="59"
-            class="input mono w-full"
-            aria-label="Secondes"
-            placeholder="s"
-          />
-        </div>
-      </div>
+        <input
+          v-model="value.chrono"
+          type="text"
+          inputmode="numeric"
+          class="input mono"
+          placeholder="1:42:17"
+        />
+      </label>
       <label class="flex flex-col gap-[6px]">
         <span class="label text-[10.5px]">Date de la course</span>
         <input v-model="value.date" type="date" class="input mono" />
