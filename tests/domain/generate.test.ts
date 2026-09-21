@@ -182,3 +182,24 @@ describe('pause ouverte sans date de reprise (§ 5)', () => {
     expect(plan.weeks.every((week) => week.targetRunM > 0)).toBe(true)
   })
 })
+
+describe('plan sans course et sans point de forme (§ 5)', () => {
+  it('produit un cycle d’entretien de douze semaines pleines quand aucune course n’est inscrite', () => {
+    const plan = generatePlan({ ...BASE, races: [] })
+
+    expect(plan.weeks).toHaveLength(12)
+    expect(plan.weeks.every((week) => week.sessions.length > 0)).toBe(true)
+    expect(plan.weeks.every((week) => week.raceId === null)).toBe(true)
+  })
+
+  it('ne prescrit aucune allure de qualité avant le test quand le VDOT est inconnu', () => {
+    const plan = generatePlan({ ...BASE, races: [], vdotKnown: false })
+    const [first, second] = plan.weeks
+
+    expect(first!.sessions.map((session) => session.code)).toEqual(
+      first!.sessions.map(() => RunSessionCode.Endurance),
+    )
+    expect(first!.sessions.every((session) => !session.key)).toBe(true)
+    expect(second!.sessions.some((session) => session.code === RunSessionCode.Test)).toBe(true)
+  })
+})

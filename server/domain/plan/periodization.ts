@@ -8,6 +8,15 @@ export const MAX_WEEKS_FOR_MINI_CYCLE = 8
 /** En deçà, une course A relève du cycle vitesse plutôt que du cycle long (§ 5). */
 export const SHORT_RACE_MAX_M = 10_000
 
+/** Horizon glissant du cycle d'entretien : trois blocs de quatre semaines (§ 5). */
+export const MAINTENANCE_WEEKS = 12
+
+/**
+ * Blocs du cycle d'entretien, dans l'ordre. Ni affûtage ni récup : il n'y a
+ * rien à préparer, donc rien dont on récupère (§ 5).
+ */
+const MAINTENANCE_BLOCKS = [PhaseType.Base, PhaseType.Development, PhaseType.Base]
+
 export interface PlannedRace {
   id: number
   name: string
@@ -22,7 +31,8 @@ export interface PlanPhase {
   /** Index 1-based de la première et de la dernière semaine de la phase. */
   startWeek: number
   endWeek: number
-  raceId: number
+  /** Course préparée par la phase ; nul dans le cycle d'entretien (§ 5). */
+  raceId: number | null
 }
 
 interface PhaseSpec {
@@ -69,6 +79,21 @@ function specsFor(race: PlannedRace, previous: PlannedRace | undefined, totalWee
 }
 
 /**
+ * Cycle d'entretien : ce que fait le plan quand aucune échéance ne le
+ * structure. Le rythme de bloc de `buildWeeks` allège la quatrième semaine de
+ * chaque bloc ; l'horizon reste court, une course ajoutée reprend la main (§ 5).
+ */
+function maintenanceCycle(): PlanPhase[] {
+  const length = MAINTENANCE_WEEKS / MAINTENANCE_BLOCKS.length
+  return MAINTENANCE_BLOCKS.map((type, index) => ({
+    type,
+    startWeek: index * length + 1,
+    endWeek: (index + 1) * length,
+    raceId: null,
+  }))
+}
+
+/**
  * Découpe le calendrier en cycles, un par course qui structure le plan, et
  * pose les phases de chaque cycle en rétro-planning depuis sa course.
  */
@@ -77,6 +102,8 @@ export function buildPhases(startDate: IsoDate, races: PlannedRace[]): PlanPhase
     .filter((race) => race.priority !== RacePriority.C)
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
+
+  if (structuring.length === 0) return maintenanceCycle()
 
   const phases: PlanPhase[] = []
   let cursorWeek = 1

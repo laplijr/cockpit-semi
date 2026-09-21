@@ -105,6 +105,16 @@ export function paceFor(vdot: number, zone: TrainingZone): number {
 }
 
 /**
+ * VDOT déduit d'une allure d'endurance déclarée — l'inverse exact de
+ * `paceFor(vdot, Easy)`. Il borne la forme par le bas et rien de plus : une
+ * allure qu'on tient en endurance dit un minimum, jamais un maximum (§ 5).
+ */
+export function vdotFromEasyPace(paceSecPerKm: number): number {
+  const velocity = 60000 / paceSecPerKm
+  return oxygenCost(velocity) / ZONE_FRACTIONS[TrainingZone.Easy].display
+}
+
+/**
  * Allure semi : moyenne de la projection sur 21 097,5 m, jamais une zone.
  * Au plancher, elle est plus lente que l'allure marathon théorique (§ 5).
  */

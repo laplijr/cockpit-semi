@@ -66,6 +66,12 @@ describe('scénarios', () => {
   it('garde la pause ouverte dans le scénario par défaut', () => {
     expect(SCENARIOS.pause!.resumeDate).toBeNull()
   })
+
+  it('laisse « neuf » seul à vider la base, sans reprise à rejouer', () => {
+    const empty = Object.values(SCENARIOS).filter((scenario) => scenario.empty)
+    expect(empty.map((scenario) => scenario.name)).toEqual(['neuf'])
+    expect(SCENARIOS.neuf!.resumeDate).toBeNull()
+  })
 })
 
 describe('progression de forme entre deux tests', () => {

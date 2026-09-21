@@ -1,0 +1,1 @@
+ALTER TYPE "public"."fitness_origin" ADD VALUE 'declare';

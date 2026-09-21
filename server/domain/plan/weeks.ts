@@ -33,6 +33,13 @@ export const RUNS_DURING_COMEBACK = 3
 /** Un test 20′ en semaine 4 de reprise, puis toutes les six semaines (§ 5). */
 export const TEST_INTERVAL_WEEKS = 6
 
+/**
+ * Sans point de forme, le test arrive le plus tôt possible — mais jamais la
+ * première semaine : un 20′ couru avant la moindre endurance ne mesure rien
+ * d'autre que la surprise (§ 5).
+ */
+export const UNKNOWN_FITNESS_TEST_WEEK = 2
+
 /** Semaine 1 en endurance seule, pas de lignes droites avant la semaine 3 (§ 5). */
 const COMEBACK_ALLOWED: RunSessionCode[][] = [
   [RunSessionCode.Endurance],
@@ -45,6 +52,9 @@ const COMEBACK_ALLOWED: RunSessionCode[][] = [
     RunSessionCode.Progressive,
   ],
 ]
+
+/** Sans VDOT, aucune allure de qualité ne veut dire quoi que ce soit (§ 5). */
+const ENDURANCE_ONLY: RunSessionCode[] = [RunSessionCode.Endurance]
 
 /**
  * Facteurs de volume des phases hors rythme de bloc, appliqués au dernier
@@ -60,7 +70,8 @@ export interface PlanWeek {
   startDate: IsoDate
   endDate: IsoDate
   phaseType: PhaseType
-  raceId: number
+  /** Course préparée par la semaine ; nul dans le cycle d'entretien (§ 5). */
+  raceId: number | null
   targetRunM: number
   longRunMaxM: number
   light: boolean
@@ -94,6 +105,11 @@ export interface WeekPlanInput {
   lastTestDate?: IsoDate | null
   /** Montée maximale d'une semaine à la suivante, lue dans le profil (§ 5). */
   weeklyProgression?: number
+  /**
+   * Faux quand aucun point de forme n'existe : le plan démarre alors en
+   * endurance seule et avance le test 20′ pour en produire un (§ 5).
+   */
+  vdotKnown?: boolean
 }
 
 function phaseFactor(phase: PlanPhase, weekInPhase: number): number | undefined {
@@ -122,15 +138,19 @@ export function buildWeeks({
   comebackWeeks = COMEBACK_RATIOS.length,
   lastTestDate = null,
   weeklyProgression = WEEKLY_PROGRESSION,
+  vdotKnown = true,
 }: WeekPlanInput): PlanWeek[] {
   const lastWeek = phases.reduce((max, phase) => Math.max(max, phase.endWeek), 0)
   const firstMonday = startOfWeek(startDate)
   const weeks: PlanWeek[] = []
+  const firstTestWeek = vdotKnown
+    ? comebackWeeks + 1
+    : Math.max(UNKNOWN_FITNESS_TEST_WEEK, comebackWeeks + 1)
 
   let blockBase = baseWeeklyVolumeM
   let blockPosition = 0
   let lastFullVolume = baseWeeklyVolumeM
-  let currentRaceId: number | undefined
+  let currentRaceId: number | null | undefined
   let lastTestWeek: number | undefined
 
   for (let index = 1; index <= lastWeek; index++) {
@@ -174,7 +194,7 @@ export function buildWeeks({
 
     const test = isTestWeek({
       index,
-      comebackWeeks,
+      firstTestWeek,
       phase,
       lastTestWeek,
       weekStart: addWeeks(firstMonday, index - 1),
@@ -200,7 +220,12 @@ export function buildWeeks({
       targetCyclingMin: 0,
       targetStrengthCount: 0,
       volumeCapped: false,
-      allowedCodes: comebackRatio !== undefined ? COMEBACK_ALLOWED[index - 1] : undefined,
+      allowedCodes:
+        !vdotKnown && index < firstTestWeek
+          ? ENDURANCE_ONLY
+          : comebackRatio !== undefined
+            ? COMEBACK_ALLOWED[index - 1]
+            : undefined,
     })
   }
 
@@ -209,7 +234,8 @@ export function buildWeeks({
 
 interface TestWeekInput {
   index: number
-  comebackWeeks: number
+  /** Première semaine où un test est plaçable, reprise et VDOT connu compris. */
+  firstTestWeek: number
   phase: PlanPhase
   lastTestWeek: number | undefined
   weekStart: IsoDate
@@ -219,7 +245,7 @@ interface TestWeekInput {
 /** Test 20′ : semaine 4 après une reprise, puis tous les six semaines, hors affûtage et récup. */
 function isTestWeek({
   index,
-  comebackWeeks,
+  firstTestWeek,
   phase,
   lastTestWeek,
   weekStart,
@@ -236,7 +262,6 @@ function isTestWeek({
     return index - lastTestWeek >= TEST_INTERVAL_WEEKS
   }
 
-  const firstTestWeek = comebackWeeks + 1
   if (index < firstTestWeek) return false
   if (lastTestWeek === undefined) return index === firstTestWeek
 

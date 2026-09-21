@@ -1,3 +1,5 @@
+import { Sport } from '../shared/sport'
+
 export const MONDAY = 1
 export const SUNDAY = 7
 
@@ -13,7 +15,18 @@ export interface AthleteConstraints {
    * courir, pas combien : sans valeur, le défaut de la phase s'applique (§ 5).
    */
   runsPerWeek?: number
+  /**
+   * Sports pratiqués. Sans valeur, les trois d'aujourd'hui : un plan déjà
+   * généré ne bouge pas. La course ne se retire pas, c'est le moteur (§ 5).
+   */
+  sports?: Sport[]
   notes?: string[]
+}
+
+/** Vrai quand le sport est pratiqué, ou qu'aucune liste n'a été déclarée (§ 5). */
+export function practises(constraints: AthleteConstraints, sport: Sport): boolean {
+  if (sport === Sport.Running) return true
+  return constraints.sports === undefined || constraints.sports.includes(sport)
 }
 
 export const DEFAULT_CONSTRAINTS: AthleteConstraints = { availableDays: [] }

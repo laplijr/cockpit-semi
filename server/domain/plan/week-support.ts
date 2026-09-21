@@ -12,7 +12,7 @@ import {
   strengthPrescription,
   strengthSessionType,
 } from '../strength/session-types'
-import { MONDAY, SUNDAY } from '../athlete/constraints'
+import { MONDAY, SUNDAY, practises } from '../athlete/constraints'
 import type { IsoDate } from './calendar'
 import { addDays } from './calendar'
 import { dayBefore, dayGap } from './week-template'
@@ -113,26 +113,31 @@ export function buildWeekSupport({
   const keyDays = new Set(runs.filter((run) => run.key).map((run) => run.weekday))
   const longRunDay = runs.find((run) => run.code === RunSessionCode.LongRun)?.weekday
 
-  const strength = placeStrength({
-    week,
-    available,
-    runDays,
-    keyDays,
-    longRunDay,
-    weekInPhase,
-    nextRaceADate,
-    allowances,
-  })
+  /** Un sport non déclaré ne produit aucune séance de soutien (§ 5). */
+  const strength = practises(constraints, Sport.Strength)
+    ? placeStrength({
+        week,
+        available,
+        runDays,
+        keyDays,
+        longRunDay,
+        weekInPhase,
+        nextRaceADate,
+        allowances,
+      })
+    : []
 
-  const cycling = placeCycling({
-    week,
-    available,
-    runDays,
-    keyDays,
-    taken: new Set(strength.map((session) => session.weekday)),
-    runs,
-    strength,
-  })
+  const cycling = practises(constraints, Sport.Cycling)
+    ? placeCycling({
+        week,
+        available,
+        runDays,
+        keyDays,
+        taken: new Set(strength.map((session) => session.weekday)),
+        runs,
+        strength,
+      })
+    : []
 
   const sessions = [...strength, ...cycling].sort((a, b) => a.weekday - b.weekday)
 

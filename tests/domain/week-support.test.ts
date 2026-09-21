@@ -305,3 +305,65 @@ describe('bilan de la semaine', () => {
     expect(STRENGTH_STOP_DAYS_BEFORE_RACE).toBe(7)
   })
 })
+
+describe('sports déclarés (§ 5)', () => {
+  const runsOf = (week: PlanWeek) =>
+    buildWeekTemplate({ week, constraints: CONSTRAINTS, vdot: VDOT }).sessions
+
+  const supportWith = (week: PlanWeek, sports: Sport[]) =>
+    buildWeekSupport({
+      week,
+      constraints: { ...CONSTRAINTS, sports },
+      runs: runsOf(week),
+      weekInPhase: 2,
+    })
+
+  it('ne pose aucune séance de soutien quand la course est le seul sport déclaré', () => {
+    const week = weekIn(PhaseType.Development)
+    const support = supportWith(week, [Sport.Running])
+
+    expect(support.sessions).toEqual([])
+    expect(support.targetCyclingMin).toBe(0)
+    expect(support.targetStrengthCount).toBe(0)
+  })
+
+  it('laisse le volume de course intact quand les sports de soutien disparaissent', () => {
+    const week = weekIn(PhaseType.Development)
+    const total = runsOf(week).reduce((sum, run) => sum + run.prescription.totalDistanceM, 0)
+
+    supportWith(week, [Sport.Running])
+    expect(runsOf(week).reduce((sum, run) => sum + run.prescription.totalDistanceM, 0)).toBe(total)
+  })
+
+  it('garde la muscu à sa place habituelle quand seul le vélo n’est pas déclaré', () => {
+    const week = weekIn(PhaseType.Development)
+    const declared = supportWith(week, [Sport.Running, Sport.Strength])
+    const all = supportWith(week, [Sport.Running, Sport.Strength, Sport.Cycling])
+
+    expect(declared.sessions.every((item) => item.sport === Sport.Strength)).toBe(true)
+    expect(declared.targetCyclingMin).toBe(0)
+    expect(declared.sessions.map((item) => [item.code, item.weekday])).toEqual(
+      all.sessions.filter((item) => item.sport === Sport.Strength).map((i) => [i.code, i.weekday]),
+    )
+  })
+
+  it('vérifie encore le quota de 30 % du spécifique quand le vélo est déclaré', () => {
+    const week = weekIn(PhaseType.Specific)
+    const runs = runsOf(week)
+    const { sessions } = supportWith(week, [Sport.Running, Sport.Strength, Sport.Cycling])
+    const units = (list: { prescription: Parameters<typeof prescribedUnits>[0] }[]) =>
+      list.reduce((total, item) => total + prescribedUnits(item.prescription), 0)
+
+    const cycling = units(sessions.filter((item) => item.sport === Sport.Cycling))
+    expect(cycling).toBeGreaterThan(0)
+
+    const total = units(sessions) + units(runs)
+    expect(cycling / total).toBeLessThanOrEqual(CYCLING_MAX_LOAD_SHARE)
+  })
+
+  it('pose les trois sports quand rien n’est déclaré : le plan existant ne bouge pas', () => {
+    const week = weekIn(PhaseType.Development)
+    const sports = new Set(support(week).sessions.map((item) => item.sport))
+    expect(sports).toEqual(new Set([Sport.Cycling, Sport.Strength]))
+  })
+})

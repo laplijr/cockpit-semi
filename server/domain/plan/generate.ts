@@ -40,6 +40,11 @@ export interface GeneratePlanInput {
   lastTestDate?: IsoDate | null
   /** Montée hebdomadaire maximale, en pourcentage ; celle du profil (§ 5). */
   maxWeeklyIncreasePct?: number
+  /**
+   * Faux quand aucun point de forme n'existe : `vdot` n'est alors qu'un
+   * garde-fou de calcul, et le plan démarre en endurance seule (§ 5).
+   */
+  vdotKnown?: boolean
 }
 
 export interface GeneratedWeek extends PlanWeek {
@@ -80,6 +85,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     comebackWeeks = openPause ? COMEBACK_RATIOS.length : 0,
     lastTestDate = null,
     maxWeeklyIncreasePct,
+    vdotKnown = true,
   } = input
   const startDate = planStartDate(today, openPause)
   /** Sans date de reprise, on raisonne quand même depuis aujourd'hui pour les phases. */
@@ -96,6 +102,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     lastTestDate,
     weeklyProgression:
       maxWeeklyIncreasePct === undefined ? undefined : 1 + maxWeeklyIncreasePct / 100,
+    vdotKnown,
   })
 
   // Jour de course : aucune séance. Lendemain d'une course A : repos (§ 5).
@@ -119,7 +126,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
         constraints,
         vdot,
         blockedDates,
-        shortCycle: shortCycleRaces.has(week.raceId),
+        shortCycle: week.raceId !== null && shortCycleRaces.has(week.raceId),
       })
 
       const phase = phaseAtWeek(phases, week.index)

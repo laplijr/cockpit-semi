@@ -60,6 +60,13 @@ const scenario = resolveScenario(process.argv.slice(2))
 async function seed() {
   await reset()
 
+  if (scenario.empty) {
+    console.log(`Scénario « ${scenario.name} » — ${scenario.description}`)
+    console.log('')
+    console.log(`export NUXT_COCKPIT_TODAY=${scenario.simulatedDay}`)
+    return
+  }
+
   await db.insert(schema.athlete).values({
     id: 1,
     firstName: 'Ronan',

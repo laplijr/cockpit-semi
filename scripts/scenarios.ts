@@ -10,6 +10,8 @@ export interface Scenario {
   seed: number
   /** Progression de forme estimée entre deux tests 20′. */
   vdotGainPerTest: number
+  /** Base vidée et laissée telle quelle : ni athlète, ni course, ni historique. */
+  empty?: boolean
 }
 
 export const SCENARIOS: Record<string, Scenario> = {
@@ -53,6 +55,16 @@ export const SCENARIOS: Record<string, Scenario> = {
     simulatedDay: '2027-03-07',
     seed: 4,
     vdotGainPerTest: 0.6,
+  },
+  /** Base vide : le seul état où l'onboarding de P8.2 se déroule (§ 9, P8.1). */
+  neuf: {
+    name: 'neuf',
+    description: 'Base vide : aucun athlète, aucune course, aucun historique.',
+    resumeDate: null,
+    simulatedDay: '2026-09-16',
+    seed: 5,
+    vdotGainPerTest: 0.6,
+    empty: true,
   },
 }
 

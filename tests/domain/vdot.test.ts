@@ -6,6 +6,7 @@ import {
   paceRangeFor,
   halfMarathonPace,
   raceTimeForVdot,
+  vdotFromEasyPace,
   vdotFromRace,
 } from '~~/server/domain/fitness/vdot'
 
@@ -143,5 +144,22 @@ describe('allure semi', () => {
     const half = halfMarathonPace(33)
     expect(half).toBeLessThan(paceFor(33, TrainingZone.Marathon))
     expect(half).toBeGreaterThan(paceFor(33, TrainingZone.Threshold))
+  })
+})
+
+describe('VDOT déclaré depuis une allure d’endurance (§ 5)', () => {
+  it('retrouve les allures E de la table Daniels : 7:39 vaut 30, 6:47 vaut 35', () => {
+    expect(vdotFromEasyPace(7 * 60 + 39)).toBeCloseTo(30, 1)
+    expect(vdotFromEasyPace(6 * 60 + 47)).toBeCloseTo(35, 1)
+  })
+
+  it('inverse exactement l’allure E affichée, quel que soit le VDOT', () => {
+    for (const vdot of [30, 35, 40, 45, 50]) {
+      expect(vdotFromEasyPace(paceFor(vdot, TrainingZone.Easy))).toBeCloseTo(vdot, 6)
+    }
+  })
+
+  it('monte quand l’allure déclarée accélère', () => {
+    expect(vdotFromEasyPace(6 * 60)).toBeGreaterThan(vdotFromEasyPace(7 * 60))
   })
 })

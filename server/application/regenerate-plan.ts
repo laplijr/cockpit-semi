@@ -13,7 +13,11 @@ import type { PlanTrigger } from '../domain/plan/session'
 import { nextTestDate, recordForecasts } from './record-forecasts'
 import type { Clock, PlanGateway } from './ports'
 
-/** Faute de point de forme, le plancher de Daniels le plus bas utilisable. */
+/**
+ * Garde-fou de calcul quand aucun point de forme n'existe : le plancher de
+ * Daniels le plus bas utilisable. Ce n'est pas une mesure — `vdotKnown` le dit
+ * au générateur, qui démarre alors en endurance seule (§ 5).
+ */
 export const FALLBACK_VDOT = 30
 
 /** Au-delà, une pause fermée n'ouvre plus droit à une reprise surveillée. */
@@ -47,6 +51,7 @@ export async function regeneratePlan(
     latestPause?.endDate != null &&
     latestPause.endDate >= addDays(clock.today(), -RESUMPTION_GRACE_DAYS)
 
+  const vdotKnown = fitness != null
   const vdot = fitness?.vdot ?? FALLBACK_VDOT
   const gainPerBlock = athlete?.vdotGainPerBlock ?? VDOT_GAIN_PER_BLOCK
   const baseWeeklyVolumeM = athlete?.startWeeklyVolumeM ?? DEFAULT_START_VOLUME_M
@@ -69,6 +74,7 @@ export async function regeneratePlan(
     comebackWeeks: openPause || resumedRecently ? COMEBACK_RATIOS.length : 0,
     lastTestDate,
     maxWeeklyIncreasePct: athlete?.maxWeeklyIncreasePct ?? STANDARD_INCREASE_PCT,
+    vdotKnown,
   })
 
   const planVersionId = await gateway.savePlan(plan, trigger, {

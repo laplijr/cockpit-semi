@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { addWeeks, startOfWeek, weekday, weeksBetween } from '~~/server/domain/plan/calendar'
-import { buildPhases, phaseAtWeek } from '~~/server/domain/plan/periodization'
+import { MAINTENANCE_WEEKS, buildPhases, phaseAtWeek } from '~~/server/domain/plan/periodization'
 import { PhaseType } from '~~/server/domain/plan/phases'
-import { LONG_RUN_MAX_SHARE, buildWeeks } from '~~/server/domain/plan/weeks'
+import {
+  LONG_RUN_MAX_SHARE,
+  UNKNOWN_FITNESS_TEST_WEEK,
+  buildWeeks,
+} from '~~/server/domain/plan/weeks'
 import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
 
 /** Les trois courses réelles du § 0, calées sur une reprise au 5 oct. 2026. */
@@ -197,5 +201,92 @@ describe('semaines générées', () => {
       expect(week.phaseProgress).toBeGreaterThanOrEqual(0)
       expect(week.phaseProgress).toBeLessThanOrEqual(1)
     }
+  })
+})
+
+describe('cycle d’entretien, quand aucune course ne structure le calendrier (§ 5)', () => {
+  const phases = buildPhases(REPRISE, [])
+
+  it('alterne base et développement sur trois blocs de quatre semaines', () => {
+    expect(phases.map((phase) => [phase.type, phase.endWeek - phase.startWeek + 1])).toEqual([
+      [PhaseType.Base, 4],
+      [PhaseType.Development, 4],
+      [PhaseType.Base, 4],
+    ])
+    expect(phases.at(-1)!.endWeek).toBe(MAINTENANCE_WEEKS)
+  })
+
+  it('n’ouvre ni affûtage ni récup : il n’y a rien à préparer', () => {
+    const types = phases.map((phase) => phase.type)
+    expect(types).not.toContain(PhaseType.Taper)
+    expect(types).not.toContain(PhaseType.Recovery)
+  })
+
+  it('ne rattache ses phases à aucune course', () => {
+    expect(phases.every((phase) => phase.raceId === null)).toBe(true)
+  })
+
+  it('remplit ses douze semaines et allège la quatrième de chaque bloc', () => {
+    const weeks = buildWeeks({
+      startDate: REPRISE,
+      phases,
+      baseWeeklyVolumeM: 20_000,
+      peakWeeklyVolumeM: 45_000,
+      comebackWeeks: 0,
+    })
+
+    expect(weeks).toHaveLength(MAINTENANCE_WEEKS)
+    expect(weeks.every((week) => week.targetRunM > 0)).toBe(true)
+    expect(weeks.filter((week) => week.light).map((week) => week.index)).toEqual([4, 8, 12])
+  })
+
+  it('prend aussi la main quand les seules courses inscrites sont en priorité C', () => {
+    const fun = { ...PARIS, priority: RacePriority.C }
+    expect(buildPhases(REPRISE, [fun]).map((phase) => phase.raceId)).toEqual([null, null, null])
+  })
+
+  it('rend la main au rétro-planning dès qu’une course est ajoutée', () => {
+    const structured = buildPhases(REPRISE, [PARIS])
+    expect(structured.every((phase) => phase.raceId === PARIS.id)).toBe(true)
+    expect(structured.at(-1)!.type).toBe(PhaseType.Taper)
+  })
+
+  it('revient à l’entretien quand la course est supprimée', () => {
+    expect(buildPhases(REPRISE, [PARIS]).at(-1)!.type).toBe(PhaseType.Taper)
+    expect(buildPhases(REPRISE, []).at(-1)!.type).toBe(PhaseType.Base)
+  })
+})
+
+describe('plan sans point de forme (§ 5)', () => {
+  const phases = buildPhases(REPRISE, ALL_RACES)
+  const weeks = buildWeeks({
+    startDate: REPRISE,
+    phases,
+    baseWeeklyVolumeM: 20_000,
+    peakWeeklyVolumeM: 45_000,
+    comebackWeeks: 0,
+    vdotKnown: false,
+  })
+
+  it('avance le test 20′ en semaine 2', () => {
+    expect(weeks[1]!.index).toBe(UNKNOWN_FITNESS_TEST_WEEK)
+    expect(weeks[1]!.test).toBe(true)
+    expect(weeks[0]!.test).toBe(false)
+  })
+
+  it('n’autorise que l’endurance avant le test', () => {
+    expect(weeks[0]!.allowedCodes).toEqual(['EF'])
+    expect(weeks[1]!.allowedCodes).toBeUndefined()
+  })
+
+  it('laisse le test en semaine 4 quand une reprise surveillée est en cours', () => {
+    const comeback = buildWeeks({
+      startDate: REPRISE,
+      phases,
+      baseWeeklyVolumeM: 20_000,
+      peakWeeklyVolumeM: 45_000,
+      vdotKnown: false,
+    })
+    expect(comeback.filter((week) => week.test).at(0)!.index).toBe(4)
   })
 })
