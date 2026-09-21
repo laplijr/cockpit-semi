@@ -1,17 +1,16 @@
-import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { useDatabase } from '../../infra/db/client'
-import { route } from '../../infra/db/schema'
+import { currentAthleteId } from '../../utils/context'
+import { ownedRoute } from '../../utils/scope'
 
 const paramsSchema = z.object({ routeId: z.coerce.number().int().positive() })
 
 /** Le GPX tel qu'il entre dans la montre : un fichier, pas du JSON. */
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const { routeId } = await getValidatedRouterParams(event, paramsSchema.parse)
 
-  const [row] = await useDatabase().select().from(route).where(eq(route.id, routeId)).limit(1)
-
-  if (!row) throw createError({ statusCode: 404, statusMessage: 'Itinéraire inconnu' })
+  const row = await ownedRoute(useDatabase(), athleteId, routeId)
 
   setHeader(event, 'Content-Type', 'application/gpx+xml; charset=utf-8')
   setHeader(event, 'Content-Disposition', `attachment; filename="${fileName(row)}"`)

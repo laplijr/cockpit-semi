@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { recordStrengthSets } from '../../../application/record-strength-sets'
 import { useDatabase } from '../../../infra/db/client'
 import { createStrengthGateway } from '../../../infra/db/strength-gateway'
+import { currentAthleteId } from '../../../utils/context'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
@@ -20,9 +21,14 @@ const bodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse)
   const { sets } = await readValidatedBody(event, bodySchema.parse)
 
-  const nextLoads = await recordStrengthSets(createStrengthGateway(useDatabase()), id, sets)
+  const nextLoads = await recordStrengthSets(
+    createStrengthGateway(useDatabase(), athleteId),
+    id,
+    sets,
+  )
   return { ok: true, nextLoads }
 })

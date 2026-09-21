@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lte } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm'
 import type { UnplannedGateway } from '../../application/record-unplanned'
 import type { IsoDate } from '../../domain/plan/calendar'
 import { SessionStatus } from '../../domain/plan/session'
@@ -9,6 +9,7 @@ import type { RunSessionCode } from '../../domain/running/session-types'
 import { UnplannedStatus, type UnplannedActivity } from '../../domain/unplanned/events'
 import type { Database } from './client'
 import { recomputeLoadFor } from './load-repository'
+import { athleteWeekIds } from './plan-gateway'
 import { activity, proposal, session, unplannedEvent } from './schema'
 
 /** Un imprévu n'a pas d'identifiant externe : on en fabrique un, stable et lisible. */
@@ -16,7 +17,9 @@ function externalIdFor(item: UnplannedActivity): string {
   return `imprevu:${item.date}:${item.sport}:${item.label}`
 }
 
-export function createUnplannedGateway(db: Database): UnplannedGateway {
+export function createUnplannedGateway(db: Database, athleteId: number): UnplannedGateway {
+  const mine = () => athleteWeekIds(db, athleteId)
+
   return {
     async plannedSessions(from: IsoDate, to: IsoDate) {
       const rows = await db
@@ -26,7 +29,7 @@ export function createUnplannedGateway(db: Database): UnplannedGateway {
           prescription: session.prescription,
         })
         .from(session)
-        .where(and(gte(session.date, from), lte(session.date, to)))
+        .where(and(gte(session.date, from), lte(session.date, to), inArray(session.weekId, mine())))
         .orderBy(asc(session.date))
 
       return rows.map((row) => ({
@@ -45,6 +48,7 @@ export function createUnplannedGateway(db: Database): UnplannedGateway {
             gte(session.date, from),
             lte(session.date, to),
             eq(session.status, SessionStatus.Planned),
+            inArray(session.weekId, mine()),
           ),
         )
         .orderBy(asc(session.date))
@@ -66,13 +70,17 @@ export function createUnplannedGateway(db: Database): UnplannedGateway {
     async saveDraft(rawText, events) {
       const [row] = await db
         .insert(unplannedEvent)
-        .values({ rawText, events })
+        .values({ athleteId, rawText, events })
         .returning({ id: unplannedEvent.id })
       return row!.id
     },
 
     async loadDraft(id) {
-      const [row] = await db.select().from(unplannedEvent).where(eq(unplannedEvent.id, id)).limit(1)
+      const [row] = await db
+        .select()
+        .from(unplannedEvent)
+        .where(and(eq(unplannedEvent.id, id), eq(unplannedEvent.athleteId, athleteId)))
+        .limit(1)
       return row ? { id: row.id, events: row.events } : undefined
     },
 
@@ -80,11 +88,12 @@ export function createUnplannedGateway(db: Database): UnplannedGateway {
       await db
         .update(unplannedEvent)
         .set({ status: UnplannedStatus.Confirmed, confirmedAt: at })
-        .where(eq(unplannedEvent.id, id))
+        .where(and(eq(unplannedEvent.id, id), eq(unplannedEvent.athleteId, athleteId)))
     },
 
     async recordActivity(item, rpe) {
       const values = {
+        athleteId,
         externalId: externalIdFor(item),
         name: item.label,
         sport: item.sport,
@@ -98,11 +107,11 @@ export function createUnplannedGateway(db: Database): UnplannedGateway {
       await db
         .insert(activity)
         .values(values)
-        .onConflictDoUpdate({ target: activity.externalId, set: values })
+        .onConflictDoUpdate({ target: [activity.athleteId, activity.externalId], set: values })
     },
 
     async recomputeLoad(date) {
-      await recomputeLoadFor(db, date)
+      await recomputeLoadFor(db, athleteId, date)
     },
 
     async storeProposals(proposals: Proposal[], trigger: ProposalTrigger) {
@@ -110,6 +119,7 @@ export function createUnplannedGateway(db: Database): UnplannedGateway {
 
       await db.insert(proposal).values(
         proposals.map((item) => ({
+          athleteId,
           trigger,
           ruleId: item.ruleId,
           effect: item.effect,

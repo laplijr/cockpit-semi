@@ -1,12 +1,11 @@
-import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { recordRaceResult } from '../../../application/record-race-result'
 import { SegmentMode } from '../../../domain/races/race'
 import { resultRefusal } from '../../../domain/races/result'
 import { useDatabase } from '../../../infra/db/client'
 import { createRaceResultGateway } from '../../../infra/db/race-result-gateway'
-import { race } from '../../../infra/db/schema'
-import { planGateway, systemClock } from '../../../utils/context'
+import { currentAthleteId, planGateway, systemClock } from '../../../utils/context'
+import { ownedRace } from '../../../utils/scope'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
@@ -40,18 +39,24 @@ const bodySchema = z.object({
  * garantie (§ 5, § 9 P6.41).
  */
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse)
   const body = await readValidatedBody(event, bodySchema.parse)
   const db = useDatabase()
 
-  const [existing] = await db.select().from(race).where(eq(race.id, id)).limit(1)
-  if (!existing) throw createError({ statusCode: 404, statusMessage: 'Course inconnue' })
+  const existing = await ownedRace(db, athleteId, id)
 
   const refusal = resultRefusal(existing, systemClock.today(), body.resultatS)
   if (refusal) throw createError({ statusCode: 409, statusMessage: refusal })
 
-  return recordRaceResult(createRaceResultGateway(db), planGateway(), systemClock, existing, {
-    raceId: id,
-    ...body,
-  })
+  return recordRaceResult(
+    createRaceResultGateway(db, athleteId),
+    planGateway(athleteId),
+    systemClock,
+    existing,
+    {
+      raceId: id,
+      ...body,
+    },
+  )
 })

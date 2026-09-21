@@ -2,14 +2,15 @@ import { TrainingZone, halfMarathonPace, paceFor, paceRangeFor } from '../../dom
 import { RUN_SESSION_TYPES, prescription } from '../../domain/running/session-types'
 import { loadActivePlanVersion } from '../../infra/db/plan-gateway'
 import { useDatabase } from '../../infra/db/client'
-import { planGateway } from '../../utils/context'
+import { currentAthleteId, planGateway } from '../../utils/context'
 import { DEFAULT_START_VOLUME_M } from '../../domain/athlete/constraints'
 import { FALLBACK_VDOT } from '../../application/regenerate-plan'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const [fitness, active] = await Promise.all([
-    planGateway().loadCurrentFitness(),
-    loadActivePlanVersion(useDatabase()),
+    planGateway(athleteId).loadCurrentFitness(),
+    loadActivePlanVersion(useDatabase(), athleteId),
   ])
 
   const vdot = fitness?.vdot ?? FALLBACK_VDOT

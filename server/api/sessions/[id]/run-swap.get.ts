@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { planRideSwap } from '../../../application/replace-ride-with-run'
 import { useDatabase } from '../../../infra/db/client'
 import { createSessionSwapGateway } from '../../../infra/db/session-swap-gateway'
-import { planGateway, systemClock } from '../../../utils/context'
+import { currentAthleteId, planGateway, systemClock } from '../../../utils/context'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
@@ -11,11 +11,12 @@ const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
  * peut pas être remplacée. Lecture seule : rien n'est appliqué ici (§ 9, P6.42).
  */
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse)
 
   const outcome = await planRideSwap(
-    createSessionSwapGateway(useDatabase()),
-    planGateway(),
+    createSessionSwapGateway(useDatabase(), athleteId),
+    planGateway(athleteId),
     systemClock,
     id,
   )

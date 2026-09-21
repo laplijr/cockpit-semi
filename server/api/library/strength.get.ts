@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, inArray } from 'drizzle-orm'
 import {
   EFFORT_LABELS,
   EFFORT_RECOVERY_S,
@@ -13,14 +13,15 @@ import { STRENGTH_SESSION_TYPES, strengthPrescription } from '../../domain/stren
 import { STRENGTH_PER_PHASE } from '../../domain/plan/week-support'
 import { PhaseType } from '../../domain/plan/phases'
 import { useDatabase } from '../../infra/db/client'
-import { loadActivePlanVersion } from '../../infra/db/plan-gateway'
+import { athleteWeekIds, loadActivePlanVersion } from '../../infra/db/plan-gateway'
 import { phase, session, strengthSet } from '../../infra/db/schema'
-import { systemClock } from '../../utils/context'
+import { currentAthleteId, systemClock } from '../../utils/context'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const db = useDatabase()
   const [active, sets] = await Promise.all([
-    loadActivePlanVersion(db),
+    loadActivePlanVersion(db, athleteId),
     db
       .select({
         exerciseId: strengthSet.exerciseId,
@@ -30,6 +31,7 @@ export default defineEventHandler(async () => {
       })
       .from(strengthSet)
       .innerJoin(session, eq(strengthSet.sessionId, session.id))
+      .where(inArray(session.weekId, athleteWeekIds(db, athleteId)))
       .orderBy(desc(session.date)),
   ])
 

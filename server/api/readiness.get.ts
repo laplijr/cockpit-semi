@@ -1,7 +1,8 @@
 import { useDatabase } from '../infra/db/client'
-import { systemClock } from '../utils/context'
+import { currentAthleteId, systemClock } from '../utils/context'
 import { currentReadiness } from '../utils/readiness-context'
 
-export default defineEventHandler(async () => {
-  return currentReadiness(useDatabase(), systemClock.today())
+export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
+  return currentReadiness(useDatabase(), athleteId, systemClock.today())
 })

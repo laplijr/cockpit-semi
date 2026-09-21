@@ -1,21 +1,23 @@
-import { desc } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { pauseDay } from '../domain/pause/pause'
 import { SessionStatus } from '../domain/plan/session'
 import { useDatabase } from '../infra/db/client'
 import { loadActivePlanVersion } from '../infra/db/plan-gateway'
 import { pause } from '../infra/db/schema'
-import { planGateway, systemClock } from '../utils/context'
+import { currentAthleteId, planGateway, systemClock } from '../utils/context'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const [active, latestPause] = await Promise.all([
-    loadActivePlanVersion(useDatabase()),
-    planGateway().loadLatestPause(),
+    loadActivePlanVersion(useDatabase(), athleteId),
+    planGateway(athleteId).loadLatestPause(),
   ])
   const today = systemClock.today()
 
   const [watchZones] = await useDatabase()
     .select({ zones: pause.watchZones })
     .from(pause)
+    .where(eq(pause.athleteId, athleteId))
     .orderBy(desc(pause.startDate), desc(pause.id))
     .limit(1)
 

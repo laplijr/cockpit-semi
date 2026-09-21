@@ -4,16 +4,18 @@ import {
   DEFAULT_START_VOLUME_M,
 } from '../domain/athlete/constraints'
 import { ageOn, estimatedMaxHr } from '../domain/athlete/profile'
+import { eq } from 'drizzle-orm'
 import { useDatabase } from '../infra/db/client'
 import { athlete } from '../infra/db/schema'
-import { systemClock } from '../utils/context'
+import { currentAthleteId, systemClock } from '../utils/context'
 
-export default defineEventHandler(async () => {
-  const [row] = await useDatabase().select().from(athlete).limit(1)
+export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
+  const [row] = await useDatabase().select().from(athlete).where(eq(athlete.id, athleteId)).limit(1)
   const age = row?.birthDate ? ageOn(row.birthDate, systemClock.today()) : null
 
   return {
-    id: row?.id ?? 1,
+    id: athleteId,
     firstName: row?.firstName ?? null,
     birthDate: row?.birthDate ?? null,
     profile: row?.profile ?? null,

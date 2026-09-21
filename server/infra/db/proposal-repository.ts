@@ -19,6 +19,7 @@ import type { RunSessionCode, Prescription } from '../../domain/running/session-
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
 import { loadGainPerBlock, loadResolvedForecasts } from './forecast-repository'
+import { athleteWeekIds } from './plan-gateway'
 import { athlete, feedback, pause, proposal, race, session, week } from './schema'
 
 /** Fenêtre de séances passées examinée par les règles. */
@@ -33,7 +34,9 @@ function repeatsOf(prescription: Prescription): number | null {
   return intense?.repeats ?? null
 }
 
-async function buildContext(db: Database, today: string): Promise<RuleContext> {
+async function buildContext(db: Database, athleteId: number, today: string): Promise<RuleContext> {
+  const mine = athleteWeekIds(db, athleteId)
+
   // Les séances déjà jugées font foi, même si elles sont datées après aujourd'hui :
   // c'est la dernière séance notée qui ancre la fenêtre, pas la date du jour.
   const rated = await db
@@ -41,7 +44,14 @@ async function buildContext(db: Database, today: string): Promise<RuleContext> {
     .from(session)
     .leftJoin(feedback, eq(feedback.sessionId, session.id))
     .where(
-      inArray(session.status, [SessionStatus.Done, SessionStatus.Modified, SessionStatus.Skipped]),
+      and(
+        inArray(session.status, [
+          SessionStatus.Done,
+          SessionStatus.Modified,
+          SessionStatus.Skipped,
+        ]),
+        inArray(session.weekId, mine),
+      ),
     )
     .orderBy(desc(session.date))
     .limit(RECENT_SESSIONS)
@@ -49,7 +59,10 @@ async function buildContext(db: Database, today: string): Promise<RuleContext> {
   const anchor = rated[0]?.session.date ?? today
   const horizon = anchor > today ? anchor : today
 
-  const [resolved, gain] = await Promise.all([loadResolvedForecasts(db), loadGainPerBlock(db)])
+  const [resolved, gain] = await Promise.all([
+    loadResolvedForecasts(db, athleteId),
+    loadGainPerBlock(db, athleteId),
+  ])
 
   const [past, future] = await Promise.all([
     Promise.resolve(rated.filter((row) => row.session.date >= addDays(horizon, -LOOKBACK_DAYS))),
@@ -61,6 +74,7 @@ async function buildContext(db: Database, today: string): Promise<RuleContext> {
           gte(session.date, addDays(horizon, 1)),
           lt(session.date, addDays(horizon, LOOKAHEAD_DAYS)),
           eq(session.status, SessionStatus.Planned),
+          inArray(session.weekId, mine),
         ),
       )
       .orderBy(asc(session.date)),
@@ -104,7 +118,7 @@ async function buildContext(db: Database, today: string): Promise<RuleContext> {
     upcoming,
     sameDayStrength: upcoming.filter((item) => item.sport === Sport.Strength),
     /** Les habitudes acceptées deviennent des règles R100+ (§ 5). */
-    personal: adjustmentsFrom(await loadAcceptedHabits(db)),
+    personal: adjustmentsFrom(await loadAcceptedHabits(db, athleteId)),
     forecasts: resolved,
     gainPerBlock: gain,
   }
@@ -116,18 +130,19 @@ async function buildContext(db: Database, today: string): Promise<RuleContext> {
  */
 export async function evaluateAndStore(
   db: Database,
+  athleteId: number,
   today: string,
   trigger: ProposalTrigger,
 ): Promise<DomainProposal[]> {
-  await expireOrphanProposals(db)
+  await expireOrphanProposals(db, athleteId)
 
-  const found = evaluateRules(await buildContext(db, today))
+  const found = evaluateRules(await buildContext(db, athleteId, today))
   if (found.length === 0) return []
 
   const pending = await db
     .select()
     .from(proposal)
-    .where(eq(proposal.status, ProposalStatus.Proposed))
+    .where(and(eq(proposal.athleteId, athleteId), eq(proposal.status, ProposalStatus.Proposed)))
 
   const signature = (item: { ruleId: string; effect: string; targetId: number | null }) =>
     `${item.ruleId}|${item.effect}|${item.targetId ?? ''}`
@@ -144,6 +159,7 @@ export async function evaluateAndStore(
        * daté, `defaultNow()` les faisait toutes expirer le lendemain (§ P3.5).
        */
       createdAt: new Date(`${today}T12:00:00Z`),
+      athleteId,
       trigger,
       ruleId: item.ruleId,
       effect: item.effect,
@@ -159,54 +175,72 @@ export async function evaluateAndStore(
   return fresh
 }
 
-export async function listProposals(db: Database) {
-  return db.select().from(proposal).orderBy(desc(proposal.createdAt), desc(proposal.id))
+export async function listProposals(db: Database, athleteId: number) {
+  return db
+    .select()
+    .from(proposal)
+    .where(eq(proposal.athleteId, athleteId))
+    .orderBy(desc(proposal.createdAt), desc(proposal.id))
 }
 
 /** Accepte une proposition : l'effet est appliqué, puis la décision archivée. */
-export async function acceptProposal(db: Database, id: number, today: string) {
-  const [row] = await db.select().from(proposal).where(eq(proposal.id, id)).limit(1)
+export async function acceptProposal(db: Database, athleteId: number, id: number, today: string) {
+  const [row] = await db
+    .select()
+    .from(proposal)
+    .where(and(eq(proposal.id, id), eq(proposal.athleteId, athleteId)))
+    .limit(1)
   if (!row) return undefined
 
   const effect = row.effect as ProposalEffect
 
   if (isSessionEffect(effect) && row.targetId !== null) {
-    await updateSessionPrescription(db, row.targetId, (prescription) =>
+    await updateSessionPrescription(db, athleteId, row.targetId, (prescription) =>
       applyToPrescription(prescription, effect, row.payload),
     )
   }
 
   if (effect === ProposalEffect.ConvertToCycling && row.targetId !== null) {
-    await updateSessionPrescription(db, row.targetId, toCyclingPrescription, Sport.Cycling)
+    await updateSessionPrescription(
+      db,
+      athleteId,
+      row.targetId,
+      toCyclingPrescription,
+      Sport.Cycling,
+    )
   }
 
   if (effect === ProposalEffect.MoveSession && row.targetId !== null) {
-    await moveSession(db, row.targetId, row.payload)
+    await moveSession(db, athleteId, row.targetId, row.payload)
   }
 
   if (effect === ProposalEffect.CancelSession && row.targetId !== null) {
     await db
       .update(session)
       .set({ status: SessionStatus.Skipped })
-      .where(eq(session.id, row.targetId))
+      .where(
+        and(eq(session.id, row.targetId), inArray(session.weekId, athleteWeekIds(db, athleteId))),
+      )
   }
 
   if (effect === ProposalEffect.MoveRace && row.targetId !== null) {
-    await moveRace(db, row.targetId, row.payload)
+    await moveRace(db, athleteId, row.targetId, row.payload)
   }
 
-  if (effect === ProposalEffect.AdjustExpectedGain) await adjustExpectedGain(db, row.payload)
+  if (effect === ProposalEffect.AdjustExpectedGain) {
+    await adjustExpectedGain(db, athleteId, row.payload)
+  }
 
-  if (effect === ProposalEffect.FreezeProgression) await freezeProgression(db, today)
-  if (effect === ProposalEffect.RestoreProgression) await restoreProgression(db, today)
+  if (effect === ProposalEffect.FreezeProgression) await freezeProgression(db, athleteId, today)
+  if (effect === ProposalEffect.RestoreProgression) await restoreProgression(db, athleteId, today)
   if (effect === ProposalEffect.ProposePause || effect === ProposalEffect.ForcePause) {
-    await openPause(db, today, row.explanation)
+    await openPause(db, athleteId, today, row.explanation)
   }
 
   await db
     .update(proposal)
     .set({ status: ProposalStatus.Accepted, decidedAt: new Date() })
-    .where(eq(proposal.id, id))
+    .where(and(eq(proposal.id, id), eq(proposal.athleteId, athleteId)))
 
   return row
 }
@@ -215,16 +249,25 @@ export async function acceptProposal(db: Database, id: number, today: string) {
  * Redater une course change le calendrier : la régénération du plan revient à
  * l'appelant, qui la déclenche après l'acceptation.
  */
-async function moveRace(db: Database, raceId: number, payload: Record<string, unknown> | null) {
+async function moveRace(
+  db: Database,
+  athleteId: number,
+  raceId: number,
+  payload: Record<string, unknown> | null,
+) {
   const date = payload?.date
   if (typeof date !== 'string') return
 
-  await db.update(race).set({ date }).where(eq(race.id, raceId))
+  await db
+    .update(race)
+    .set({ date })
+    .where(and(eq(race.id, raceId), eq(race.athleteId, athleteId)))
 }
 
 /** Déplacer une séance ne change que sa date : la prescription reste la sienne. */
 async function moveSession(
   db: Database,
+  athleteId: number,
   sessionId: number,
   payload: Record<string, unknown> | null,
 ) {
@@ -234,16 +277,21 @@ async function moveSession(
   await db
     .update(session)
     .set({ date, status: SessionStatus.Modified })
-    .where(eq(session.id, sessionId))
+    .where(and(eq(session.id, sessionId), inArray(session.weekId, athleteWeekIds(db, athleteId))))
 }
 
 async function updateSessionPrescription(
   db: Database,
+  athleteId: number,
   sessionId: number,
   transform: (prescription: Prescription) => Prescription,
   sport?: Sport,
 ) {
-  const [target] = await db.select().from(session).where(eq(session.id, sessionId)).limit(1)
+  const [target] = await db
+    .select()
+    .from(session)
+    .where(and(eq(session.id, sessionId), inArray(session.weekId, athleteWeekIds(db, athleteId))))
+    .limit(1)
   if (!target) return
 
   const updated = transform(target.prescription as unknown as Prescription)
@@ -261,49 +309,62 @@ async function updateSessionPrescription(
  * Recale la progression estimée. Elle ne vit nulle part ailleurs que sur
  * l'athlète : les projections la relisent à chaque calcul (§ 5, R9).
  */
-async function adjustExpectedGain(db: Database, payload: Record<string, unknown> | null) {
+async function adjustExpectedGain(
+  db: Database,
+  athleteId: number,
+  payload: Record<string, unknown> | null,
+) {
   const value = Number(payload?.gainPerBlock)
   if (!Number.isFinite(value)) return
 
-  await db.update(athlete).set({ vdotGainPerBlock: value })
+  await db.update(athlete).set({ vdotGainPerBlock: value }).where(eq(athlete.id, athleteId))
 }
 
 /** Gèle la montée : la semaine suivante reprend le volume de la semaine en cours. */
-async function freezeProgression(db: Database, today: string) {
+async function freezeProgression(db: Database, athleteId: number, today: string) {
   const [current, next] = await db
     .select()
     .from(week)
-    .where(gte(week.endDate, today))
+    .where(and(gte(week.endDate, today), inArray(week.id, athleteWeekIds(db, athleteId))))
     .orderBy(asc(week.index))
     .limit(2)
 
   if (!current || !next || next.targetRunM <= current.targetRunM) return
-  await scaleWeek(db, next, current.targetRunM)
+  await scaleWeek(db, athleteId, next, current.targetRunM)
 }
 
 /** Restaure la montée : la semaine suivante retrouve +10 % sur la semaine en cours. */
-async function restoreProgression(db: Database, today: string) {
+async function restoreProgression(db: Database, athleteId: number, today: string) {
   const [current, next] = await db
     .select()
     .from(week)
-    .where(gte(week.endDate, today))
+    .where(and(gte(week.endDate, today), inArray(week.id, athleteWeekIds(db, athleteId))))
     .orderBy(asc(week.index))
     .limit(2)
 
   if (!current || !next) return
-  await scaleWeek(db, next, Math.round(current.targetRunM * 1.1))
+  await scaleWeek(db, athleteId, next, Math.round(current.targetRunM * 1.1))
 }
 
 /** Ramène une semaine à un volume cible, et ses séances avec elle. */
-async function scaleWeek(db: Database, target: typeof week.$inferSelect, volumeM: number) {
+async function scaleWeek(
+  db: Database,
+  athleteId: number,
+  target: typeof week.$inferSelect,
+  volumeM: number,
+) {
   const factor = target.targetRunM === 0 ? 1 : volumeM / target.targetRunM
+  const mine = athleteWeekIds(db, athleteId)
 
   await db
     .update(week)
     .set({ targetRunM: volumeM, longRunMaxM: Math.round(volumeM * 0.3) })
-    .where(eq(week.id, target.id))
+    .where(and(eq(week.id, target.id), inArray(week.id, mine)))
 
-  const sessions = await db.select().from(session).where(eq(session.weekId, target.id))
+  const sessions = await db
+    .select()
+    .from(session)
+    .where(and(eq(session.weekId, target.id), inArray(session.weekId, mine)))
   for (const item of sessions) {
     const prescription = item.prescription as unknown as Prescription
     await db
@@ -319,16 +380,21 @@ async function scaleWeek(db: Database, target: typeof week.$inferSelect, volumeM
           })),
         } as unknown as Record<string, unknown>,
       })
-      .where(eq(session.id, item.id))
+      .where(and(eq(session.id, item.id), inArray(session.weekId, mine)))
   }
 }
 
 /** Ouvre une pause course, vélo et muscu haut autorisés si indolores (§ 5, R5). */
-async function openPause(db: Database, today: string, reason: string) {
-  const [existing] = await db.select().from(pause).where(isNull(pause.endDate)).limit(1)
+async function openPause(db: Database, athleteId: number, today: string, reason: string) {
+  const [existing] = await db
+    .select()
+    .from(pause)
+    .where(and(eq(pause.athleteId, athleteId), isNull(pause.endDate)))
+    .limit(1)
   if (existing) return
 
   await db.insert(pause).values({
+    athleteId,
     type: PauseType.Injury,
     zone: null,
     startDate: today,
@@ -343,43 +409,58 @@ async function openPause(db: Database, today: string, reason: string) {
   })
 }
 
-export async function refuseProposal(db: Database, id: number) {
+export async function refuseProposal(db: Database, athleteId: number, id: number) {
   await db
     .update(proposal)
     .set({ status: ProposalStatus.Refused, decidedAt: new Date() })
-    .where(eq(proposal.id, id))
+    .where(and(eq(proposal.id, id), eq(proposal.athleteId, athleteId)))
 }
 
 /**
  * Une proposition visant une séance disparue avec une régénération de plan
  * n'a plus d'objet : elle expire au lieu d'encombrer la liste.
  */
-export async function expireOrphanProposals(db: Database) {
+export async function expireOrphanProposals(db: Database, athleteId: number) {
   await db
     .update(proposal)
     .set({ status: ProposalStatus.Expired, decidedAt: new Date() })
     .where(
       and(
+        eq(proposal.athleteId, athleteId),
         eq(proposal.status, ProposalStatus.Proposed),
         eq(proposal.targetKind, 'session'),
-        notInArray(proposal.targetId, db.select({ id: session.id }).from(session)),
+        notInArray(
+          proposal.targetId,
+          db
+            .select({ id: session.id })
+            .from(session)
+            .where(inArray(session.weekId, athleteWeekIds(db, athleteId))),
+        ),
       ),
     )
 }
 
 /** Une proposition non décidée devient caduque au bout d'une semaine. */
-export async function expireStaleProposals(db: Database, today: string) {
+export async function expireStaleProposals(db: Database, athleteId: number, today: string) {
   const cutoff = new Date(`${addDays(today, -7)}T00:00:00Z`)
   await db
     .update(proposal)
     .set({ status: ProposalStatus.Expired, decidedAt: new Date() })
-    .where(and(eq(proposal.status, ProposalStatus.Proposed), lt(proposal.createdAt, cutoff)))
+    .where(
+      and(
+        eq(proposal.athleteId, athleteId),
+        eq(proposal.status, ProposalStatus.Proposed),
+        lt(proposal.createdAt, cutoff),
+      ),
+    )
 }
 
-export async function pendingCount(db: Database): Promise<number> {
+export async function pendingCount(db: Database, athleteId: number): Promise<number> {
   const rows = await db
     .select({ id: proposal.id })
     .from(proposal)
-    .where(inArray(proposal.status, [ProposalStatus.Proposed]))
+    .where(
+      and(eq(proposal.athleteId, athleteId), inArray(proposal.status, [ProposalStatus.Proposed])),
+    )
   return rows.length
 }

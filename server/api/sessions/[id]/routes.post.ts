@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { generateRoutes } from '../../../application/generate-routes'
-import { routeGateway, routingService } from '../../../utils/context'
+import { currentAthleteId, routeGateway, routingService } from '../../../utils/context'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
@@ -10,10 +10,11 @@ const bodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse)
   const body = await readValidatedBody(event, bodySchema.parse)
 
-  const gateway = routeGateway()
+  const gateway = routeGateway(athleteId)
   const target = await gateway.loadTarget(id)
   if (!target) throw createError({ statusCode: 404, statusMessage: 'Séance inconnue' })
 

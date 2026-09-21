@@ -5,22 +5,30 @@ import type { IsoDate } from '../../domain/plan/calendar'
 import { SessionStatus } from '../../domain/plan/session'
 import type { Database } from './client'
 import { recomputeLoadFor } from './load-repository'
+import { athleteWeekIds } from './plan-gateway'
 import { activity, athlete, session } from './schema'
 
 /** Lectures et écritures de l'import d'activités depuis la montre (§ 9, P6.7). */
-export function createActivityImportGateway(db: Database): ActivityImportGateway {
+export function createActivityImportGateway(
+  db: Database,
+  athleteId: number,
+): ActivityImportGateway {
   return {
     async knownExternalIds(ids: string[]): Promise<string[]> {
       if (ids.length === 0) return []
       const rows = await db
         .select({ externalId: activity.externalId })
         .from(activity)
-        .where(inArray(activity.externalId, ids))
+        .where(and(eq(activity.athleteId, athleteId), inArray(activity.externalId, ids)))
       return rows.map((row) => row.externalId)
     },
 
     async maxHeartRate(): Promise<number | null> {
-      const [row] = await db.select({ maxHr: athlete.maxHr }).from(athlete).limit(1)
+      const [row] = await db
+        .select({ maxHr: athlete.maxHr })
+        .from(athlete)
+        .where(eq(athlete.id, athleteId))
+        .limit(1)
       return row?.maxHr ?? null
     },
 
@@ -28,7 +36,13 @@ export function createActivityImportGateway(db: Database): ActivityImportGateway
       const rows = await db
         .select()
         .from(session)
-        .where(and(gte(session.date, from), lte(session.date, to)))
+        .where(
+          and(
+            gte(session.date, from),
+            lte(session.date, to),
+            inArray(session.weekId, athleteWeekIds(db, athleteId)),
+          ),
+        )
 
       return rows.map((row) => ({
         id: row.id,
@@ -40,6 +54,7 @@ export function createActivityImportGateway(db: Database): ActivityImportGateway
 
     async saveActivity(row: ActivityRow): Promise<void> {
       await db.insert(activity).values({
+        athleteId,
         externalId: row.externalId,
         name: null,
         sport: row.sport,
@@ -62,13 +77,15 @@ export function createActivityImportGateway(db: Database): ActivityImportGateway
       const [row] = await db
         .select({ code: session.code })
         .from(session)
-        .where(eq(session.id, sessionId))
+        .where(
+          and(eq(session.id, sessionId), inArray(session.weekId, athleteWeekIds(db, athleteId))),
+        )
         .limit(1)
       return row?.code
     },
 
     async recomputeLoad(date: IsoDate): Promise<void> {
-      await recomputeLoadFor(db, date)
+      await recomputeLoadFor(db, athleteId, date)
     },
   }
 }

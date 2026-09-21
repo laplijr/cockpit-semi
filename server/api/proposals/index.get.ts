@@ -1,13 +1,16 @@
-import { inArray } from 'drizzle-orm'
+import { and, inArray } from 'drizzle-orm'
 import { groupProposals } from '../../application/group-proposals'
 import { ProposalStatus } from '../../domain/rules/proposal-status'
 import { useDatabase } from '../../infra/db/client'
+import { athleteWeekIds } from '../../infra/db/plan-gateway'
 import { listProposals } from '../../infra/db/proposal-repository'
 import { session } from '../../infra/db/schema'
+import { currentAthleteId } from '../../utils/context'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const db = useDatabase()
-  const rows = await listProposals(db)
+  const rows = await listProposals(db, athleteId)
 
   const proposed = rows.filter((row) => row.status === ProposalStatus.Proposed)
   const sessionIds = proposed
@@ -25,7 +28,12 @@ export default defineEventHandler(async () => {
             sport: session.sport,
           })
           .from(session)
-          .where(inArray(session.id, sessionIds))
+          .where(
+            and(
+              inArray(session.id, sessionIds),
+              inArray(session.weekId, athleteWeekIds(db, athleteId)),
+            ),
+          )
 
   const byId = new Map(targets.map((row) => [row.id, row]))
 

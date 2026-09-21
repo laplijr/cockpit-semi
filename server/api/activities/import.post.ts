@@ -1,4 +1,4 @@
-import { and, gte, lte } from 'drizzle-orm'
+import { and, eq, gte, inArray, lte } from 'drizzle-orm'
 import { z } from 'zod'
 import { importActivities } from '../../application/import-activities'
 import { matchActivity, sportFromStrava } from '../../domain/matching/match-activity'
@@ -9,9 +9,10 @@ import { useDatabase } from '../../infra/db/client'
 import { createActivityImportGateway } from '../../infra/db/activity-repository'
 import { createFeedbackGateway } from '../../infra/db/feedback-gateway'
 import { recomputeLoadFor } from '../../infra/db/load-repository'
+import { athleteWeekIds } from '../../infra/db/plan-gateway'
 import { activity, athlete, session } from '../../infra/db/schema'
 import { decodeActivity } from '../../infra/watch/fit-activity'
-import { systemClock } from '../../utils/context'
+import { currentAthleteId, systemClock } from '../../utils/context'
 
 const activitySchema = z.object({
   externalId: z.string().min(1),
@@ -39,19 +40,24 @@ const MAX_FILES = 200
  * décodées ailleurs. Le rattachement et la charge sont les mêmes.
  */
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const contentType = getHeader(event, 'content-type') ?? ''
-  if (contentType.includes('multipart/form-data')) return importFitFiles(event)
+  if (contentType.includes('multipart/form-data')) return importFitFiles(event, athleteId)
 
   const { activities } = await readValidatedBody(event, bodySchema.parse)
   const db = useDatabase()
-  const [profile] = await db.select().from(athlete).limit(1)
+  const [profile] = await db.select().from(athlete).where(eq(athlete.id, athleteId)).limit(1)
 
   const dates = activities.map((item) => item.date).sort()
   const candidates = await db
     .select()
     .from(session)
     .where(
-      and(gte(session.date, addDays(dates[0]!, -1)), lte(session.date, addDays(dates.at(-1)!, 1))),
+      and(
+        gte(session.date, addDays(dates[0]!, -1)),
+        lte(session.date, addDays(dates.at(-1)!, 1)),
+        inArray(session.weekId, athleteWeekIds(db, athleteId)),
+      ),
     )
 
   const matched = new Set<number>()
@@ -84,6 +90,7 @@ export default defineEventHandler(async (event) => {
     if (sessionId !== null) matched.add(sessionId)
 
     const values = {
+      athleteId,
       externalId: item.externalId,
       name: item.name,
       sport,
@@ -103,20 +110,20 @@ export default defineEventHandler(async (event) => {
     await db
       .insert(activity)
       .values(values)
-      .onConflictDoUpdate({ target: activity.externalId, set: values })
+      .onConflictDoUpdate({ target: [activity.athleteId, activity.externalId], set: values })
 
     imported += 1
     if (sessionId !== null) linked += 1
   }
 
   const touched = [...new Set(activities.map((item) => item.date))]
-  for (const date of touched) await recomputeLoadFor(db, date)
+  for (const date of touched) await recomputeLoadFor(db, athleteId, date)
 
   return { imported, linked, days: touched.length }
 })
 
 /** Les fichiers déposés, décodés puis passés au cas d'usage d'import. */
-async function importFitFiles(event: Parameters<typeof getHeader>[0]) {
+async function importFitFiles(event: Parameters<typeof getHeader>[0], athleteId: number) {
   const parts = (await readMultipartFormData(event)) ?? []
   const files = parts.filter((part) => part.filename !== undefined)
 
@@ -132,8 +139,8 @@ async function importFitFiles(event: Parameters<typeof getHeader>[0]) {
 
   const db = useDatabase()
   return importActivities(
-    createActivityImportGateway(db),
-    createFeedbackGateway(db),
+    createActivityImportGateway(db, athleteId),
+    createFeedbackGateway(db, athleteId),
     systemClock,
     files.map((part) => ({
       name: part.filename!,

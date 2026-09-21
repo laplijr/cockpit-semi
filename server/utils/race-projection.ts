@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { FitnessOrigin } from '../domain/fitness/fitness-point'
 import {
   pausedWeeksUntil,
@@ -27,17 +27,27 @@ export interface ProjectionContext {
 }
 
 /** Tout ce dont la projection a besoin, chargé une fois pour toutes les courses. */
-export async function loadProjectionContext(db: Database): Promise<ProjectionContext> {
+export async function loadProjectionContext(
+  db: Database,
+  athleteId: number,
+): Promise<ProjectionContext> {
   const [fitness, tests, latestPause, gainPerBlock] = await Promise.all([
     /** La base vient en paramètre : le seed n'a pas de `useRuntimeConfig`. */
-    createPlanGateway(db).loadCurrentFitness(),
+    createPlanGateway(db, athleteId).loadCurrentFitness(),
     db
       .select({ vdot: fitnessPoint.vdot })
       .from(fitnessPoint)
-      .where(eq(fitnessPoint.origin, FitnessOrigin.Test))
+      .where(
+        and(eq(fitnessPoint.athleteId, athleteId), eq(fitnessPoint.origin, FitnessOrigin.Test)),
+      )
       .orderBy(fitnessPoint.date),
-    db.select().from(pause).orderBy(desc(pause.startDate), desc(pause.id)).limit(1),
-    loadGainPerBlock(db),
+    db
+      .select()
+      .from(pause)
+      .where(eq(pause.athleteId, athleteId))
+      .orderBy(desc(pause.startDate), desc(pause.id))
+      .limit(1),
+    loadGainPerBlock(db, athleteId),
   ])
 
   return {

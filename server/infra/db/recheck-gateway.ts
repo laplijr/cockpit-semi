@@ -8,7 +8,7 @@ import type { Proposal } from '../../domain/rules/rules'
 import type { Database } from './client'
 import { proposal, race, raceLookup } from './schema'
 
-export function createRecheckGateway(db: Database): RecheckGateway {
+export function createRecheckGateway(db: Database, athleteId: number): RecheckGateway {
   return {
     async staleLookups(today: IsoDate, olderThanDays: number): Promise<RaceToRecheck[]> {
       const cutoff = new Date(Date.parse(`${today}T00:00:00Z`) - olderThanDays * 86_400_000)
@@ -26,6 +26,7 @@ export function createRecheckGateway(db: Database): RecheckGateway {
         .innerJoin(race, eq(raceLookup.raceId, race.id))
         .where(
           and(
+            eq(raceLookup.athleteId, athleteId),
             isNotNull(raceLookup.raceId),
             lt(raceLookup.checkedAt, cutoff),
             eq(race.status, RaceStatus.Planned),
@@ -50,7 +51,7 @@ export function createRecheckGateway(db: Database): RecheckGateway {
     },
 
     async saveLookup(raceId: number, query: string, fields: RaceLookupFields) {
-      await db.insert(raceLookup).values({ raceId, query, fields })
+      await db.insert(raceLookup).values({ athleteId, raceId, query, fields })
     },
 
     async storeProposals(proposals: Proposal[], trigger: ProposalTrigger) {
@@ -58,6 +59,7 @@ export function createRecheckGateway(db: Database): RecheckGateway {
 
       await db.insert(proposal).values(
         proposals.map((item) => ({
+          athleteId,
           trigger,
           ruleId: item.ruleId,
           effect: item.effect,

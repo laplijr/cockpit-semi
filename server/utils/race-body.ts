@@ -79,7 +79,11 @@ export function objectiveColumns(body: RaceFields) {
  * Le mode record exige un record : un résultat représentatif sur la même
  * distance. Sans lui, la référence à battre n'existe pas et le mode est refusé.
  */
-export async function assertRecordExists(db: Database, body: RaceFields): Promise<void> {
+export async function assertRecordExists(
+  db: Database,
+  athleteId: number,
+  body: RaceFields,
+): Promise<void> {
   if (body.objectiveMode !== ObjectiveMode.Record) return
 
   const [existing] = await db
@@ -87,6 +91,7 @@ export async function assertRecordExists(db: Database, body: RaceFields): Promis
     .from(race)
     .where(
       and(
+        eq(race.athleteId, athleteId),
         eq(race.status, RaceStatus.Raced),
         eq(race.representative, true),
         isNotNull(race.resultatS),

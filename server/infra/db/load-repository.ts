@@ -1,15 +1,16 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { arbitraryUnits, type LoadEntry } from '../../domain/load/load'
 import type { IsoDate } from '../../domain/plan/calendar'
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
+import { athleteWeekIds } from './plan-gateway'
 import { activity, feedback, loadDaily, session } from './schema'
 
 /** Effort perçu retenu pour une activité sans RPE connu (§ 7, point 4). */
 export const DEFAULT_ACTIVITY_RPE = 5
 
 /** Toutes les entrées de charge d'une journée : séances faites et activités importées. */
-async function entriesFor(db: Database, date: IsoDate): Promise<LoadEntry[]> {
+async function entriesFor(db: Database, athleteId: number, date: IsoDate): Promise<LoadEntry[]> {
   const [done, imported] = await Promise.all([
     db
       .select({
@@ -19,7 +20,7 @@ async function entriesFor(db: Database, date: IsoDate): Promise<LoadEntry[]> {
       })
       .from(session)
       .innerJoin(feedback, eq(feedback.sessionId, session.id))
-      .where(eq(session.date, date)),
+      .where(and(eq(session.date, date), inArray(session.weekId, athleteWeekIds(db, athleteId)))),
     db
       .select({
         sport: activity.sport,
@@ -28,7 +29,7 @@ async function entriesFor(db: Database, date: IsoDate): Promise<LoadEntry[]> {
         sessionId: activity.sessionId,
       })
       .from(activity)
-      .where(eq(activity.date, date)),
+      .where(and(eq(activity.athleteId, athleteId), eq(activity.date, date))),
   ])
 
   const fromSessions = done
@@ -55,8 +56,8 @@ const EMPTY = {
   [Sport.Other]: 0,
 }
 
-export async function recomputeLoadFor(db: Database, date: IsoDate) {
-  const entries = await entriesFor(db, date)
+export async function recomputeLoadFor(db: Database, athleteId: number, date: IsoDate) {
+  const entries = await entriesFor(db, athleteId, date)
   const bySport = { ...EMPTY }
 
   for (const entry of entries) {
@@ -64,6 +65,7 @@ export async function recomputeLoadFor(db: Database, date: IsoDate) {
   }
 
   const row = {
+    athleteId,
     date,
     runningUa: Math.round(bySport[Sport.Running]),
     cyclingUa: Math.round(bySport[Sport.Cycling]),
@@ -72,7 +74,10 @@ export async function recomputeLoadFor(db: Database, date: IsoDate) {
     totalUa: Math.round(Object.values(bySport).reduce((total, value) => total + value, 0)),
   }
 
-  await db.insert(loadDaily).values(row).onConflictDoUpdate({ target: loadDaily.date, set: row })
+  await db
+    .insert(loadDaily)
+    .values(row)
+    .onConflictDoUpdate({ target: [loadDaily.athleteId, loadDaily.date], set: row })
 
   return row
 }

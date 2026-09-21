@@ -3,7 +3,7 @@ import { recordFeedback } from '../../../application/record-feedback'
 import { Sensation } from '../../../domain/load/feedback'
 import { useDatabase } from '../../../infra/db/client'
 import { createFeedbackGateway } from '../../../infra/db/feedback-gateway'
-import { systemClock } from '../../../utils/context'
+import { currentAthleteId, systemClock } from '../../../utils/context'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
@@ -21,14 +21,19 @@ const bodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse)
   const body = await readValidatedBody(event, bodySchema.parse)
 
   try {
-    const result = await recordFeedback(createFeedbackGateway(useDatabase()), systemClock, {
-      sessionId: id,
-      ...body,
-    })
+    const result = await recordFeedback(
+      createFeedbackGateway(useDatabase(), athleteId),
+      systemClock,
+      {
+        sessionId: id,
+        ...body,
+      },
+    )
     return { ok: true, load: result.load, proposals: result.proposals.length }
   } catch {
     throw createError({ statusCode: 404, statusMessage: 'Séance inconnue' })

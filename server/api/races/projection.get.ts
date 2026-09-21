@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { proposeLevels } from '../../domain/fitness/objective'
 import { useDatabase } from '../../infra/db/client'
 import { loadProjectionContext, projectRace } from '../../utils/race-projection'
+import { currentAthleteId } from '../../utils/context'
 
 const querySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -15,8 +16,9 @@ const querySchema = z.object({
  * niveaux d'objectif avant la création (§ 9, P5.15).
  */
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const target = await getValidatedQuery(event, querySchema.parse)
-  const context = await loadProjectionContext(useDatabase())
+  const context = await loadProjectionContext(useDatabase(), athleteId)
   const projection = projectRace(context, target)
 
   if (!projection) return { projection: null, proposedLevels: null }

@@ -10,17 +10,17 @@ import type { Database } from './client'
 import { loadActivePlanVersion } from './plan-gateway'
 import { athlete, mealPlan, race } from './schema'
 
-export function createMealPlanGateway(db: Database): MealPlanGateway {
+export function createMealPlanGateway(db: Database, athleteId: number): MealPlanGateway {
   return {
-    loadDay: (date) => loadDay(db, date),
-    read: (date) => readMealPlan(db, date),
+    loadDay: (date) => loadDay(db, athleteId, date),
+    read: (date) => readMealPlan(db, athleteId, date),
 
     async save(plan) {
       const [saved] = await db
         .insert(mealPlan)
-        .values(plan)
+        .values({ ...plan, athleteId })
         .onConflictDoUpdate({
-          target: mealPlan.date,
+          target: [mealPlan.athleteId, mealPlan.date],
           set: {
             dayKind: plan.dayKind,
             sessionsKey: plan.sessionsKey,
@@ -38,27 +38,42 @@ export function createMealPlanGateway(db: Database): MealPlanGateway {
 /** Lecture seule : un jour sans proposition n'en déclenche jamais une (§ 1). */
 export async function readMealPlan(
   db: Database,
+  athleteId: number,
   date: IsoDate,
 ): Promise<StoredMealPlan | undefined> {
-  const [row] = await db.select().from(mealPlan).where(eq(mealPlan.date, date)).limit(1)
+  const [row] = await db
+    .select()
+    .from(mealPlan)
+    .where(and(eq(mealPlan.athleteId, athleteId), eq(mealPlan.date, date)))
+    .limit(1)
   return row
 }
 
-export async function readMealPlans(db: Database, dates: IsoDate[]) {
-  const rows = await Promise.all(dates.map((date) => readMealPlan(db, date)))
+export async function readMealPlans(db: Database, athleteId: number, dates: IsoDate[]) {
+  const rows = await Promise.all(dates.map((date) => readMealPlan(db, athleteId, date)))
   return new Map(rows.filter(Boolean).map((row) => [row!.date, row!]))
 }
 
-async function loadDay(db: Database, date: IsoDate): Promise<MealDay> {
+async function loadDay(db: Database, athleteId: number, date: IsoDate): Promise<MealDay> {
   const tomorrow = addDays(date, 1)
 
   const [[profile], active, races] = await Promise.all([
-    db.select({ weightKg: athlete.weightKg }).from(athlete).limit(1),
-    loadActivePlanVersion(db),
+    db
+      .select({ weightKg: athlete.weightKg })
+      .from(athlete)
+      .where(eq(athlete.id, athleteId))
+      .limit(1),
+    loadActivePlanVersion(db, athleteId),
     db
       .select({ date: race.date })
       .from(race)
-      .where(and(eq(race.status, RaceStatus.Planned), gte(race.date, date)))
+      .where(
+        and(
+          eq(race.athleteId, athleteId),
+          eq(race.status, RaceStatus.Planned),
+          gte(race.date, date),
+        ),
+      )
       .orderBy(asc(race.date)),
   ])
 

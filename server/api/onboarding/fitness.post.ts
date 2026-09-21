@@ -3,7 +3,7 @@ import { declareFitness } from '../../application/declare-fitness'
 import { FitnessDeclaration } from '../../domain/fitness/declaration'
 import { useDatabase } from '../../infra/db/client'
 import { createFitnessGateway } from '../../infra/db/feedback-gateway'
-import { systemClock } from '../../utils/context'
+import { currentAthleteId, systemClock } from '../../utils/context'
 
 const bodySchema = z.discriminatedUnion('kind', [
   z.object({
@@ -21,9 +21,10 @@ const bodySchema = z.discriminatedUnion('kind', [
 
 /** Le VDOT de départ, déclaré. Le plan n'est régénéré qu'à la dernière étape. */
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const body = await readValidatedBody(event, bodySchema.parse)
   const declared = await declareFitness(
-    createFitnessGateway(useDatabase()),
+    createFitnessGateway(useDatabase(), athleteId),
     systemClock.today(),
     body,
   )

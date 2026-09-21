@@ -1,11 +1,10 @@
-import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import type { Prescription } from '../../../domain/shared/prescription'
 import { structuredWorkout } from '../../../domain/watch/workout'
 import { useDatabase } from '../../../infra/db/client'
-import { session } from '../../../infra/db/schema'
 import { encodeWorkout } from '../../../infra/watch/fit-encoder'
-import { systemClock } from '../../../utils/context'
+import { currentAthleteId, systemClock } from '../../../utils/context'
+import { ownedSession } from '../../../utils/scope'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
@@ -15,10 +14,10 @@ const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
  * — vélo, renforcement — n'en a pas.
  */
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse)
 
-  const [row] = await useDatabase().select().from(session).where(eq(session.id, id)).limit(1)
-  if (!row) throw createError({ statusCode: 404, statusMessage: 'Séance inconnue' })
+  const row = await ownedSession(useDatabase(), athleteId, id)
 
   const workout = structuredWorkout(row.prescription as unknown as Prescription)
   if (!workout) {

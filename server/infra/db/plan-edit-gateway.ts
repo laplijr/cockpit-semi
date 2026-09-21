@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 import type { EditContext, PlanEditGateway } from '../../application/edit-plan-session'
 import { STANDARD_INCREASE_PCT, defaultsFor } from '../../domain/athlete/profile'
 import { SessionOrigin, SessionStatus } from '../../domain/plan/session'
@@ -9,7 +9,7 @@ import type { Prescription } from '../../domain/shared/prescription'
 import type { Sport } from '../../domain/shared/sport'
 import { FALLBACK_VDOT } from '../../application/regenerate-plan'
 import type { Database } from './client'
-import { loadActivePlanVersion } from './plan-gateway'
+import { athleteWeekIds, loadActivePlanVersion } from './plan-gateway'
 import { athlete, fitnessPoint, pause, race, session } from './schema'
 
 type SessionRow = typeof session.$inferSelect
@@ -26,38 +26,42 @@ function toRecord(row: SessionRow): PlannedSessionRecord {
   }
 }
 
-export function createPlanEditGateway(db: Database): PlanEditGateway {
+export function createPlanEditGateway(db: Database, athleteId: number): PlanEditGateway {
+  const mine = () => athleteWeekIds(db, athleteId)
+
   /** Marque la journée : c'est elle qui la gèle à la régénération (§ 5, P6.43). */
   async function markManual(sessionId: number, extra: Record<string, unknown>) {
     await db
       .update(session)
       .set({ origin: SessionOrigin.Manual, ...extra })
-      .where(eq(session.id, sessionId))
+      .where(and(eq(session.id, sessionId), inArray(session.weekId, mine())))
   }
 
   return {
     async loadContext(date): Promise<EditContext | undefined> {
-      const active = await loadActivePlanVersion(db)
+      const active = await loadActivePlanVersion(db, athleteId)
       const target = active?.weeks.find((item) => item.startDate <= date && date <= item.endDate)
       if (!active || !target) return undefined
 
       const previous = active.weeks.find((item) => item.index === target.index - 1)
 
-      const [profile] = await db.select().from(athlete).limit(1)
+      const [profile] = await db.select().from(athlete).where(eq(athlete.id, athleteId)).limit(1)
       const [fitness] = await db
         .select()
         .from(fitnessPoint)
+        .where(eq(fitnessPoint.athleteId, athleteId))
         .orderBy(desc(fitnessPoint.date), desc(fitnessPoint.id))
         .limit(1)
       const [latestPause] = await db
         .select()
         .from(pause)
+        .where(eq(pause.athleteId, athleteId))
         .orderBy(desc(pause.startDate), desc(pause.id))
         .limit(1)
       const races = await db
         .select({ date: race.date, priority: race.priority })
         .from(race)
-        .where(eq(race.status, RaceStatus.Planned))
+        .where(and(eq(race.athleteId, athleteId), eq(race.status, RaceStatus.Planned)))
         .orderBy(asc(race.date))
 
       return {
@@ -82,7 +86,11 @@ export function createPlanEditGateway(db: Database): PlanEditGateway {
     },
 
     async loadSession(sessionId) {
-      const [row] = await db.select().from(session).where(eq(session.id, sessionId)).limit(1)
+      const [row] = await db
+        .select()
+        .from(session)
+        .where(and(eq(session.id, sessionId), inArray(session.weekId, mine())))
+        .limit(1)
       return row ? { ...toRecord(row), weekId: row.weekId } : undefined
     },
 
@@ -125,17 +133,23 @@ export function createPlanEditGateway(db: Database): PlanEditGateway {
       const rows = await db
         .select()
         .from(session)
-        .where(and(eq(session.date, date), eq(session.origin, SessionOrigin.Manual)))
+        .where(
+          and(
+            eq(session.date, date),
+            eq(session.origin, SessionOrigin.Manual),
+            inArray(session.weekId, mine()),
+          ),
+        )
 
       for (const row of rows) {
         if (row.status === SessionStatus.Cancelled) {
           await db
             .update(session)
             .set({ status: SessionStatus.Planned, origin: SessionOrigin.Plan })
-            .where(eq(session.id, row.id))
+            .where(and(eq(session.id, row.id), inArray(session.weekId, mine())))
           continue
         }
-        await db.delete(session).where(eq(session.id, row.id))
+        await db.delete(session).where(and(eq(session.id, row.id), inArray(session.weekId, mine())))
       }
 
       return rows.length

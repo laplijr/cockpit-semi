@@ -3,7 +3,7 @@ import { openPause } from '../../application/open-pause'
 import { PauseType } from '../../domain/pause/pause'
 import { useDatabase } from '../../infra/db/client'
 import { createPauseGateway } from '../../infra/db/feedback-gateway'
-import { planGateway, systemClock } from '../../utils/context'
+import { currentAthleteId, planGateway, systemClock } from '../../utils/context'
 
 const bodySchema = z.object({
   type: z.enum(PauseType),
@@ -27,7 +27,13 @@ const bodySchema = z.object({
 
 /** Déclarer une pause gèle le plan et le régénère (§ 5). */
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const body = await readValidatedBody(event, bodySchema.parse)
 
-  return openPause(createPauseGateway(useDatabase()), planGateway(), systemClock, body)
+  return openPause(
+    createPauseGateway(useDatabase(), athleteId),
+    planGateway(athleteId),
+    systemClock,
+    body,
+  )
 })

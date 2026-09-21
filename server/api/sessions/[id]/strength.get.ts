@@ -1,9 +1,12 @@
-import { desc, eq, lt } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt } from 'drizzle-orm'
 import { z } from 'zod'
 import { nextLoadsFor } from '../../../application/record-strength-sets'
 import type { Prescription } from '../../../domain/shared/prescription'
 import { useDatabase } from '../../../infra/db/client'
+import { athleteWeekIds } from '../../../infra/db/plan-gateway'
 import { session, strengthSet } from '../../../infra/db/schema'
+import { currentAthleteId } from '../../../utils/context'
+import { ownedSession } from '../../../utils/scope'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
@@ -23,15 +26,11 @@ export interface StrengthExerciseState {
  * séance alors que le plan, lui, ne se régénère que sur déclencheur.
  */
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse)
   const db = useDatabase()
 
-  const [current] = await db
-    .select({ prescription: session.prescription, date: session.date })
-    .from(session)
-    .where(eq(session.id, id))
-    .limit(1)
-  if (!current) throw createError({ statusCode: 404, statusMessage: 'Séance inconnue' })
+  const current = await ownedSession(db, athleteId, id)
 
   const steps = (current.prescription as unknown as Prescription).steps ?? []
   const targets = steps.filter((step) => step.exerciseId && step.reps !== undefined)
@@ -40,7 +39,9 @@ export default defineEventHandler(async (event) => {
     .select({ id: session.id, prescription: session.prescription })
     .from(session)
     .innerJoin(strengthSet, eq(strengthSet.sessionId, session.id))
-    .where(lt(session.date, current.date))
+    .where(
+      and(lt(session.date, current.date), inArray(session.weekId, athleteWeekIds(db, athleteId))),
+    )
     .orderBy(desc(session.date))
     .limit(1)
 

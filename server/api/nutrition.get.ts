@@ -16,28 +16,39 @@ import { prescribedDurationMin, type Prescription } from '../domain/shared/presc
 import { useDatabase } from '../infra/db/client'
 import { loadActivePlanVersion } from '../infra/db/plan-gateway'
 import { athlete, race } from '../infra/db/schema'
-import { systemClock } from '../utils/context'
+import { currentAthleteId, systemClock } from '../utils/context'
 
 /**
  * Repères du jour et du lendemain, ravito d'entraînement des séances prévues,
  * et protocole de la semaine de course quand une course est à moins de sept
  * jours (§ 9, P6). Aucun LLM : tout vient du plan et des repères du § 5.
  */
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const db = useDatabase()
   const today = systemClock.today()
   const tomorrow = addDays(today, 1)
 
   const [[profile], active, upcoming, meals] = await Promise.all([
-    db.select({ weightKg: athlete.weightKg }).from(athlete).limit(1),
-    loadActivePlanVersion(db),
+    db
+      .select({ weightKg: athlete.weightKg })
+      .from(athlete)
+      .where(eq(athlete.id, athleteId))
+      .limit(1),
+    loadActivePlanVersion(db, athleteId),
     db
       .select()
       .from(race)
-      .where(and(eq(race.status, RaceStatus.Planned), gte(race.date, today)))
+      .where(
+        and(
+          eq(race.athleteId, athleteId),
+          eq(race.status, RaceStatus.Planned),
+          gte(race.date, today),
+        ),
+      )
       .orderBy(asc(race.date)),
     /** Lecture seule : la page n'appelle jamais le modèle (§ 1, P6.4). */
-    readMealPlans(db, [today, tomorrow]),
+    readMealPlans(db, athleteId, [today, tomorrow]),
   ])
 
   const weightKg = profile?.weightKg ?? null

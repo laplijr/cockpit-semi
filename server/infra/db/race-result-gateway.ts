@@ -1,13 +1,13 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { RaceResultGateway } from '../../application/record-race-result'
 import { RaceStatus } from '../../domain/races/race'
 import type { Database } from './client'
 import { fitnessPoint, race, raceSegment } from './schema'
 
-export function createRaceResultGateway(db: Database): RaceResultGateway {
+export function createRaceResultGateway(db: Database, athleteId: number): RaceResultGateway {
   return {
     async saveResult(input) {
-      await db
+      const updated = await db
         .update(race)
         .set({
           resultatS: input.resultatS,
@@ -17,9 +17,11 @@ export function createRaceResultGateway(db: Database): RaceResultGateway {
           /** Une note laissée vide ne remplace pas celle saisie à la création. */
           ...(input.notes === null ? {} : { notes: input.notes }),
         })
-        .where(eq(race.id, input.raceId))
+        .where(and(eq(race.id, input.raceId), eq(race.athleteId, athleteId)))
+        .returning({ id: race.id })
 
-      if (input.segments.length === 0) return
+      /** Sans course à soi, aucun segment à poser : l'update n'a rien touché. */
+      if (updated.length === 0 || input.segments.length === 0) return
 
       await db
         .insert(raceSegment)
@@ -27,7 +29,7 @@ export function createRaceResultGateway(db: Database): RaceResultGateway {
     },
 
     async saveFitnessPoint(point) {
-      await db.insert(fitnessPoint).values(point)
+      await db.insert(fitnessPoint).values({ ...point, athleteId })
     },
   }
 }

@@ -8,6 +8,7 @@ import { FitnessOrigin } from '../server/domain/fitness/fitness-point'
 import { PauseType } from '../server/domain/pause/pause'
 import { PlanTrigger } from '../server/domain/plan/session'
 import { ObjectiveMode, RacePriority, RaceStatus, SegmentMode } from '../server/domain/races/race'
+import { Sport } from '../server/domain/shared/sport'
 import { fixedClock } from '../server/domain/shared/clock'
 import { createPlanGateway } from '../server/infra/db/plan-gateway'
 import { resolveScenario } from './scenarios'
@@ -57,6 +58,19 @@ async function reset() {
 
 const scenario = resolveScenario(process.argv.slice(2))
 
+/**
+ * Un athlète du seed. L'identifiant n'est plus `1` en dur : il vient de la
+ * séquence, et c'est lui qui porte tout ce que le scénario écrit (§ 9, P8.3).
+ */
+async function createAthlete(values: Omit<schema.NewAthlete, 'id' | 'onboarded'>) {
+  const [row] = await db
+    .insert(schema.athlete)
+    /** Un athlète du seed a déjà son cockpit : le middleware ne le renvoie pas à l'accueil. */
+    .values({ ...values, onboarded: true })
+    .returning({ id: schema.athlete.id })
+  return row!.id
+}
+
 async function seed() {
   await reset()
 
@@ -67,15 +81,12 @@ async function seed() {
     return
   }
 
-  await db.insert(schema.athlete).values({
-    id: 1,
+  const athleteId = await createAthlete({
     firstName: 'Ronan',
     constraints: { availableDays: [1, 2, 3, 4, 5, 6, 7], longRunDay: 7, easyDays: [1] },
     availableDays: [1, 2, 3, 4, 5, 6, 7],
     startWeeklyVolumeM: 20_000,
     peakWeeklyVolumeM: 45_000,
-    /** Ronan a déjà son cockpit : le middleware de P8.2 ne le renvoie pas à l'accueil. */
-    onboarded: true,
   })
 
   /**
@@ -87,6 +98,7 @@ async function seed() {
   const [tenK] = await db
     .insert(schema.race)
     .values({
+      athleteId,
       name: '10 km de Vannes',
       date: '2026-06-21',
       distanceM: 10_000,
@@ -100,6 +112,7 @@ async function seed() {
     .returning()
 
   await db.insert(schema.fitnessPoint).values({
+    athleteId,
     date: '2026-06-21',
     vdot: vdotFromRace(10_000, 56 * 60 + 40),
     origin: FitnessOrigin.Race,
@@ -111,6 +124,7 @@ async function seed() {
   const [reference] = await db
     .insert(schema.race)
     .values({
+      athleteId,
       name: 'Premier semi-marathon',
       date: '2026-09-13',
       distanceM: 21500,
@@ -132,6 +146,7 @@ async function seed() {
   if (!floor) throw new Error('Aucun segment continu exploitable dans la course de référence')
 
   await db.insert(schema.fitnessPoint).values({
+    athleteId,
     date: '2026-09-13',
     vdot: floor.vdot,
     origin: FitnessOrigin.Race,
@@ -142,6 +157,7 @@ async function seed() {
 
   await db.insert(schema.race).values([
     {
+      athleteId,
       name: 'Semi de Paris',
       date: '2027-03-07',
       distanceM: 21097.5,
@@ -152,6 +168,7 @@ async function seed() {
         'Se tester : couru à fond pour recaler le VDOT avant Madrid. Les trois niveaux se posent au premier test.',
     },
     {
+      athleteId,
       name: 'Semi de Madrid',
       date: '2027-04-04',
       distanceM: 21097.5,
@@ -161,6 +178,7 @@ async function seed() {
       notes: 'Courue sur la forme de Paris, recalée par le test.',
     },
     {
+      athleteId,
       name: '5 km · Île d’Arz',
       date: '2027-08-08',
       distanceM: 5000,
@@ -170,6 +188,7 @@ async function seed() {
       notes: 'Première course sur 5 km : les trois niveaux se posent depuis la projection.',
     },
     {
+      athleteId,
       name: 'Semi-marathon Auray-Vannes',
       date: '2027-09-12',
       distanceM: 21097.5,
@@ -181,6 +200,7 @@ async function seed() {
   ])
 
   await db.insert(schema.pause).values({
+    athleteId,
     type: PauseType.Injury,
     zone: 'pied',
     startDate: '2026-09-16',
@@ -199,7 +219,7 @@ async function seed() {
 
   const clock = fixedClock(scenario.resumeDate ?? scenario.simulatedDay)
   const { planVersionId, plan } = await regeneratePlan(
-    createPlanGateway(db),
+    createPlanGateway(db, athleteId),
     clock,
     PlanTrigger.Onboarding,
   )
@@ -209,15 +229,62 @@ async function seed() {
     `Plan ${planVersionId} — départ ${plan.startDate ?? 'non daté'}, ${plan.phases.length} phases, ${plan.weeks.length} semaines, plancher VDOT ${floor.vdot.toFixed(2)}`,
   )
 
-  const progress = await simulate(db, scenario)
+  const progress = await simulate(db, athleteId, scenario)
   if (scenario.resumeDate) {
     console.log(
       `Rejeu du ${scenario.resumeDate} au ${scenario.simulatedDay} : ${progress.sessionsDone} séances faites, ${progress.sessionsMissed} manquées, ${progress.tests} test(s), ${progress.strengthSets} séries de renforcement, ${progress.decisions} décisions, ${progress.habits} habitude(s), ${progress.objectivesSet} objectif(s) posé(s), VDOT ${progress.lastVdot.toFixed(2)}`,
     )
   }
 
+  if (scenario.second) await seedSecondAthlete()
+
   console.log('')
   console.log(`export NUXT_COCKPIT_TODAY=${scenario.simulatedDay}`)
+}
+
+/**
+ * Une seconde personne sur la même base. Elle n'a rien de commun avec Ronan —
+ * d'autres jours, d'autres courses, un autre niveau — pour que le moindre
+ * mélange se voie du premier coup d'œil (§ 9, P8.3).
+ */
+async function seedSecondAthlete() {
+  const athleteId = await createAthlete({
+    firstName: 'Nour',
+    constraints: { availableDays: [2, 4, 6], longRunDay: 6, sports: [Sport.Running] },
+    availableDays: [2, 4, 6],
+    startWeeklyVolumeM: 30_000,
+    peakWeeklyVolumeM: 60_000,
+  })
+
+  await db.insert(schema.fitnessPoint).values({
+    athleteId,
+    date: '2026-09-01',
+    vdot: vdotFromRace(10_000, 47 * 60),
+    origin: FitnessOrigin.InitialImport,
+    isFloor: false,
+    note: 'Chrono déclaré · 10 000 m',
+  })
+
+  await db.insert(schema.race).values({
+    athleteId,
+    name: 'Marathon de Nantes',
+    date: '2027-04-25',
+    distanceM: 42195,
+    priority: RacePriority.A,
+    objectiveMode: ObjectiveMode.Time,
+    objectifS: 3 * 3600 + 30 * 60,
+    notes: 'Course de Nour : elle ne doit jamais apparaître dans le cockpit de Ronan.',
+  })
+
+  const { plan } = await regeneratePlan(
+    createPlanGateway(db, athleteId),
+    fixedClock(scenario.simulatedDay),
+    PlanTrigger.Onboarding,
+  )
+
+  console.log(
+    `Second athlète ${athleteId} — Nour, ${plan.weeks.length} semaines jusqu'au marathon de Nantes.`,
+  )
 }
 
 await seed()

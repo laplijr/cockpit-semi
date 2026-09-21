@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { confidence } from '../../domain/fitness/confidence'
 import { objectiveIsUnset, proposeLevels } from '../../domain/fitness/objective'
 import { ObjectiveMode, RaceStatus } from '../../domain/races/race'
@@ -5,15 +6,16 @@ import { canRecordResult } from '../../domain/races/result'
 import { useDatabase } from '../../infra/db/client'
 import { race } from '../../infra/db/schema'
 import { loadProjectionContext, projectRace } from '../../utils/race-projection'
-import { systemClock } from '../../utils/context'
+import { currentAthleteId, systemClock } from '../../utils/context'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const db = useDatabase()
   const today = systemClock.today()
 
   const [rows, context] = await Promise.all([
-    db.select().from(race).orderBy(race.date),
-    loadProjectionContext(db),
+    db.select().from(race).where(eq(race.athleteId, athleteId)).orderBy(race.date),
+    loadProjectionContext(db, athleteId),
   ])
 
   /**

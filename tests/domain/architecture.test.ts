@@ -1,13 +1,6 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-
-function filesUnder(dir: string): string[] {
-  return readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry)
-    return statSync(path).isDirectory() ? filesUnder(path) : [path]
-  })
-}
+import { filesUnder } from './helpers/files'
 
 describe('règle de dépendance (§ 3)', () => {
   it('aucun module de domaine n’importe infra', () => {

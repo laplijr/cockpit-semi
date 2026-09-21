@@ -1,8 +1,9 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { HabitStatus } from '../../domain/learning/habit'
 import { useDatabase } from '../../infra/db/client'
 import { habit } from '../../infra/db/schema'
+import { currentAthleteId } from '../../utils/context'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
@@ -15,6 +16,7 @@ const bodySchema = z.object({
  * le moteur au prochain recalcul ; refusée, elle reste visible mais muette.
  */
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse)
   const { status } = await readValidatedBody(event, bodySchema.parse)
 
@@ -24,7 +26,7 @@ export default defineEventHandler(async (event) => {
       status,
       decidedAt: status === HabitStatus.Detected ? null : new Date(),
     })
-    .where(eq(habit.id, id))
+    .where(and(eq(habit.id, id), eq(habit.athleteId, athleteId)))
     .returning()
 
   if (!updated) throw createError({ statusCode: 404, statusMessage: 'Habitude inconnue' })

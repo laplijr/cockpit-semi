@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, isNotNull, lte } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm'
 import { z } from 'zod'
 import { ForecastTarget, accuracy, accuracyByHorizon } from '../domain/fitness/accuracy'
 import { confidenceHistory } from '../domain/fitness/confidence-history'
@@ -16,7 +16,7 @@ import { SessionStatus } from '../domain/plan/session'
 import { RunSessionCode } from '../domain/running/session-types'
 import { useDatabase } from '../infra/db/client'
 import { loadGainPerBlock, loadResolvedForecasts } from '../infra/db/forecast-repository'
-import { loadActivePlanVersion } from '../infra/db/plan-gateway'
+import { athleteWeekIds, loadActivePlanVersion } from '../infra/db/plan-gateway'
 import {
   feedback,
   fitnessPoint,
@@ -28,7 +28,7 @@ import {
   session,
   strengthSet,
 } from '../infra/db/schema'
-import { systemClock } from '../utils/context'
+import { currentAthleteId, systemClock } from '../utils/context'
 
 const HALF_MARATHON_M = 21097.5
 
@@ -37,8 +37,11 @@ const querySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const db = useDatabase()
   const today = systemClock.today()
+
+  const mine = athleteWeekIds(db, athleteId)
 
   const { period } = await getValidatedQuery(event, querySchema.parse)
   const since = windowStart(today, period)
@@ -61,16 +64,31 @@ export default defineEventHandler(async (event) => {
     gainPerBlock,
     forecastRows,
   ] = await Promise.all([
-    db.select().from(fitnessPoint).orderBy(asc(fitnessPoint.date)),
-    db.select().from(race).orderBy(asc(race.date)),
-    db.select().from(loadDaily).orderBy(asc(loadDaily.date)),
-    loadActivePlanVersion(db),
-    db.select().from(proposal),
+    db
+      .select()
+      .from(fitnessPoint)
+      .where(eq(fitnessPoint.athleteId, athleteId))
+      .orderBy(asc(fitnessPoint.date)),
+    db.select().from(race).where(eq(race.athleteId, athleteId)).orderBy(asc(race.date)),
+    db
+      .select()
+      .from(loadDaily)
+      .where(eq(loadDaily.athleteId, athleteId))
+      .orderBy(asc(loadDaily.date)),
+    loadActivePlanVersion(db, athleteId),
+    db.select().from(proposal).where(eq(proposal.athleteId, athleteId)),
     db
       .select()
       .from(session)
       .leftJoin(feedback, eq(feedback.sessionId, session.id))
-      .where(and(eq(session.key, true), lte(session.date, today), gte(session.date, since)))
+      .where(
+        and(
+          eq(session.key, true),
+          lte(session.date, today),
+          gte(session.date, since),
+          inArray(session.weekId, mine),
+        ),
+      )
       .orderBy(desc(session.date))
       .limit(40),
     db
@@ -82,7 +100,9 @@ export default defineEventHandler(async (event) => {
         actualDistanceM: session.actualDistanceM,
       })
       .from(session)
-      .where(and(lte(session.date, today), gte(session.date, since))),
+      .where(
+        and(lte(session.date, today), gte(session.date, since), inArray(session.weekId, mine)),
+      ),
     db
       .select({
         code: session.code,
@@ -92,7 +112,9 @@ export default defineEventHandler(async (event) => {
       })
       .from(session)
       .innerJoin(feedback, eq(feedback.sessionId, session.id))
-      .where(and(lte(session.date, today), gte(session.date, since))),
+      .where(
+        and(lte(session.date, today), gte(session.date, since), inArray(session.weekId, mine)),
+      ),
     db
       .select({
         date: session.date,
@@ -101,16 +123,16 @@ export default defineEventHandler(async (event) => {
       })
       .from(strengthSet)
       .innerJoin(session, eq(session.id, strengthSet.sessionId))
-      .where(and(lte(session.date, today), gte(session.date, since)))
+      .where(and(lte(session.date, today), gte(session.date, since), inArray(session.weekId, mine)))
       .orderBy(asc(session.date)),
-    db.select().from(pause).orderBy(asc(pause.startDate)),
-    loadResolvedForecasts(db),
-    loadGainPerBlock(db),
+    db.select().from(pause).where(eq(pause.athleteId, athleteId)).orderBy(asc(pause.startDate)),
+    loadResolvedForecasts(db, athleteId),
+    loadGainPerBlock(db, athleteId),
     db
       .select()
       .from(forecast)
       .leftJoin(race, eq(race.id, forecast.raceId))
-      .where(isNotNull(forecast.actualVdot))
+      .where(and(eq(forecast.athleteId, athleteId), isNotNull(forecast.actualVdot)))
       .orderBy(desc(forecast.resolvedDate), desc(forecast.id))
       .limit(12),
   ])

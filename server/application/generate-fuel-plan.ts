@@ -14,13 +14,18 @@ import { loadProjectionContext, projectRace } from '../utils/race-projection'
  */
 export async function generateFuelPlan(
   db: Database,
+  athleteId: number,
   raceId: number,
   today: IsoDate,
 ): Promise<FuelPlan | null> {
-  const [row] = await db.select().from(race).where(eq(race.id, raceId)).limit(1)
+  const [row] = await db
+    .select()
+    .from(race)
+    .where(and(eq(race.id, raceId), eq(race.athleteId, athleteId)))
+    .limit(1)
   if (!row) return null
 
-  const context = await loadProjectionContext(db)
+  const context = await loadProjectionContext(db, athleteId)
   const projection = projectRace(context, row)
   if (!projection) return null
 
@@ -31,7 +36,10 @@ export async function generateFuelPlan(
     generatedAt: today,
   })
 
-  await db.update(race).set({ fuelPlan: plan }).where(eq(race.id, raceId))
+  await db
+    .update(race)
+    .set({ fuelPlan: plan })
+    .where(and(eq(race.id, raceId), eq(race.athleteId, athleteId)))
   return plan
 }
 
@@ -40,16 +48,26 @@ export async function generateFuelPlan(
  * plan existe déjà n'est pas retouchée ici : il se régénère à la demande, ou
  * quand la météo attendue change.
  */
-export async function generateDueFuelPlans(db: Database, today: IsoDate): Promise<number> {
+export async function generateDueFuelPlans(
+  db: Database,
+  athleteId: number,
+  today: IsoDate,
+): Promise<number> {
   const horizon = addDays(today, PROTOCOL_DAYS)
 
   const due = await db
     .select({ id: race.id, date: race.date })
     .from(race)
-    .where(and(eq(race.status, RaceStatus.Planned), isNull(race.fuelPlan)))
+    .where(
+      and(
+        eq(race.athleteId, athleteId),
+        eq(race.status, RaceStatus.Planned),
+        isNull(race.fuelPlan),
+      ),
+    )
 
   const ids = due.filter((row) => row.date >= today && row.date <= horizon).map((row) => row.id)
-  const plans = await Promise.all(ids.map((id) => generateFuelPlan(db, id, today)))
+  const plans = await Promise.all(ids.map((id) => generateFuelPlan(db, athleteId, id, today)))
 
   return plans.filter(Boolean).length
 }

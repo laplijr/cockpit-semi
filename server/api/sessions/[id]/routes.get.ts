@@ -4,7 +4,7 @@ import { parseGpx } from '../../../domain/routes/gpx'
 import { rejectionsOf } from '../../../domain/routes/validate'
 import { useDatabase } from '../../../infra/db/client'
 import { route } from '../../../infra/db/schema'
-import { routeGateway } from '../../../utils/context'
+import { currentAthleteId, routeGateway } from '../../../utils/context'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
@@ -14,11 +14,18 @@ const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
  * pour que le dialog dessine la trace.
  */
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse)
+  const gateway = routeGateway(athleteId)
+
+  /** Sans séance à soi, pas d'itinéraire : la porte se ferme avant la lecture. */
+  if (!(await gateway.loadTarget(id))) {
+    throw createError({ statusCode: 404, statusMessage: 'Séance inconnue' })
+  }
 
   const [rows, homeAddress] = await Promise.all([
     useDatabase().select().from(route).where(eq(route.sessionId, id)).orderBy(asc(route.rank)),
-    routeGateway().loadHomeAddress(),
+    gateway.loadHomeAddress(),
   ])
 
   return {

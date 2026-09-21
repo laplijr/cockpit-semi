@@ -3,10 +3,11 @@ import { CYCLING_MAX_LOAD_SHARE, CYCLING_PER_PHASE } from '../../domain/plan/wee
 import { PhaseType } from '../../domain/plan/phases'
 import { useDatabase } from '../../infra/db/client'
 import { loadActivePlanVersion } from '../../infra/db/plan-gateway'
-import { systemClock } from '../../utils/context'
+import { currentAthleteId, systemClock } from '../../utils/context'
 
-export default defineEventHandler(async () => {
-  const active = await loadActivePlanVersion(useDatabase())
+export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
+  const active = await loadActivePlanVersion(useDatabase(), athleteId)
   const today = systemClock.today()
   const current = active?.weeks.find((week) => week.startDate <= today && today <= week.endDate)
   const phaseType = (current?.phaseType ?? PhaseType.Base) as PhaseType

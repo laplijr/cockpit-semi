@@ -8,7 +8,7 @@ import {
 } from '../../../domain/unplanned/events'
 import { useDatabase } from '../../../infra/db/client'
 import { createUnplannedGateway } from '../../../infra/db/unplanned-gateway'
-import { systemClock } from '../../../utils/context'
+import { currentAthleteId, systemClock } from '../../../utils/context'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
@@ -41,12 +41,13 @@ const bodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const { id } = await getValidatedRouterParams(event, paramsSchema.parse)
   const { events } = await readValidatedBody(event, bodySchema.parse)
 
   try {
     const result = await confirmUnplanned(
-      createUnplannedGateway(useDatabase()),
+      createUnplannedGateway(useDatabase(), athleteId),
       systemClock,
       id,
       events,

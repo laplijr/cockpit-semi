@@ -1,15 +1,18 @@
-import { desc, isNotNull } from 'drizzle-orm'
+import { and, desc, eq, isNotNull } from 'drizzle-orm'
 import type { ResolvedForecast } from '../../domain/fitness/accuracy'
 import { VDOT_GAIN_PER_BLOCK } from '../../domain/fitness/projection'
 import type { Database } from './client'
 import { athlete, forecast } from './schema'
 
 /** Les prévisions déjà confrontées au réalisé, la plus récente en tête (§ 9, P6.6). */
-export async function loadResolvedForecasts(db: Database): Promise<ResolvedForecast[]> {
+export async function loadResolvedForecasts(
+  db: Database,
+  athleteId: number,
+): Promise<ResolvedForecast[]> {
   const rows = await db
     .select()
     .from(forecast)
-    .where(isNotNull(forecast.actualVdot))
+    .where(and(eq(forecast.athleteId, athleteId), isNotNull(forecast.actualVdot)))
     .orderBy(desc(forecast.resolvedDate), desc(forecast.id))
 
   return rows.map((row) => ({
@@ -23,7 +26,11 @@ export async function loadResolvedForecasts(db: Database): Promise<ResolvedForec
 }
 
 /** Progression estimée en vigueur : celle du § 5 tant que R9 ne l'a pas recalée. */
-export async function loadGainPerBlock(db: Database): Promise<number> {
-  const [row] = await db.select({ gain: athlete.vdotGainPerBlock }).from(athlete).limit(1)
+export async function loadGainPerBlock(db: Database, athleteId: number): Promise<number> {
+  const [row] = await db
+    .select({ gain: athlete.vdotGainPerBlock })
+    .from(athlete)
+    .where(eq(athlete.id, athleteId))
+    .limit(1)
   return row?.gain ?? VDOT_GAIN_PER_BLOCK
 }

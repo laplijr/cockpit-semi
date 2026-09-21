@@ -13,6 +13,7 @@ import { ProposalStatus } from '../domain/rules/proposal-status'
 import { ProposalEffect } from '../domain/rules/rules'
 import type { Prescription } from '../domain/shared/prescription'
 import type { Database } from '../infra/db/client'
+import { athleteWeekIds } from '../infra/db/plan-gateway'
 import { calibration, feedback, fitnessPoint, habit, proposal, session } from '../infra/db/schema'
 
 /** Fenêtre d'observation : au-delà, l'habitude d'avant ne dit plus rien d'aujourd'hui. */
@@ -23,15 +24,20 @@ export const OBSERVATION_DAYS = 120
  * déjà décidée — acceptée ou refusée — garde son statut : la preuve se met à
  * jour, la décision reste celle de Ronan (§ 1.3).
  */
-export async function detectAndStoreHabits(db: Database, today: IsoDate): Promise<number> {
+export async function detectAndStoreHabits(
+  db: Database,
+  athleteId: number,
+  today: IsoDate,
+): Promise<number> {
   const since = addDays(today, -OBSERVATION_DAYS)
-  const found = detectHabits(await observe(db, since))
+  const found = detectHabits(await observe(db, athleteId, since))
   if (found.length === 0) return 0
 
   await db
     .insert(habit)
     .values(
       found.map((detected) => ({
+        athleteId,
         type: detected.type,
         key: detected.key,
         parameters: detected.parameters,
@@ -42,7 +48,7 @@ export async function detectAndStoreHabits(db: Database, today: IsoDate): Promis
       })),
     )
     .onConflictDoUpdate({
-      target: habit.key,
+      target: [habit.athleteId, habit.key],
       set: {
         matched: sql`excluded.matched`,
         total: sql`excluded.total`,
@@ -55,7 +61,7 @@ export async function detectAndStoreHabits(db: Database, today: IsoDate): Promis
   return found.length
 }
 
-async function observe(db: Database, since: IsoDate) {
+async function observe(db: Database, athleteId: number, since: IsoDate) {
   const [rated, decided] = await Promise.all([
     db
       .select()
@@ -69,12 +75,18 @@ async function observe(db: Database, since: IsoDate) {
             SessionStatus.Modified,
             SessionStatus.Skipped,
           ]),
+          inArray(session.weekId, athleteWeekIds(db, athleteId)),
         ),
       ),
     db
       .select()
       .from(proposal)
-      .where(inArray(proposal.status, [ProposalStatus.Accepted, ProposalStatus.Refused])),
+      .where(
+        and(
+          eq(proposal.athleteId, athleteId),
+          inArray(proposal.status, [ProposalStatus.Accepted, ProposalStatus.Refused]),
+        ),
+      ),
   ])
 
   const sessions: ObservedSession[] = rated.map((row) => ({
@@ -109,7 +121,11 @@ async function observe(db: Database, since: IsoDate) {
  * Calibration de la semaine écoulée, enregistrée sur son lundi. Recalculée à
  * chaque passage : la semaine en cours se précise jusqu'à ce qu'elle se ferme.
  */
-export async function calibrateWeek(db: Database, today: IsoDate): Promise<Calibration> {
+export async function calibrateWeek(
+  db: Database,
+  athleteId: number,
+  today: IsoDate,
+): Promise<Calibration> {
   const monday = startOfWeek(today)
 
   const [rated, decided, tests] = await Promise.all([
@@ -117,12 +133,19 @@ export async function calibrateWeek(db: Database, today: IsoDate): Promise<Calib
       .select({ prescription: session.prescription, rpe: feedback.rpe })
       .from(session)
       .innerJoin(feedback, eq(feedback.sessionId, session.id))
-      .where(and(sql`${session.date} >= ${monday}`, sql`${session.date} <= ${today}`)),
+      .where(
+        and(
+          sql`${session.date} >= ${monday}`,
+          sql`${session.date} <= ${today}`,
+          inArray(session.weekId, athleteWeekIds(db, athleteId)),
+        ),
+      ),
     db
       .select({ status: proposal.status })
       .from(proposal)
       .where(
         and(
+          eq(proposal.athleteId, athleteId),
           inArray(proposal.status, [ProposalStatus.Accepted, ProposalStatus.Refused]),
           sql`${proposal.decidedAt} >= ${monday}`,
         ),
@@ -130,7 +153,9 @@ export async function calibrateWeek(db: Database, today: IsoDate): Promise<Calib
     db
       .select({ vdot: fitnessPoint.vdot, date: fitnessPoint.date })
       .from(fitnessPoint)
-      .where(eq(fitnessPoint.origin, FitnessOrigin.Test))
+      .where(
+        and(eq(fitnessPoint.athleteId, athleteId), eq(fitnessPoint.origin, FitnessOrigin.Test)),
+      )
       .orderBy(desc(fitnessPoint.date))
       .limit(2),
   ])
@@ -154,9 +179,9 @@ export async function calibrateWeek(db: Database, today: IsoDate): Promise<Calib
 
   await db
     .insert(calibration)
-    .values(result)
+    .values({ ...result, athleteId })
     .onConflictDoUpdate({
-      target: calibration.date,
+      target: [calibration.athleteId, calibration.date],
       set: {
         rpeError: sql`excluded.rpe_error`,
         acceptanceRate: sql`excluded.acceptance_rate`,
@@ -169,6 +194,9 @@ export async function calibrateWeek(db: Database, today: IsoDate): Promise<Calib
 }
 
 /** Habitudes acceptées, telles que le moteur de règles les consomme. */
-export async function loadAcceptedHabits(db: Database) {
-  return db.select().from(habit).where(eq(habit.status, HabitStatus.Accepted))
+export async function loadAcceptedHabits(db: Database, athleteId: number) {
+  return db
+    .select()
+    .from(habit)
+    .where(and(eq(habit.athleteId, athleteId), eq(habit.status, HabitStatus.Accepted)))
 }

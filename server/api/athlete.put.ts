@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { regeneratePlan } from '../application/regenerate-plan'
 import { AthleteProfile, MAX_AVATAR_BYTES } from '../domain/athlete/profile'
@@ -5,7 +6,7 @@ import { Sport } from '../domain/shared/sport'
 import { PlanTrigger } from '../domain/plan/session'
 import { useDatabase } from '../infra/db/client'
 import { athlete } from '../infra/db/schema'
-import { planGateway, systemClock } from '../utils/context'
+import { currentAthleteId, planGateway, systemClock } from '../utils/context'
 
 const weekdaySchema = z.number().int().min(1).max(7)
 
@@ -35,17 +36,15 @@ const bodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const body = await readValidatedBody(event, bodySchema.parse)
 
   const [saved] = await useDatabase()
-    .insert(athlete)
-    .values({ id: 1, ...body, availableDays: body.constraints.availableDays, onboarded: true })
-    .onConflictDoUpdate({
-      target: athlete.id,
-      set: { ...body, availableDays: body.constraints.availableDays, onboarded: true },
-    })
+    .update(athlete)
+    .set({ ...body, availableDays: body.constraints.availableDays, onboarded: true })
+    .where(eq(athlete.id, athleteId))
     .returning()
 
-  await regeneratePlan(planGateway(), systemClock, PlanTrigger.Onboarding)
+  await regeneratePlan(planGateway(athleteId), systemClock, PlanTrigger.Onboarding)
   return saved
 })

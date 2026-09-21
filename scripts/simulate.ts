@@ -1,4 +1,4 @@
-import { and, asc, eq, lte } from 'drizzle-orm'
+import { and, asc, eq, inArray, lte } from 'drizzle-orm'
 import { calibrateWeek, detectAndStoreHabits } from '../server/application/detect-habits'
 import { generateDueFuelPlans } from '../server/application/generate-fuel-plan'
 import { recordFeedback, skipSession } from '../server/application/record-feedback'
@@ -18,7 +18,7 @@ import {
   createFitnessGateway,
   createPauseGateway,
 } from '../server/infra/db/feedback-gateway'
-import { createPlanGateway } from '../server/infra/db/plan-gateway'
+import { athleteWeekIds, createPlanGateway } from '../server/infra/db/plan-gateway'
 import {
   acceptProposal,
   expireStaleProposals,
@@ -86,11 +86,17 @@ interface PlannedRow {
   }
 }
 
-async function plannedOn(db: Database, date: string): Promise<PlannedRow[]> {
+async function plannedOn(db: Database, athleteId: number, date: string): Promise<PlannedRow[]> {
   const rows = await db
     .select()
     .from(session)
-    .where(and(eq(session.date, date), eq(session.status, SessionStatus.Planned)))
+    .where(
+      and(
+        eq(session.date, date),
+        eq(session.status, SessionStatus.Planned),
+        inArray(session.weekId, athleteWeekIds(db, athleteId)),
+      ),
+    )
     .orderBy(asc(session.id))
 
   return rows.map((row) => ({
@@ -119,10 +125,11 @@ function actualDistanceM(row: PlannedRow, spread: number): number | null {
   return Math.round(row.prescription.totalDistanceM * spread)
 }
 
-async function currentVdot(db: Database): Promise<number> {
+async function currentVdot(db: Database, athleteId: number): Promise<number> {
   const [row] = await db
     .select()
     .from(fitnessPoint)
+    .where(eq(fitnessPoint.athleteId, athleteId))
     .orderBy(asc(fitnessPoint.date))
     .limit(50)
     .then((rows) => rows.slice(-1))
@@ -169,12 +176,19 @@ function strengthSetsFor(
  * accepte un peu plus de la moitié. Sans ça, le taux d'acceptation ne mesure
  * que des propositions périmées (§ 9, P3).
  */
-async function decidePending(db: Database, today: string, random: () => number): Promise<number> {
-  const pending = (await listProposals(db)).filter((row) => row.status === ProposalStatus.Proposed)
+async function decidePending(
+  db: Database,
+  athleteId: number,
+  today: string,
+  random: () => number,
+): Promise<number> {
+  const pending = (await listProposals(db, athleteId)).filter(
+    (row) => row.status === ProposalStatus.Proposed,
+  )
 
   for (const row of pending) {
-    if (random() < PROPOSAL_ACCEPT_RATE) await acceptProposal(db, row.id, today)
-    else await refuseProposal(db, row.id)
+    if (random() < PROPOSAL_ACCEPT_RATE) await acceptProposal(db, athleteId, row.id, today)
+    else await refuseProposal(db, athleteId, row.id)
   }
 
   return pending.length
@@ -191,11 +205,15 @@ const DAYS_PER_WEEK = 7
  */
 async function setObjectivesFromProjection(
   db: Database,
+  athleteId: number,
   today: string,
   vdot: number,
   testHistory: number[],
 ): Promise<number> {
-  const open = await db.select().from(race).where(eq(race.status, RaceStatus.Planned))
+  const open = await db
+    .select()
+    .from(race)
+    .where(and(eq(race.athleteId, athleteId), eq(race.status, RaceStatus.Planned)))
   const pending = open.filter((row) => row.date > today && row.objectifS === null)
 
   for (const row of pending) {
@@ -220,7 +238,7 @@ async function setObjectivesFromProjection(
         objectifS: projection.timeS,
         objectifPlancherS: projection.highS,
       })
-      .where(eq(race.id, row.id))
+      .where(and(eq(race.id, row.id), eq(race.athleteId, athleteId)))
   }
 
   return pending.length
@@ -230,7 +248,11 @@ async function setObjectivesFromProjection(
  * Rejoue l'historique jour par jour, de la reprise au jour simulé, en passant
  * par les mêmes cas d'usage que l'application : rien n'est inséré à la main.
  */
-export async function simulate(db: Database, scenario: Scenario): Promise<Progress> {
+export async function simulate(
+  db: Database,
+  athleteId: number,
+  scenario: Scenario,
+): Promise<Progress> {
   if (!scenario.resumeDate) {
     return {
       sessionsDone: 0,
@@ -245,12 +267,12 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
   }
 
   const random = createRandom(scenario.seed)
-  const plans = createPlanGateway(db)
-  const feedbackGateway = createFeedbackGateway(db)
+  const plans = createPlanGateway(db, athleteId)
+  const feedbackGateway = createFeedbackGateway(db, athleteId)
 
-  await resumePause(createPauseGateway(db), plans, fixedClock(scenario.resumeDate))
+  await resumePause(createPauseGateway(db, athleteId), plans, fixedClock(scenario.resumeDate))
 
-  const strength = createStrengthGateway(db)
+  const strength = createStrengthGateway(db, athleteId)
   /** Charge tenue au dernier passage, par exercice : elle monte d'une séance à l'autre. */
   const loads = new Map<string, number>()
 
@@ -258,7 +280,7 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
     sessionsDone: 0,
     sessionsMissed: 0,
     tests: 0,
-    lastVdot: await currentVdot(db),
+    lastVdot: await currentVdot(db, athleteId),
     strengthSets: 0,
     decisions: 0,
     habits: 0,
@@ -273,20 +295,22 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
     const clock = fixedClock(date)
     // Le cron quotidien tourne aussi dans la simulation : sans lui, les
     // propositions jamais décidées s'accumuleraient indéfiniment.
-    await expireStaleProposals(db, date)
+    await expireStaleProposals(db, athleteId, date)
     // Les propositions de la dernière semaine restent en attente : l'état final
     // doit montrer un cockpit qui a quelque chose à décider (§ P3.5).
-    if (date < lastWeekStart) progress.decisions += await decidePending(db, date, random)
+    if (date < lastWeekStart) {
+      progress.decisions += await decidePending(db, athleteId, date, random)
+    }
 
     /**
      * Le reste du cron quotidien, sa part déterministe : les plans ravito de
      * J−7, puis la relecture des habitudes et la calibration, hebdomadaires.
      * La revérification des courses en est exclue : elle appelle le réseau.
      */
-    await generateDueFuelPlans(db, date)
+    await generateDueFuelPlans(db, athleteId, date)
     if (weekday(date) === MONDAY || date === scenario.simulatedDay) {
-      progress.habits = await detectAndStoreHabits(db, date)
-      await calibrateWeek(db, date)
+      progress.habits = await detectAndStoreHabits(db, athleteId, date)
+      await calibrateWeek(db, athleteId, date)
     }
     const dayIndex = Math.round((Date.parse(date) - Date.parse(scenario.resumeDate)) / 86_400_000)
 
@@ -295,7 +319,11 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
      * relit la journée après chaque séance plutôt que de garder des identifiants
      * périmés. Une séance close sort de `plannedOn`, la boucle finit donc.
      */
-    for (let row = (await plannedOn(db, date))[0]; row; row = (await plannedOn(db, date))[0]) {
+    for (
+      let row = (await plannedOn(db, athleteId, date))[0];
+      row;
+      row = (await plannedOn(db, athleteId, date))[0]
+    ) {
       if (row.code === 'test') {
         const target = progress.lastVdot + scenario.vdotGainPerTest
         const distanceM = testDistanceForVdot(target)
@@ -313,7 +341,7 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
           notes: `Test 20′ : ${distanceM} m`,
         })
 
-        const result = await recordTest(createFitnessGateway(db), plans, clock, {
+        const result = await recordTest(createFitnessGateway(db, athleteId), plans, clock, {
           distanceM,
           date,
         })
@@ -326,6 +354,7 @@ export async function simulate(db: Database, scenario: Scenario): Promise<Progre
         if (progress.tests === 1) {
           progress.objectivesSet = await setObjectivesFromProjection(
             db,
+            athleteId,
             date,
             result.vdot,
             testHistory,

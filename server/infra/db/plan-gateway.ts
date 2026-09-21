@@ -39,10 +39,10 @@ import {
   week,
 } from './schema'
 
-export function createPlanGateway(db: Database): PlanGateway {
+export function createPlanGateway(db: Database, athleteId: number): PlanGateway {
   return {
     async loadAthlete(): Promise<AthleteSnapshot | undefined> {
-      const [row] = await db.select().from(athlete).limit(1)
+      const [row] = await db.select().from(athlete).where(eq(athlete.id, athleteId)).limit(1)
       if (!row) return undefined
       return {
         constraints: row.constraints ?? DEFAULT_CONSTRAINTS,
@@ -57,7 +57,10 @@ export function createPlanGateway(db: Database): PlanGateway {
     },
 
     async loadRaces(): Promise<PlannedRace[]> {
-      const rows = await db.select().from(race).where(eq(race.status, RaceStatus.Planned))
+      const rows = await db
+        .select()
+        .from(race)
+        .where(and(eq(race.athleteId, athleteId), eq(race.status, RaceStatus.Planned)))
       return rows.map((row) => ({
         id: row.id,
         name: row.name,
@@ -77,6 +80,7 @@ export function createPlanGateway(db: Database): PlanGateway {
       const [row] = await db
         .select()
         .from(pause)
+        .where(eq(pause.athleteId, athleteId))
         .orderBy(desc(pause.startDate), desc(pause.id))
         .limit(1)
       if (!row) return undefined
@@ -97,6 +101,7 @@ export function createPlanGateway(db: Database): PlanGateway {
       const [row] = await db
         .select()
         .from(fitnessPoint)
+        .where(eq(fitnessPoint.athleteId, athleteId))
         .orderBy(desc(fitnessPoint.date), desc(fitnessPoint.id))
         .limit(1)
       if (!row) return undefined
@@ -107,7 +112,9 @@ export function createPlanGateway(db: Database): PlanGateway {
       const [row] = await db
         .select({ date: fitnessPoint.date })
         .from(fitnessPoint)
-        .where(eq(fitnessPoint.origin, FitnessOrigin.Test))
+        .where(
+          and(eq(fitnessPoint.athleteId, athleteId), eq(fitnessPoint.origin, FitnessOrigin.Test)),
+        )
         .orderBy(desc(fitnessPoint.date))
         .limit(1)
       return row?.date ?? null
@@ -122,12 +129,13 @@ export function createPlanGateway(db: Database): PlanGateway {
       const [superseded] = await db
         .select({ id: planVersion.id })
         .from(planVersion)
+        .where(eq(planVersion.athleteId, athleteId))
         .orderBy(desc(planVersion.createdAt), desc(planVersion.id))
         .limit(1)
 
       const [version] = await db
         .insert(planVersion)
-        .values({ trigger, parameters, startDate: plan.startDate })
+        .values({ athleteId, trigger, parameters, startDate: plan.startDate })
         .returning({ id: planVersion.id })
 
       const planVersionId = version!.id
@@ -169,7 +177,6 @@ export function createPlanGateway(db: Database): PlanGateway {
 
         const rows = [
           ...generated.sessions.map((item) => ({
-            weekId: stored!.id,
             date: item.date,
             sport: Sport.Running,
             code: item.code as string,
@@ -177,7 +184,6 @@ export function createPlanGateway(db: Database): PlanGateway {
             key: item.key,
           })),
           ...generated.support.map((item) => ({
-            weekId: stored!.id,
             date: item.date,
             sport: item.sport,
             code: item.code as string,
@@ -188,25 +194,25 @@ export function createPlanGateway(db: Database): PlanGateway {
 
         if (rows.length === 0) continue
 
-        await db.insert(session).values(rows)
+        await db.insert(session).values(rows.map((row) => ({ ...row, weekId: stored!.id })))
       }
 
       // Un jour touché à la main reste tel que Ronan l'a laissé (§ 5, P6.43).
-      await freezeManualDays(db, planVersionId, superseded?.id, plan.startDate)
+      await freezeManualDays(db, athleteId, planVersionId, superseded?.id, plan.startDate)
 
       // Une version périmée ne garde que son historique : ses séances encore
       // prévues sont remplacées par celles de la nouvelle version.
-      await db
-        .delete(session)
-        .where(
-          and(
-            eq(session.status, SessionStatus.Planned),
-            notInArray(
-              session.weekId,
-              db.select({ id: week.id }).from(week).where(eq(week.planVersionId, planVersionId)),
-            ),
+      await db.delete(session).where(
+        and(
+          eq(session.status, SessionStatus.Planned),
+          /** Les semaines de l'athlète, et elles seules : la suppression est cloisonnée. */
+          inArray(session.weekId, athleteWeekIds(db, athleteId)),
+          notInArray(
+            session.weekId,
+            db.select({ id: week.id }).from(week).where(eq(week.planVersionId, planVersionId)),
           ),
-        )
+        ),
+      )
 
       return planVersionId
     },
@@ -216,14 +222,20 @@ export function createPlanGateway(db: Database): PlanGateway {
         db
           .select({ date: fitnessPoint.date, vdot: fitnessPoint.vdot })
           .from(fitnessPoint)
-          .where(eq(fitnessPoint.origin, FitnessOrigin.Test))
+          .where(
+            and(eq(fitnessPoint.athleteId, athleteId), eq(fitnessPoint.origin, FitnessOrigin.Test)),
+          )
           .orderBy(asc(fitnessPoint.date)),
         /** Une course annulée n'annonce rien et ne juge rien : elle sort du lot. */
-        db.select().from(race).where(ne(race.status, RaceStatus.Cancelled)).orderBy(asc(race.date)),
+        db
+          .select()
+          .from(race)
+          .where(and(eq(race.athleteId, athleteId), ne(race.status, RaceStatus.Cancelled)))
+          .orderBy(asc(race.date)),
         db
           .select()
           .from(forecast)
-          .where(isNull(forecast.actualVdot))
+          .where(and(eq(forecast.athleteId, athleteId), isNull(forecast.actualVdot)))
           .orderBy(asc(forecast.issuedDate)),
       ])
 
@@ -265,10 +277,12 @@ export function createPlanGateway(db: Database): PlanGateway {
             gapVdot: item.gapVdot,
             resolvedDate: item.resolvedDate,
           })
-          .where(eq(forecast.id, item.id))
+          .where(and(eq(forecast.id, item.id), eq(forecast.athleteId, athleteId)))
       }
 
-      if (issued.length > 0) await db.insert(forecast).values(issued)
+      if (issued.length > 0) {
+        await db.insert(forecast).values(issued.map((item) => ({ ...item, athleteId })))
+      }
     },
   }
 }
@@ -282,6 +296,7 @@ export function createPlanGateway(db: Database): PlanGateway {
  */
 async function freezeManualDays(
   db: Database,
+  athleteId: number,
   planVersionId: number,
   previousVersionId: number | undefined,
   from: IsoDate | null,
@@ -291,7 +306,13 @@ async function freezeManualDays(
   const marked = await db
     .select({ date: session.date })
     .from(session)
-    .where(and(eq(session.origin, SessionOrigin.Manual), gte(session.date, from)))
+    .where(
+      and(
+        eq(session.origin, SessionOrigin.Manual),
+        gte(session.date, from),
+        inArray(session.weekId, athleteWeekIds(db, athleteId)),
+      ),
+    )
   if (marked.length === 0) return
 
   const weeks = await db.select().from(week).where(eq(week.planVersionId, planVersionId))
@@ -327,11 +348,21 @@ async function freezeManualDays(
   }
 }
 
+/** Semaines de l'athlète, quelle que soit la version : la borne de toute écriture. */
+export function athleteWeekIds(db: Database, athleteId: number) {
+  return db
+    .select({ id: week.id })
+    .from(week)
+    .innerJoin(planVersion, eq(week.planVersionId, planVersion.id))
+    .where(eq(planVersion.athleteId, athleteId))
+}
+
 /** Dernière version générée : c'est elle, le plan actif (§ 4). */
-export async function loadActivePlanVersion(db: Database) {
+export async function loadActivePlanVersion(db: Database, athleteId: number) {
   const [version] = await db
     .select()
     .from(planVersion)
+    .where(eq(planVersion.athleteId, athleteId))
     .orderBy(desc(planVersion.createdAt), desc(planVersion.id))
     .limit(1)
   if (!version) return undefined

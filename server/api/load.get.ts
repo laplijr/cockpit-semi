@@ -1,12 +1,17 @@
-import { asc } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { loadRatio, monotony, RATIO_REFERENCE, type DailyLoad } from '../domain/load/load'
 import { Sport } from '../domain/shared/sport'
 import { useDatabase } from '../infra/db/client'
 import { loadDaily } from '../infra/db/schema'
-import { systemClock } from '../utils/context'
+import { currentAthleteId, systemClock } from '../utils/context'
 
-export default defineEventHandler(async () => {
-  const rows = await useDatabase().select().from(loadDaily).orderBy(asc(loadDaily.date))
+export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
+  const rows = await useDatabase()
+    .select()
+    .from(loadDaily)
+    .where(eq(loadDaily.athleteId, athleteId))
+    .orderBy(asc(loadDaily.date))
   const today = systemClock.today()
 
   const loads: DailyLoad[] = rows.map((row) => ({

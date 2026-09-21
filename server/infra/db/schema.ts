@@ -5,6 +5,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   real,
   serial,
   text,
@@ -95,10 +96,11 @@ function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], .
 }
 
 /**
- * Application mono-utilisateur : `athlete` ne contient qu'une ligne, `id = 1`.
+ * Une ligne par personne depuis P8.3. Toute table qui porte de la donnée
+ * d'athlète référence cette clé ; les tables filles héritent par leur parent.
  */
 export const athlete = pgTable('athlete', {
-  id: integer('id').primaryKey().default(1),
+  id: serial('id').primaryKey(),
   /** Prénom : il porte l'identité de la barre du haut et les initiales de l'avatar. */
   firstName: text('first_name'),
   birthDate: date('birth_date'),
@@ -130,6 +132,9 @@ export const athlete = pgTable('athlete', {
 
 export const race = pgTable('race', {
   id: serial('id').primaryKey(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   date: date('date').notNull(),
   distanceM: real('distance_m').notNull(),
@@ -221,6 +226,9 @@ export const sessionType = pgTable(
 
 export const fitnessPoint = pgTable('fitness_point', {
   id: serial('id').primaryKey(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
   date: date('date').notNull(),
   vdot: real('vdot').notNull(),
   origin: fitnessOriginEnum('origin').notNull(),
@@ -233,6 +241,9 @@ export const fitnessPoint = pgTable('fitness_point', {
 /** Chaque génération produit une version immuable ; le plan actif est la dernière. */
 export const planVersion = pgTable('plan_version', {
   id: serial('id').primaryKey(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   trigger: planTriggerEnum('trigger').notNull(),
   /** Paramètres de génération, rejouables : date de départ, volume de base, VDOT. */
@@ -302,6 +313,9 @@ export const session = pgTable('session', {
 
 export const pause = pgTable('pause', {
   id: serial('id').primaryKey(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
   type: pauseTypeEnum('type').notNull(),
   zone: text('zone'),
   painLevel: integer('pain_level'),
@@ -316,25 +330,33 @@ export const pause = pgTable('pause', {
 })
 
 /** Activité importée de Strava, rattachée ou non à une séance prévue (§ 7). */
-export const activity = pgTable('activity', {
-  id: serial('id').primaryKey(),
-  externalId: text('external_id').notNull().unique(),
-  name: text('name'),
-  sport: sportEnum('sport').notNull(),
-  date: date('date').notNull(),
-  startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
-  durationS: integer('duration_s').notNull(),
-  distanceM: real('distance_m'),
-  averagePaceSKm: real('average_pace_s_km'),
-  averageHr: integer('average_hr'),
-  maxHr: integer('max_hr'),
-  averageWatts: real('average_watts'),
-  elevationGainM: real('elevation_gain_m'),
-  /** Effort perçu, quand il est connu : saisi pour un imprévu, déduit de la FC sinon. */
-  rpe: integer('rpe'),
-  sessionId: integer('session_id').references(() => session.id, { onDelete: 'set null' }),
-  importedAt: timestamp('imported_at', { withTimezone: true }).notNull().defaultNow(),
-})
+export const activity = pgTable(
+  'activity',
+  {
+    id: serial('id').primaryKey(),
+    athleteId: integer('athlete_id')
+      .notNull()
+      .references(() => athlete.id, { onDelete: 'cascade' }),
+    externalId: text('external_id').notNull(),
+    name: text('name'),
+    sport: sportEnum('sport').notNull(),
+    date: date('date').notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+    durationS: integer('duration_s').notNull(),
+    distanceM: real('distance_m'),
+    averagePaceSKm: real('average_pace_s_km'),
+    averageHr: integer('average_hr'),
+    maxHr: integer('max_hr'),
+    averageWatts: real('average_watts'),
+    elevationGainM: real('elevation_gain_m'),
+    /** Effort perçu, quand il est connu : saisi pour un imprévu, déduit de la FC sinon. */
+    rpe: integer('rpe'),
+    sessionId: integer('session_id').references(() => session.id, { onDelete: 'set null' }),
+    importedAt: timestamp('imported_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  /** Le même fichier importé par deux personnes reste deux activités (P8.3). */
+  (table) => [unique('activity_external').on(table.athleteId, table.externalId)],
+)
 
 export const feedback = pgTable('feedback', {
   id: serial('id').primaryKey(),
@@ -379,14 +401,22 @@ export const strengthSet = pgTable(
 )
 
 /** Cache recalculable de la charge quotidienne, en unités arbitraires (§ 5). */
-export const loadDaily = pgTable('load_daily', {
-  date: date('date').primaryKey(),
-  runningUa: integer('running_ua').notNull().default(0),
-  cyclingUa: integer('cycling_ua').notNull().default(0),
-  strengthUa: integer('strength_ua').notNull().default(0),
-  otherUa: integer('other_ua').notNull().default(0),
-  totalUa: integer('total_ua').notNull().default(0),
-})
+export const loadDaily = pgTable(
+  'load_daily',
+  {
+    athleteId: integer('athlete_id')
+      .notNull()
+      .references(() => athlete.id, { onDelete: 'cascade' }),
+    date: date('date').notNull(),
+    runningUa: integer('running_ua').notNull().default(0),
+    cyclingUa: integer('cycling_ua').notNull().default(0),
+    strengthUa: integer('strength_ua').notNull().default(0),
+    otherUa: integer('other_ua').notNull().default(0),
+    totalUa: integer('total_ua').notNull().default(0),
+  },
+  /** Une ligne par athlète et par jour : la date seule ne suffit plus (P8.3). */
+  (table) => [primaryKey({ columns: [table.athleteId, table.date] })],
+)
 
 /**
  * Proposition d'ajustement issue d'une règle. Rien n'est appliqué sans décision
@@ -394,6 +424,9 @@ export const loadDaily = pgTable('load_daily', {
  */
 export const proposal = pgTable('proposal', {
   id: serial('id').primaryKey(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
   trigger: proposalTriggerEnum('trigger').notNull(),
   ruleId: text('rule_id').notNull(),
   effect: text('effect').notNull(),
@@ -415,6 +448,9 @@ export const proposal = pgTable('proposal', {
  */
 export const unplannedEvent = pgTable('unplanned_event', {
   id: serial('id').primaryKey(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
   rawText: text('raw_text').notNull(),
   events: jsonb('events').$type<UnplannedEvent[]>().notNull().default([]),
   status: unplannedStatusEnum('status').notNull().default(UnplannedStatus.ToConfirm),
@@ -429,6 +465,9 @@ export const unplannedEvent = pgTable('unplanned_event', {
  */
 export const raceLookup = pgTable('race_lookup', {
   id: serial('id').primaryKey(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
   raceId: integer('race_id').references(() => race.id, { onDelete: 'cascade' }),
   query: text('query').notNull(),
   fields: jsonb('fields').$type<Record<string, LookupField>>().notNull().default({}),
@@ -475,6 +514,9 @@ export const habit = pgTable(
   'habit',
   {
     id: serial('id').primaryKey(),
+    athleteId: integer('athlete_id')
+      .notNull()
+      .references(() => athlete.id, { onDelete: 'cascade' }),
     type: habitTypeEnum('type').notNull(),
     key: text('key').notNull(),
     parameters: jsonb('parameters').$type<Record<string, number | string>>().notNull().default({}),
@@ -487,7 +529,7 @@ export const habit = pgTable(
     detectedAt: timestamp('detected_at', { withTimezone: true }).notNull().defaultNow(),
     decidedAt: timestamp('decided_at', { withTimezone: true }),
   },
-  (table) => [unique('habit_key').on(table.key)],
+  (table) => [unique('habit_key').on(table.athleteId, table.key)],
 )
 
 /** Mesure hebdomadaire de l'écart entre ce que le moteur annonce et ce qui arrive. */
@@ -495,6 +537,9 @@ export const calibration = pgTable(
   'calibration',
   {
     id: serial('id').primaryKey(),
+    athleteId: integer('athlete_id')
+      .notNull()
+      .references(() => athlete.id, { onDelete: 'cascade' }),
     /** Lundi de la semaine mesurée. */
     date: date('date').notNull(),
     rpeError: real('rpe_error').notNull(),
@@ -505,7 +550,7 @@ export const calibration = pgTable(
       .notNull()
       .default({ rpe: 0, decisions: 0, tests: 0 }),
   },
-  (table) => [unique('calibration_date').on(table.date)],
+  (table) => [unique('calibration_date').on(table.athleteId, table.date)],
 )
 
 /**
@@ -518,6 +563,9 @@ export const mealPlan = pgTable(
   'meal_plan',
   {
     id: serial('id').primaryKey(),
+    athleteId: integer('athlete_id')
+      .notNull()
+      .references(() => athlete.id, { onDelete: 'cascade' }),
     date: date('date').notNull(),
     dayKind: text('day_kind').notNull(),
     /** Séances du jour au moment de la génération, sous forme stable. */
@@ -525,7 +573,7 @@ export const mealPlan = pgTable(
     meals: jsonb('meals').$type<Meal[]>().notNull(),
     generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [unique('meal_plan_date').on(table.date)],
+  (table) => [unique('meal_plan_date').on(table.athleteId, table.date)],
 )
 
 /**
@@ -536,6 +584,9 @@ export const mealPlan = pgTable(
  */
 export const forecast = pgTable('forecast', {
   id: serial('id').primaryKey(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
   target: forecastTargetEnum('target').notNull(),
   /** La course visée ; nulle quand la cible est le prochain test. */
   raceId: integer('race_id').references(() => race.id, { onDelete: 'cascade' }),

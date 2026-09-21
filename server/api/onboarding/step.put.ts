@@ -1,8 +1,10 @@
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { AthleteProfile } from '../../domain/athlete/profile'
 import { Sport } from '../../domain/shared/sport'
 import { useDatabase } from '../../infra/db/client'
 import { athlete } from '../../infra/db/schema'
+import { currentAthleteId } from '../../utils/context'
 
 const weekdaySchema = z.number().int().min(1).max(7)
 
@@ -34,6 +36,7 @@ const bodySchema = z
   .partial()
 
 export default defineEventHandler(async (event) => {
+  const athleteId = await currentAthleteId(event)
   const body = await readValidatedBody(event, bodySchema.parse)
 
   /** La colonne dénormalisée suit les contraintes, comme dans `PUT /api/athlete`. */
@@ -43,9 +46,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const [saved] = await useDatabase()
-    .insert(athlete)
-    .values({ id: 1, ...values, onboarded: false })
-    .onConflictDoUpdate({ target: athlete.id, set: values })
+    .update(athlete)
+    .set(values)
+    .where(eq(athlete.id, athleteId))
     .returning()
 
   return saved

@@ -12,6 +12,8 @@ export interface Scenario {
   vdotGainPerTest: number
   /** Base vidée et laissée telle quelle : ni athlète, ni course, ni historique. */
   empty?: boolean
+  /** Un second athlète, avec ses propres courses : il sert à voir le cloisonnement. */
+  second?: boolean
 }
 
 export const SCENARIOS: Record<string, Scenario> = {
@@ -55,6 +57,16 @@ export const SCENARIOS: Record<string, Scenario> = {
     simulatedDay: '2027-03-07',
     seed: 4,
     vdotGainPerTest: 0.6,
+  },
+  /** Deux athlètes sur la même base : chacun son plan, sa charge, ses courses (§ 9, P8.3). */
+  'deux-athletes': {
+    name: 'deux-athletes',
+    description: 'Deux athlètes : Ronan au bloc 2, et une seconde personne à ses côtés.',
+    resumeDate: '2026-09-28',
+    simulatedDay: '2026-11-22',
+    seed: 3,
+    vdotGainPerTest: 0.6,
+    second: true,
   },
   /** Base vide : le seul état où l'onboarding de P8.2 se déroule (§ 9, P8.1). */
   neuf: {

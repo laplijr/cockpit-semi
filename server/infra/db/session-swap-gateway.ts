@@ -1,9 +1,10 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import type { SessionSwapGateway, StoredSession } from '../../application/replace-ride-with-run'
 import { SessionStatus } from '../../domain/plan/session'
 import type { Prescription } from '../../domain/shared/prescription'
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
+import { athleteWeekIds } from './plan-gateway'
 import { session, week } from './schema'
 
 type SessionRow = typeof session.$inferSelect
@@ -21,7 +22,9 @@ function toSwappable(row: SessionRow): StoredSession {
   }
 }
 
-export function createSessionSwapGateway(db: Database): SessionSwapGateway {
+export function createSessionSwapGateway(db: Database, athleteId: number): SessionSwapGateway {
+  const mine = () => athleteWeekIds(db, athleteId)
+
   async function setPrescription(sessionId: number, prescription: Prescription, sport?: Sport) {
     await db
       .update(session)
@@ -30,28 +33,42 @@ export function createSessionSwapGateway(db: Database): SessionSwapGateway {
         status: SessionStatus.Modified,
         ...(sport ? { sport, code: prescription.code } : {}),
       })
-      .where(eq(session.id, sessionId))
+      .where(and(eq(session.id, sessionId), inArray(session.weekId, mine())))
   }
 
   return {
     async loadSession(sessionId) {
-      const [row] = await db.select().from(session).where(eq(session.id, sessionId)).limit(1)
+      const [row] = await db
+        .select()
+        .from(session)
+        .where(and(eq(session.id, sessionId), inArray(session.weekId, mine())))
+        .limit(1)
       return row ? toSwappable(row) : undefined
     },
 
     async loadWeek(weekId) {
-      const [row] = await db.select().from(week).where(eq(week.id, weekId)).limit(1)
+      const [row] = await db
+        .select()
+        .from(week)
+        .where(and(eq(week.id, weekId), inArray(week.id, mine())))
+        .limit(1)
       if (!row) return undefined
       return { targetRunM: row.targetRunM, targetCyclingMin: row.targetCyclingMin }
     },
 
     async loadWeekSessions(weekId) {
-      const rows = await db.select().from(session).where(eq(session.weekId, weekId))
+      const rows = await db
+        .select()
+        .from(session)
+        .where(and(eq(session.weekId, weekId), inArray(session.weekId, mine())))
       return rows.map(toSwappable)
     },
 
     async loadSessionsOn(date) {
-      const rows = await db.select().from(session).where(eq(session.date, date))
+      const rows = await db
+        .select()
+        .from(session)
+        .where(and(eq(session.date, date), inArray(session.weekId, mine())))
       return rows.map(toSwappable)
     },
 
@@ -62,13 +79,17 @@ export function createSessionSwapGateway(db: Database): SessionSwapGateway {
       }
 
       /** La semaine perd les minutes de vélo annulées : sa cible les perd aussi. */
-      const [row] = await db.select().from(week).where(eq(week.id, weekId)).limit(1)
+      const [row] = await db
+        .select()
+        .from(week)
+        .where(and(eq(week.id, weekId), inArray(week.id, mine())))
+        .limit(1)
       if (!row) return
 
       await db
         .update(week)
         .set({ targetCyclingMin: Math.max(0, row.targetCyclingMin - cyclingMinRemoved) })
-        .where(eq(week.id, weekId))
+        .where(and(eq(week.id, weekId), inArray(week.id, mine())))
     },
   }
 }
