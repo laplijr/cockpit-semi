@@ -15,6 +15,9 @@ export default defineConfig({
      un parcours qui demande un serveur n'a rien à faire dans `pnpm test`. */
   testMatch: '**/*.e2e.ts',
   fullyParallel: false,
+  /* Un seul worker : les deux projets parlent à la même base, et deux
+     parcours qui décident en même temps se prennent leur proposition. */
+  workers: 1,
   /* Le serveur de dev compile chaque page à la demande : le premier passage
      sur un écran est lent, et ce n'est pas une lenteur de l'app. */
   timeout: 90_000,
@@ -26,7 +29,13 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'desktop',
+      testMatch: '**/desktop.e2e.ts',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+    },
+    {
       name: 'telephone',
+      testMatch: '**/telephone.e2e.ts',
       use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } },
     },
   ],

@@ -28,7 +28,6 @@ const query = ref('')
 const fields = ref<LookupFields | null>(null)
 const pending = ref(false)
 const error = ref('')
-const llm = useLlmAvailable()
 
 function hostOf(url: string): string {
   try {
@@ -58,41 +57,34 @@ async function search() {
 
 <template>
   <div class="flex flex-col gap-3">
-    <!-- Sans clé, la recherche n'existe pas ; le formulaire de droite, si. -->
-    <p v-if="!llm" class="text-[12px] text-text-dim">
-      Recherche indisponible : la clé du modèle est absente. Remplis le formulaire à la main.
+    <label class="flex flex-col gap-[6px]">
+      <span class="label text-[10.5px]">Rechercher la course</span>
+      <input
+        v-model="query"
+        type="text"
+        class="input"
+        placeholder="semi madrid 2027"
+        @keydown.enter.prevent="search"
+      />
+    </label>
+
+    <div>
+      <button
+        type="button"
+        class="btn"
+        :disabled="pending || query.trim().length < 3"
+        @click="search"
+      >
+        {{ pending ? 'Recherche…' : 'Chercher' }}
+      </button>
+    </div>
+
+    <p class="text-[12px] text-text-dim">
+      Seul le nom tapé quitte le serveur. Chaque valeur trouvée reste modifiable à droite.
     </p>
-
-    <template v-else>
-      <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Rechercher la course</span>
-        <input
-          v-model="query"
-          type="text"
-          class="input"
-          placeholder="semi madrid 2027"
-          @keydown.enter.prevent="search"
-        />
-      </label>
-
-      <div>
-        <button
-          type="button"
-          class="btn"
-          :disabled="pending || query.trim().length < 3"
-          @click="search"
-        >
-          {{ pending ? 'Recherche…' : 'Chercher' }}
-        </button>
-      </div>
-
-      <p class="text-[12px] text-text-dim">
-        Seul le nom tapé quitte le serveur. Chaque valeur trouvée reste modifiable à droite.
-      </p>
-      <p v-if="pending" class="text-[12px] text-text-dim">
-        La recherche lit plusieurs sources : compte jusqu'à deux minutes.
-      </p>
-    </template>
+    <p v-if="pending" class="text-[12px] text-text-dim">
+      La recherche lit plusieurs sources : compte jusqu'à deux minutes.
+    </p>
 
     <div v-if="fields" class="flex flex-col gap-2 border-t border-line-soft pt-3">
       <div

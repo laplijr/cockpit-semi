@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { login } from './session'
 
 /**
  * La boucle du jour au pouce (§ 10, P6.8). Ce qui se vérifie ici n'est pas le
@@ -6,27 +7,7 @@ import { expect, test, type Page } from '@playwright/test'
  * 390 px : lire la séance du jour, la saisir, décider ce qui attend, et passer
  * d'un onglet à l'autre. Le parcours suppose la base au scénario `bloc-2`.
  */
-const PASSWORD = process.env.NUXT_APP_PASSWORD ?? ''
-
-async function login(page: Page) {
-  await page.goto('/login')
-
-  /*
-   * Remplir avant l'hydratation laisse le champ plein et le `v-model` vide :
-   * le bouton reste désactivé pour toujours. On resaisit jusqu'à ce que Vue
-   * ait pris la main — un serveur de dev compile la page à la demande.
-   */
-  await expect(async () => {
-    await page.getByLabel('Mot de passe').fill(PASSWORD)
-    await expect(page.getByRole('button', { name: 'Entrer' })).toBeEnabled({ timeout: 1_000 })
-  }).toPass({ timeout: 60_000 })
-
-  await page.getByRole('button', { name: 'Entrer' }).click()
-  await expect(page).toHaveURL('/')
-}
-
 test.beforeEach(async ({ page }) => {
-  test.skip(PASSWORD === '', 'NUXT_APP_PASSWORD absent : le parcours ne peut pas se connecter.')
   await login(page)
 })
 
