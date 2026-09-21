@@ -35,10 +35,12 @@ import {
 import { HabitStatus, HabitType } from '../../domain/learning/habit'
 import type { FuelPlan } from '../../domain/nutrition/fuel-plan'
 import type { Meal } from '../../domain/nutrition/meal'
+import { ExternalCall } from '../../domain/shared/external-call'
 import { Sport } from '../../domain/shared/sport'
 
 export {
   AthleteProfile,
+  ExternalCall,
   FitnessOrigin,
   ForecastTarget,
   LookupStatus,
@@ -89,6 +91,7 @@ export const proposalTriggerEnum = pgEnum('proposal_trigger', enumValues(Proposa
 export const unplannedStatusEnum = pgEnum('unplanned_status', enumValues(UnplannedStatus))
 export const habitTypeEnum = pgEnum('habit_type', enumValues(HabitType))
 export const habitStatusEnum = pgEnum('habit_status', enumValues(HabitStatus))
+export const externalCallEnum = pgEnum('external_call', enumValues(ExternalCall))
 
 /** Conserve les types littéraux de l'énumération pour que Drizzle les propage. */
 function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], ...T[keyof T][]] {
@@ -473,6 +476,56 @@ export const raceLookup = pgTable('race_lookup', {
   fields: jsonb('fields').$type<Record<string, LookupField>>().notNull().default({}),
   checkedAt: timestamp('checked_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+/**
+ * Un compte de connexion. Il pointe vers son athlète : c'est la session qui
+ * porte l'un et l'application qui travaille sur l'autre (§ 9, P8.4).
+ */
+export const user = pgTable('user', {
+  id: serial('id').primaryKey(),
+  login: text('login').notNull().unique(),
+  /** Empreinte scrypt, à coût paramétrable ; jamais un condensé nu. */
+  passwordHash: text('password_hash').notNull(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+})
+
+/** Seule voie d'entrée : pas d'inscription libre, le lien se donne en main propre. */
+export const invitation = pgTable('invitation', {
+  id: serial('id').primaryKey(),
+  token: text('token').notNull().unique(),
+  /** Note libre : à qui ce lien est destiné, pour s'y retrouver. */
+  label: text('label'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  consumedBy: integer('consumed_by').references(() => user.id, { onDelete: 'set null' }),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+})
+
+/**
+ * Appels payés par les clés de Ronan, comptés par athlète et par jour (§ 11).
+ * Au-delà du quota, la fonction répond comme lorsque la clé manque.
+ */
+export const apiUsage = pgTable(
+  'api_usage',
+  {
+    athleteId: integer('athlete_id')
+      .notNull()
+      .references(() => athlete.id, { onDelete: 'cascade' }),
+    date: date('date').notNull(),
+    kind: externalCallEnum('kind').notNull(),
+    calls: integer('calls').notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.athleteId, table.date, table.kind] })],
+)
+
+export type User = typeof user.$inferSelect
+export type NewUser = typeof user.$inferInsert
+export type Invitation = typeof invitation.$inferSelect
+export type NewInvitation = typeof invitation.$inferInsert
 
 export type Athlete = typeof athlete.$inferSelect
 export type NewAthlete = typeof athlete.$inferInsert

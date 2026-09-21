@@ -6,17 +6,20 @@ import { defineConfig } from 'vitest/config'
 const rootDir = fileURLToPath(new URL('.', import.meta.url))
 
 /**
- * Le test d'isolation de P8.3 parle à une vraie base : il lit l'URL des
- * fichiers d'environnement locaux, et se saute quand il n'y en a pas.
+ * Les tests d'intégration parlent à une vraie base **et la vident** : ils
+ * n'acceptent donc que `NUXT_TEST_DATABASE_URL`, jamais celle de
+ * développement. Sans elle, ils se sautent et `pnpm test` ne détruit rien.
  */
-function databaseUrl(): string {
+function testDatabaseUrl(): string {
+  if (process.env.NUXT_TEST_DATABASE_URL) return process.env.NUXT_TEST_DATABASE_URL
+
   for (const name of ['.env.local', '.env']) {
     const path = `${rootDir}${name}`
     if (!existsSync(path)) continue
-    const match = readFileSync(path, 'utf8').match(/^NUXT_DATABASE_URL=(.*)$/m)
+    const match = readFileSync(path, 'utf8').match(/^NUXT_TEST_DATABASE_URL=(.*)$/m)
     if (match) return match[1]!.trim().replace(/^["']|["']$/g, '')
   }
-  return process.env.NUXT_DATABASE_URL ?? ''
+  return ''
 }
 
 export default defineConfig({
@@ -35,7 +38,7 @@ export default defineConfig({
           name: 'integration',
           environment: 'node',
           include: ['tests/integration/**/*.test.ts'],
-          env: { NUXT_DATABASE_URL: databaseUrl() },
+          env: { NUXT_DATABASE_URL: testDatabaseUrl() },
           /** Deux athlètes se rejouent sur la même base : jamais en parallèle. */
           fileParallelism: false,
           testTimeout: 60_000,

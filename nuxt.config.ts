@@ -13,7 +13,6 @@ export default defineNuxtConfig({
   vite: { plugins: [tailwindcss()] },
   typescript: { strict: true, typeCheck: false },
   runtimeConfig: {
-    appPassword: '',
     databaseUrl: '',
     /** Protège la route de cron ; Vercel l'envoie en en-tête Authorization. */
     cronSecret: '',

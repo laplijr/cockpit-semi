@@ -48,6 +48,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Connexions', to: '/connexions', icon: 'plug', phase: 'P2' },
       { label: 'Profil', to: '/profil', icon: 'user', phase: 'P1' },
+      { label: 'Mes données', to: '/mes-donnees', icon: 'shield', phase: 'P8' },
     ],
   },
 ]

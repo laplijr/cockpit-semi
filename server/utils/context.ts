@@ -24,8 +24,25 @@ export const systemClock = createClock(process.env.NUXT_COCKPIT_TODAY)
  */
 export async function currentAthleteId(event: H3Event): Promise<number> {
   const session = await getUserSession(event)
-  const fromSession = (session.user as { athleteId?: number } | undefined)?.athleteId
-  if (typeof fromSession === 'number') return fromSession
+  const fromSession = session.user?.athleteId
+
+  if (typeof fromSession === 'number') {
+    /**
+     * Un compte supprimé laisse une session qui pointe dans le vide. Sans
+     * cette vérification, toutes les requêtes filtreraient sur un athlète
+     * inexistant et rendraient un cockpit vide au lieu d'une erreur (P8.4).
+     */
+    const [row] = await useDatabase()
+      .select({ id: athlete.id })
+      .from(athlete)
+      .where(eq(athlete.id, fromSession))
+      .limit(1)
+
+    if (row) return row.id
+
+    await clearUserSession(event)
+    throw createError({ statusCode: 401, statusMessage: 'Ce compte n’existe plus.' })
+  }
 
   const [row] = await useDatabase()
     .select({ id: athlete.id })

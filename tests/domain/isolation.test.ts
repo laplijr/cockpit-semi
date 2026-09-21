@@ -106,10 +106,12 @@ const ALL = SOURCES.flatMap(filesUnder)
   .flatMap(queriesIn)
 
 /**
- * Trois exceptions, et elles se justifient chacune. Le schéma déclare les
+ * Les exceptions, et elles se justifient chacune. Le schéma déclare les
  * colonnes sans rien requêter ; la résolution de l'athlète courant est la
  * seule lecture qui ne peut pas déjà le connaître ; le cron n'a pas de
- * session et énumère les athlètes, c'est tout son travail (§ 9, P8.3).
+ * session et énumère les athlètes, c'est tout son travail ; les routes
+ * d'authentification établissent l'identité ou la créent, elles ne peuvent
+ * donc pas la supposer (§ 9, P8.3 et P8.4).
  */
 const EXEMPT = new Set([
   'server/infra/db/schema.ts',
@@ -117,13 +119,18 @@ const EXEMPT = new Set([
   'server/api/cron/daily.get.ts',
 ])
 
+const EXEMPT_PREFIXES = ['server/api/auth/']
+
+const exempt = (file: string) =>
+  EXEMPT.has(file) || EXEMPT_PREFIXES.some((prefix) => file.startsWith(prefix))
+
 describe('cloisonnement par athlète (§ 11, P8.3)', () => {
   it('trouve bien les requêtes à vérifier : le test ne passe pas à vide', () => {
     expect(ALL.length).toBeGreaterThan(50)
   })
 
   it('nomme l’athlète dans chaque requête sur une table qui porte ses données', () => {
-    const unscoped = ALL.filter((query) => !EXEMPT.has(query.file))
+    const unscoped = ALL.filter((query) => !exempt(query.file))
       .filter((query) => SCOPED.includes(query.table))
       .filter((query) => !SCOPED_MARKERS.test(query.chain))
 
@@ -131,7 +138,7 @@ describe('cloisonnement par athlète (§ 11, P8.3)', () => {
   })
 
   it('borne chaque requête sur une table fille par son parent', () => {
-    const unscoped = ALL.filter((query) => !EXEMPT.has(query.file))
+    const unscoped = ALL.filter((query) => !exempt(query.file))
       .filter((query) => INHERITED.includes(query.table))
       .filter((query) => !INHERITED_MARKERS.test(query.chain))
 
@@ -140,7 +147,7 @@ describe('cloisonnement par athlète (§ 11, P8.3)', () => {
 
   it('ne laisse plus une seule lecture d’athlète non filtrée', () => {
     const offenders = SOURCES.flatMap(filesUnder)
-      .filter((path) => path.endsWith('.ts') && !EXEMPT.has(path))
+      .filter((path) => path.endsWith('.ts') && !exempt(path))
       .filter((path) => /\.from\(athlete\)\s*\.limit\(1\)/.test(readFileSync(path, 'utf8')))
 
     expect(offenders).toEqual([])

@@ -3,7 +3,7 @@ export const WELCOME_PATH = '/bienvenue'
 
 export default defineNuxtRouteMiddleware(async (to) => {
   const { loggedIn } = useUserSession()
-  if (!loggedIn.value) return
+  if (!loggedIn.value || isPublicPath(to.path)) return
 
   const athlete = useAthleteStore()
   await athlete.ensureLoaded()

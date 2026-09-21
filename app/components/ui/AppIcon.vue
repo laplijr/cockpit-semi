@@ -57,6 +57,7 @@ const ICONS = {
   chevron: [path('m9 5 7 7-7 7')],
   plus: [path('M12 5v14M5 12h14')],
   more: [circle(5, 12, 1), circle(12, 12, 1), circle(19, 12, 1)],
+  shield: [path('M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z')],
 } satisfies Record<string, Shape[]>
 
 export type IconName = keyof typeof ICONS

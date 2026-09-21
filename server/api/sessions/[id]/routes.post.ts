@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { generateRoutes } from '../../../application/generate-routes'
+import { ExternalCall } from '../../../domain/shared/external-call'
 import { currentAthleteId, routeGateway, routingService } from '../../../utils/context'
+import { withExternalCall } from '../../../utils/quota'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
@@ -33,6 +35,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const variants = await generateRoutes(gateway, routingService(), { target, address })
+  const variants = await withExternalCall(athleteId, ExternalCall.Route, () =>
+    generateRoutes(gateway, routingService(), { target, address }),
+  )
   return { generated: variants.length }
 })

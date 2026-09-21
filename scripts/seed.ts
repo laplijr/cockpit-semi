@@ -11,6 +11,7 @@ import { ObjectiveMode, RacePriority, RaceStatus, SegmentMode } from '../server/
 import { Sport } from '../server/domain/shared/sport'
 import { fixedClock } from '../server/domain/shared/clock'
 import { createPlanGateway } from '../server/infra/db/plan-gateway'
+import { hashPassword } from './password'
 import { resolveScenario } from './scenarios'
 import { simulate } from './simulate'
 import * as schema from '../server/infra/db/schema'
@@ -58,6 +59,13 @@ async function reset() {
 
 const scenario = resolveScenario(process.argv.slice(2))
 
+/** Une seule dérivation : elle coûte cher et tous les comptes du seed la partagent. */
+let seedHash: string | undefined
+async function hashSeedPassword(): Promise<string> {
+  seedHash ??= await hashPassword(SEED_PASSWORD)
+  return seedHash
+}
+
 /**
  * Un athlète du seed. L'identifiant n'est plus `1` en dur : il vient de la
  * séquence, et c'est lui qui porte tout ce que le scénario écrit (§ 9, P8.3).
@@ -69,6 +77,18 @@ async function createAthlete(values: Omit<schema.NewAthlete, 'id' | 'onboarded'>
     .values({ ...values, onboarded: true })
     .returning({ id: schema.athlete.id })
   return row!.id
+}
+
+/**
+ * Mot de passe des comptes du seed. C'est une base de développement, rejouée
+ * à chaque `pnpm db:seed` : le secret n'a rien à protéger, et il vaut mieux
+ * qu'il soit écrit là que deviné (§ 9, P8.4).
+ */
+const SEED_PASSWORD = 'cockpit-dev-2026'
+
+async function createAccount(login: string, athleteId: number) {
+  await db.insert(schema.user).values({ login, passwordHash: await hashSeedPassword(), athleteId })
+  return login
 }
 
 async function seed() {
@@ -217,6 +237,8 @@ async function seed() {
     notes: 'Ongle de pied cassé. Reprise quand la douleur en marchant est nulle.',
   })
 
+  await createAccount('ronan', athleteId)
+
   const clock = fixedClock(scenario.resumeDate ?? scenario.simulatedDay)
   const { planVersionId, plan } = await regeneratePlan(
     createPlanGateway(db, athleteId),
@@ -239,6 +261,7 @@ async function seed() {
   if (scenario.second) await seedSecondAthlete()
 
   console.log('')
+  console.log(`Comptes du seed : mot de passe « ${SEED_PASSWORD} ».`)
   console.log(`export NUXT_COCKPIT_TODAY=${scenario.simulatedDay}`)
 }
 
@@ -281,6 +304,8 @@ async function seedSecondAthlete() {
     fixedClock(scenario.simulatedDay),
     PlanTrigger.Onboarding,
   )
+
+  await createAccount('nour', athleteId)
 
   console.log(
     `Second athlète ${athleteId} — Nour, ${plan.weeks.length} semaines jusqu'au marathon de Nantes.`,
