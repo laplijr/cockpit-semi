@@ -1030,7 +1030,35 @@ Quatre dettes traînent dans ce fichier, relevées sous leurs cases et jamais re
   - **Vérifié** : `pnpm test:e2e` sur une base fraîchement seedée — 4 passés, 1 ignoré, sortie 0.
 - [x] Fini : lint, typecheck, tests (62 fichiers, 640 tests) et build verts ; `pnpm test:e2e` vert sur base fraîchement seedée — 4 passés, 1 ignoré sur la clé du modèle ; § 5 complété de la règle de régénération, § 10 corrigé ; un commit par dette. **`pnpm lint` est vert sans réserve pour la première fois depuis P6.35.**
 
-P7 : voir § 9, à transformer en cases au moment d'attaquer la phase.
+P7 — Confort
+
+Deux briques d'abord, celles que Ronan a demandées : le bilan du dimanche et les notifications. L'export CSV, le kilométrage des chaussures et l'enveloppe PWA restent au § 9, à transformer en cases le jour où on les attaque.
+
+P7.1 — Le bilan du dimanche
+
+Progression dit où en est la forme sur des mois ; elle ne dit jamais ce qu'a valu **la semaine qui vient de finir**. C'est pourtant l'unité de l'entraînement : le plan la vise, la charge s'y accumule, les règles s'y déclenchent. Le bilan la referme — ce qui était visé, ce qui a été fait, ce qui a bougé, et ce que la suivante demande.
+
+- [x] `server/domain/load/weekly-review.ts` : pur, `weeklyReview(input)` compose à partir de ce qui existe déjà — `summariseWeek` pour le volume, la charge et les séances, les points de forme pour ce qui a bougé, la semaine suivante pour ce qui vient. Aucun calcul neuf : le bilan est une lecture, pas un moteur. Il rend un **verdict** (`conforme`, `allegee`, `partielle`, `manquee`) et une liste de **faits marquants** typés, jamais des phrases : le texte appartient aux composants (§ 8). Tests : une semaine conforme, une semaine allégée par le moteur qui ne compte pas comme un échec (§ 1), une semaine à sortie longue manquée, une semaine de test qui porte le gain de VDOT.
+- [x] **Une semaine ne se referme qu'une fois finie.** Le bilan de la semaine en cours n'existe pas : il porterait sur des jours qui n'ont pas eu lieu et se lirait comme un retard. `GET /api/bilan` rend la dernière semaine **close** du plan actif, et rien avant le premier dimanche soir.
+- [x] UI sur Progression, pas sur le cockpit. Le § 11 vaut : l'écran principal ne gagne pas une tuile pour ça. La tuile s'ouvre en dialog sur le détail, au gabarit des autres (P5.8).
+- [x] Vérifié dans le navigateur à 1440 px et à 390 px, au scénario `bloc-2`.
+  - **Trois défauts relevés à l'écran, invisibles aux tests.** La borne « dernière semaine close » donnait, un dimanche, la semaine d'**avant** celle qui venait de finir : « le bilan du dimanche » porte sur la semaine qui se referme ce jour-là, pas la précédente. « La semaine qui suit » désignait la semaine du jour, donc la même que celle résumée. Et une variation de VDOT nulle s'affichait « VDOT 0 » au lieu de « forme inchangée ».
+  - **L'excuse ne vient pas d'une annulation mais d'une pause.** Le premier jet marquait la semaine allégée dès qu'une seule séance était annulée — une séance retirée n'excuse pas sept jours. C'est la même borne qu'à Progression : une semaine couverte par une pause ne se juge pas.
+  - **Pas de dialog, et c'est un écart à la case du dessus.** Un bilan tient en trois nombres et quelques phrases : une fenêtre n'ajouterait pas une lecture, seulement une surface (§ 11). La tuile se suffit.
+  - **Le second scénario n'a pas été ouvert dans le navigateur** : changer de scénario veut dire changer l'horloge simulée dans `.env`, donc toucher au fichier qui porte les secrets et redémarrer le serveur. Les cas que `affutage-paris` aurait montrés — semaine allégée, semaine de reprise, semaine partielle, semaine manquée — sont couverts par les tests du moteur.
+- [x] Fini : lint, typecheck, tests (63 fichiers, 647 tests) et build verts ; commit « P7.1 — le bilan du dimanche ».
+
+P7.2 — Notifications navigateur
+
+Deux choses se perdent faute d'un rappel : un ressenti qu'on ne saisit pas le soir même, et une proposition qui attend une décision. Le cockpit les montre — encore faut-il l'ouvrir.
+
+- [ ] **Arbitrage, avant toute ligne de code : ce qu'une notification peut atteindre.** Sans service worker, l'API `Notification` ne parle que depuis une page ouverte : elle ne réveille rien, elle rappelle. Une vraie notification poussée demande un service worker, des clés VAPID et un abonnement côté serveur — c'est-à-dire la PWA, que P6.8 a mise hors périmètre et que le § 9 renvoie après P7. Deux voies. (a) Attendre la PWA et ne rien faire ici. (b) Poser ce qui a du sens sans elle : la permission, la règle de ce qui mérite un rappel, la déduplication — et l'assumer comme un rappel d'onglet ouvert, pas comme une alerte. Consigner le choix et sa raison sous cette case avant de la cocher.
+- [ ] `app/utils/notices.ts` : pur, `pendingNotices(state)` — ce qui mérite un rappel, et rien d'autre. Deux motifs seulement : une séance passée sans ressenti, une proposition en attente. Jamais deux fois le même motif le même jour. Testé dans `tests/app/`, comme `navigation.ts`.
+- [ ] **Rien qui pousse à s'entraîner contre `readiness`** (§ 1). Un rappel porte sur une saisie ou une décision, jamais sur une séance à faire : « tu n'as pas couru » n'est pas un rappel, c'est un reproche, et le cockpit n'en fait pas.
+- [ ] Permission demandée sur un geste de Ronan, jamais au chargement — un navigateur refuse la demande spontanée, et la refuser une fois la ferme pour de bon. L'interrupteur vit dans les réglages, avec l'état réel de la permission et ce qu'il faut faire quand elle est bloquée.
+- [ ] Vérifié dans le navigateur : permission accordée puis refusée, une notification par motif et par jour, l'interrupteur qui éteint tout.
+- [ ] Fini : lint, typecheck, tests, build verts ; commit « P7.2 — notifications navigateur ».
+
 
 ## 0. Données réelles de départ (à seeder en P1)
 

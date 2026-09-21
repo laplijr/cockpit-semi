@@ -16,6 +16,9 @@ const { data } = await useFetch('/api/progression', {
   query: { period },
 })
 
+/** Le bilan ne dépend pas du filtre de période : il porte sur une semaine. */
+const { data: bilan } = await useFetch('/api/bilan')
+
 /** L'échelle du cadran de forme : la même tendance, à la taille d'un instrument. */
 const vdotSpark = computed(() => {
   const values = (data.value?.vdot ?? []).map((point) => point.vdot)
@@ -207,6 +210,10 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         </span>
       </div>
     </section>
+
+    <!-- La semaine qui vient de finir se referme ici, pas sur le cockpit : le
+         § 11 vaut, l'écran principal ne gagne pas une tuile pour ça. -->
+    <ProgressionWeeklyReview v-if="bilan?.review" :review="bilan.review" />
 
     <div class="tile">
       <div class="flex items-baseline gap-3">
