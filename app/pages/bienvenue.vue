@@ -12,8 +12,20 @@ import { Sport } from '~~/server/domain/shared/sport'
 definePageMeta({ layout: false })
 
 const athleteStore = useAthleteStore()
+const { user } = useUserSession()
 
 const { data: state } = await useFetch('/api/onboarding/state')
+
+/**
+ * L'identifiant choisi à la création du compte tient lieu de prénom : le
+ * redemander à vide donnerait l'impression de se répéter. Il reste affiché et
+ * modifiable — l'identifiant est en minuscules et sans accent, un prénom ne
+ * l'est pas (§ 9, P8.4).
+ */
+const suggestedFirstName = computed(() => {
+  const login = user.value?.login ?? ''
+  return login ? login.charAt(0).toUpperCase() + login.slice(1) : ''
+})
 const { data: races, refresh: refreshRaces } = await useFetch('/api/races')
 
 const step = ref<OnboardingStep>(
@@ -21,7 +33,7 @@ const step = ref<OnboardingStep>(
 )
 
 const form = reactive({
-  firstName: athleteStore.athlete?.firstName ?? '',
+  firstName: athleteStore.athlete?.firstName ?? suggestedFirstName.value,
   birthDate: athleteStore.athlete?.birthDate ?? '',
   weightKg: athleteStore.athlete?.weightKg ?? null,
   profile: athleteStore.athlete?.profile ?? null,

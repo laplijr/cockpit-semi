@@ -10,6 +10,12 @@ const login = ref('')
 const password = ref('')
 const error = ref('')
 const pending = ref(false)
+/**
+ * Le compte vient d'être ouvert : la session passe à « connectée » avant que
+ * la navigation parte, et sans ce drapeau l'écran « tu es déjà connecté »
+ * s'affiche une fraction de seconde à la place du succès.
+ */
+const created = ref(false)
 const { fetch: refreshSession, clear: clearSession, loggedIn, user } = useUserSession()
 
 /** Un lien d'invitation ouvre un compte : il n'en remplace pas un déjà ouvert. */
@@ -31,6 +37,7 @@ async function submit() {
       method: 'POST',
       body: { token: token.value, login: login.value, password: password.value },
     })
+    created.value = true
     await refreshSession()
     /** Le compte créé, l'onboarding enchaîne : c'est la suite du même geste. */
     await navigateTo('/bienvenue')
@@ -51,7 +58,7 @@ async function submit() {
         <UiAppIcon name="logo" :size="20" class="text-accent" />
         <span>Cockpit</span>
       </div>
-      <template v-if="loggedIn">
+      <template v-if="loggedIn && !created">
         <p class="text-[14px]">
           Tu es déjà connecté en tant que
           <span class="mono">{{ user?.login }}</span
