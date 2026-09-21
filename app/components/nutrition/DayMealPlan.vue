@@ -32,7 +32,8 @@ async function ask() {
 </script>
 
 <template>
-  <div class="tile bg-surface-inset">
+  <!-- Sans clé et sans repas déjà générés, la tuile n'a rien à montrer (§ 6). -->
+  <div v-if="llm || data?.meals" class="tile bg-surface-inset">
     <div class="flex items-center gap-3">
       <span class="label text-[10.5px]"
         ><UiInfoHint term="repasDuJour">Repas du jour</UiInfoHint></span
@@ -52,13 +53,8 @@ async function ask() {
 
     <p v-if="error" class="text-[12.5px] text-warn">{{ error }}</p>
 
-    <!-- Sans clé, il n'y a rien à demander : les repas déjà générés restent lisibles. -->
-    <p v-else-if="!llm && !data?.meals" class="text-[12.5px] text-text-dim">
-      Plan de nutrition indisponible : la clé du modèle est absente.
-    </p>
-
     <button
-      v-else-if="!data?.meals"
+      v-else-if="!data?.meals && llm"
       type="button"
       class="btn self-start"
       :disabled="asking"
