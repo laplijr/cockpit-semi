@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/neon-http'
 import { eq, sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { regeneratePlan } from '~~/server/application/regenerate-plan'
+import { addDays } from '~~/server/domain/plan/calendar'
 import { PlanTrigger, SessionStatus } from '~~/server/domain/plan/session'
 import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
 import { fixedClock } from '~~/server/domain/shared/clock'
@@ -84,6 +85,80 @@ describe.skipIf(!db)('régénérations concurrentes', () => {
       .from(schema.athlete)
       .where(eq(schema.athlete.id, athleteId))
     expect(row!.lock).toBeNull()
+  })
+})
+
+/**
+ * Une régénération ne repose que ce qui n'est encore qu'une prévision. Ce qui
+ * a été réalisé ou décidé est repris de la version remplacée, et ne se
+ * retrouve donc ni perdu ni en double (§ 5, P8.5).
+ */
+describe.skipIf(!db)('ce qu’une régénération repose', () => {
+  beforeEach(async () => {
+    await truncate()
+    athleteId = await seedAthlete()
+  })
+
+  it('garde une séance faite d’un jour déjà écoulé de la semaine en cours', async () => {
+    const gateway = createPlanGateway(db!, athleteId)
+    await regeneratePlan(gateway, fixedClock(TODAY), PlanTrigger.Onboarding)
+
+    const before = await loadActivePlanVersion(db!, athleteId)
+    const first = before!.sessions[0]!
+    await db!
+      .update(schema.session)
+      .set({ status: SessionStatus.Done })
+      .where(eq(schema.session.id, first.id))
+
+    await regeneratePlan(gateway, fixedClock(addDays(first.date, 2)), PlanTrigger.TestRecorded)
+
+    const after = await loadActivePlanVersion(db!, athleteId)
+    const carried = after!.sessions.find((item) => item.id === first.id)
+    expect(carried?.status).toBe(SessionStatus.Done)
+  })
+
+  it('garde une séance qu’une décision a modifiée, au lieu de la reposer', async () => {
+    const gateway = createPlanGateway(db!, athleteId)
+    await regeneratePlan(gateway, fixedClock(TODAY), PlanTrigger.Onboarding)
+
+    const before = await loadActivePlanVersion(db!, athleteId)
+    const future = before!.sessions.find((item) => item.date > TODAY)!
+    await db!
+      .update(schema.session)
+      .set({ status: SessionStatus.Modified })
+      .where(eq(schema.session.id, future.id))
+
+    await regeneratePlan(gateway, fixedClock(TODAY), PlanTrigger.RaceAdded)
+
+    const after = await loadActivePlanVersion(db!, athleteId)
+    const carried = after!.sessions.find((item) => item.id === future.id)
+    expect(carried?.status).toBe(SessionStatus.Modified)
+  })
+
+  it('ne laisse pas le jour de la régénération exister dans deux versions', async () => {
+    const gateway = createPlanGateway(db!, athleteId)
+    await regeneratePlan(gateway, fixedClock(TODAY), PlanTrigger.Onboarding)
+
+    const before = await loadActivePlanVersion(db!, athleteId)
+    const today = before!.sessions.find((item) => item.date === TODAY)
+    if (today) {
+      await db!
+        .update(schema.session)
+        .set({ status: SessionStatus.Done })
+        .where(eq(schema.session.id, today.id))
+    }
+
+    await regeneratePlan(gateway, fixedClock(TODAY), PlanTrigger.TestRecorded)
+
+    const duplicated = await db!.execute<{ date: string }>(
+      sql`select s.date::text
+          from session s
+          join week w on s.week_id = w.id
+          join plan_version pv on w.plan_version_id = pv.id
+          where pv.athlete_id = ${athleteId}
+          group by 1 having count(distinct w.plan_version_id) > 1`,
+    )
+    expect(duplicated.rows).toHaveLength(0)
   })
 })
 

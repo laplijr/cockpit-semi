@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lte, ne, notInArray, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, lte, ne, notInArray, or, sql } from 'drizzle-orm'
 import type {
   AthleteSnapshot,
   FitnessSnapshot,
@@ -15,7 +15,6 @@ import {
   DEFAULT_START_VOLUME_M,
 } from '../../domain/athlete/constraints'
 import { STANDARD_INCREASE_PCT, defaultsFor } from '../../domain/athlete/profile'
-import type { IsoDate } from '../../domain/plan/calendar'
 import type { GeneratedPlan } from '../../domain/plan/generate'
 import type { PlannedRace } from '../../domain/plan/periodization'
 import { SessionOrigin, SessionStatus, type PlanTrigger } from '../../domain/plan/session'
@@ -197,8 +196,8 @@ export function createPlanGateway(db: Database, athleteId: number): PlanGateway 
         await db.insert(session).values(rows.map((row) => ({ ...row, weekId: stored!.id })))
       }
 
-      // Un jour touché à la main reste tel que Ronan l'a laissé (§ 5, P6.43).
-      await freezeManualDays(db, athleteId, planVersionId, superseded?.id, plan.startDate)
+      // Une régénération ne repose que ce qui n'est encore qu'une prévision (§ 5, P8.5).
+      await carryDecidedDays(db, planVersionId, superseded?.id)
 
       // Une version périmée ne garde que son historique : ses séances encore
       // prévues sont remplacées par celles de la nouvelle version.
@@ -346,35 +345,19 @@ async function acquirePlanLock(db: Database, athleteId: number) {
 }
 
 /**
- * Report des journées posées à la main dans la version neuve. Sans lui, une
- * séance ajoutée dimanche disparaîtrait au premier test 20′ enregistré : la
- * régénération ne garde que ce qu'elle produit. La journée entière suit, pas
- * seulement la séance retouchée — sinon la muscu du même jour serait perdue
- * en chemin (§ 5, P6.43).
+ * Une régénération ne repose que ce qui n'est encore qu'une prévision (§ 5,
+ * P8.5). Toute journée qui porte une séance réalisée, sautée, modifiée,
+ * annulée ou posée à la main est reprise telle quelle de la version
+ * remplacée, et ce que le générateur vient de produire ce jour-là cède la
+ * place. La journée entière suit, pas seulement la séance décidée — sinon la
+ * muscu du même jour serait perdue en chemin (§ 5, P6.43).
  */
-async function freezeManualDays(
+async function carryDecidedDays(
   db: Database,
-  athleteId: number,
   planVersionId: number,
   previousVersionId: number | undefined,
-  from: IsoDate | null,
 ) {
-  if (from === null || previousVersionId === undefined) return
-
-  const marked = await db
-    .select({ date: session.date })
-    .from(session)
-    .where(
-      and(
-        eq(session.origin, SessionOrigin.Manual),
-        gte(session.date, from),
-        inArray(session.weekId, athleteWeekIds(db, athleteId)),
-      ),
-    )
-  if (marked.length === 0) return
-
-  const weeks = await db.select().from(week).where(eq(week.planVersionId, planVersionId))
-  const carried = [SessionStatus.Planned, SessionStatus.Modified, SessionStatus.Cancelled]
+  if (previousVersionId === undefined) return
 
   /**
    * Seule la version qu'on remplace est reprise. Sans cette borne, une séance
@@ -386,23 +369,41 @@ async function freezeManualDays(
     .from(week)
     .where(eq(week.planVersionId, previousVersionId))
 
-  for (const date of new Set(marked.map((row) => row.date))) {
+  /**
+   * Aucune borne de date : c'est la semaine d'accueil qui filtre plus bas. Une
+   * borne à aujourd'hui laissait les jours déjà écoulés de la semaine en cours
+   * derrière elle, donc hors du plan actif et invisibles au cockpit.
+   */
+  const decided = await db
+    .select({ date: session.date })
+    .from(session)
+    .where(
+      and(
+        inArray(session.weekId, previousWeeks),
+        or(ne(session.status, SessionStatus.Planned), eq(session.origin, SessionOrigin.Manual)),
+      ),
+    )
+  if (decided.length === 0) return
+
+  const weeks = await db.select().from(week).where(eq(week.planVersionId, planVersionId))
+
+  for (const date of new Set(decided.map((row) => row.date))) {
     const target = weeks.find((item) => item.startDate <= date && date <= item.endDate)
     if (!target) continue
 
     // Ce que le générateur vient de poser ce jour-là cède la place.
     await db.delete(session).where(and(eq(session.date, date), eq(session.weekId, target.id)))
 
+    /**
+     * Les séances reprises gardent leur propre origine : marquer la journée
+     * entière comme manuelle ferait passer pour « posée à la main » une séance
+     * que le moteur avait produite, et `clearDay` la supprimerait en rendant la
+     * journée au générateur.
+     */
     await db
       .update(session)
-      .set({ weekId: target.id, origin: SessionOrigin.Manual })
-      .where(
-        and(
-          eq(session.date, date),
-          inArray(session.status, carried),
-          inArray(session.weekId, previousWeeks),
-        ),
-      )
+      .set({ weekId: target.id })
+      .where(and(eq(session.date, date), inArray(session.weekId, previousWeeks)))
   }
 }
 
