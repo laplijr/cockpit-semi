@@ -2,14 +2,21 @@ import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { beforeEach, describe, expect, it } from 'vitest'
 import DayMealPlan from '~/components/nutrition/DayMealPlan.vue'
 import NewRaceWindow from '~/components/races/NewRaceWindow.vue'
+import RouteSuggestion from '~/components/sessions/RouteSuggestion.vue'
 import TopBar from '~/components/shell/TopBar.vue'
 
 registerEndpoint('/api/nutrition/meal-plan', () => ({ meals: null }))
 registerEndpoint('/api/athlete', () => ({ firstName: 'Ronan', avatar: null }))
+registerEndpoint('/api/sessions/7/routes', () => ({ routes: [], homeAddress: null }))
 
 /** Ce que le plugin serveur pose à partir de `NUXT_ANTHROPIC_API_KEY`. */
 function keyPresent(present: boolean) {
   useLlmAvailable().value = present
+}
+
+/** Et à partir de `NUXT_ORS_API_KEY`, pour les itinéraires. */
+function routingKeyPresent(present: boolean) {
+  useRoutingAvailable().value = present
 }
 
 /**
@@ -19,6 +26,7 @@ function keyPresent(present: boolean) {
 describe('fonctions du modèle sans clé (§ 6)', () => {
   beforeEach(() => {
     keyPresent(true)
+    routingKeyPresent(true)
     useUiStore().closePanel()
   })
 
@@ -70,5 +78,34 @@ describe('fonctions du modèle sans clé (§ 6)', () => {
 
     expect(mounted.find('.tile').exists()).toBe(false)
     expect(mounted.text()).toBe('')
+  })
+
+  it('propose une boucle quand la clé des itinéraires est là', async () => {
+    const mounted = await mountSuspended(RouteSuggestion, {
+      props: { sessionId: 7, distanceM: 10_000 },
+    })
+
+    expect(mounted.text()).toContain('Itinéraire')
+    expect(mounted.find('[aria-label="Adresse de départ"]').exists()).toBe(true)
+  })
+
+  it('efface la tuile d’itinéraire sans la clé des itinéraires', async () => {
+    routingKeyPresent(false)
+    const mounted = await mountSuspended(RouteSuggestion, {
+      props: { sessionId: 7, distanceM: 10_000 },
+    })
+
+    expect(mounted.find('.tile').exists()).toBe(false)
+    expect(mounted.text()).toBe('')
+  })
+
+  /** Les deux clés sont indépendantes : l'une absente n'emporte pas l'autre. */
+  it('garde les itinéraires quand seule la clé du modèle manque', async () => {
+    keyPresent(false)
+    const mounted = await mountSuspended(RouteSuggestion, {
+      props: { sessionId: 7, distanceM: 10_000 },
+    })
+
+    expect(mounted.find('[aria-label="Adresse de départ"]').exists()).toBe(true)
   })
 })

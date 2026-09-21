@@ -22,6 +22,15 @@ function key(): string {
   return orsApiKey
 }
 
+/**
+ * Y a-t-il une clé ? Sans elle la fenêtre Itinéraires n'existe pas et ne se
+ * commente pas : un champ d'adresse qui ne sait que répondre 503 vaut moins
+ * qu'un champ absent (§ 9).
+ */
+export function hasRoutingKey(): boolean {
+  return Boolean(useRuntimeConfig().orsApiKey)
+}
+
 async function ask<T>(path: string, body?: Record<string, unknown>): Promise<T> {
   /** Hors du `try` : une clé absente est une erreur de configuration, pas une panne. */
   const authorization = key()

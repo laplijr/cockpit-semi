@@ -8,6 +8,7 @@ const { data, refresh } = await useFetch(() => `/api/sessions/${props.sessionId}
 const address = ref('')
 const generating = ref(false)
 const error = ref('')
+const routing = useRoutingAvailable()
 /** Variante montrée : la mieux classée, jusqu'à ce qu'on en demande une autre. */
 const shown = ref(0)
 
@@ -55,7 +56,8 @@ async function suggest() {
 </script>
 
 <template>
-  <div class="tile bg-surface-inset">
+  <!-- Sans clé et sans boucle déjà tracée, la tuile n'a rien à montrer (§ 9). -->
+  <div v-if="routing || variant" class="tile bg-surface-inset">
     <div class="flex items-baseline gap-3">
       <span class="label text-[10.5px]">Itinéraire</span>
       <span class="mono text-[11.5px] text-text-dim">
@@ -64,7 +66,7 @@ async function suggest() {
     </div>
 
     <!-- Une action principale par ligne : le bouton sert le champ d'à côté. -->
-    <div class="flex flex-col gap-2 lean:flex-row lean:items-end">
+    <div v-if="routing" class="flex flex-col gap-2 lean:flex-row lean:items-end">
       <input
         v-model="address"
         class="input"
