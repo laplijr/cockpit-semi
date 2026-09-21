@@ -241,15 +241,19 @@ async function logout() {
       </template>
     </div>
 
-    <div class="flex items-center gap-3">
-      <UiActionButton class="btn btn-lg" :disabled="!canSave" :action="save">
+    <!-- Deux boutons sur une ligne sortent par la droite à 390 px : sous la
+         rupture la rangée devient une colonne, l'accent d'abord (§ 8, P7.4). -->
+    <div class="flex flex-col gap-3 lean:flex-row lean:items-center">
+      <UiActionButton class="btn btn-lg w-full lean:w-auto" :disabled="!canSave" :action="save">
         Enregistrer et régénérer le plan
       </UiActionButton>
       <span v-if="!canSave" class="text-[13px] text-text-dim">
         Choisis au moins {{ MIN_AVAILABLE_DAYS }} jours.
       </span>
       <span v-else-if="saved" class="text-[13px] text-ok">Plan régénéré.</span>
-      <UiActionButton class="btn btn-ghost ml-auto" :action="logout">Se déconnecter</UiActionButton>
+      <UiActionButton class="btn btn-ghost w-full lean:ml-auto lean:w-auto" :action="logout">
+        Se déconnecter
+      </UiActionButton>
     </div>
   </div>
 </template>

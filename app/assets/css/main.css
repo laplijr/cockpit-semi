@@ -393,8 +393,15 @@
      * taille du doigt. Une pastille d'affichage est un `span` — elle ne bouge
      * pas, seule celle qui se touche grandit.
      */
+    /*
+     * 16 px, et pas 13 : sous ce seuil Safari agrandit la page au focus et ne
+     * revient jamais à l'échelle 1 — on se connecte à la loupe puis on entre
+     * dans un cockpit zoomé (§ 8, P7.4). `maximum-scale=1` ferait taire le
+     * symptôme en retirant le droit de zoomer, ce qui n'est pas à nous.
+     */
     .input {
       height: 44px;
+      font-size: 16px;
     }
 
     input[type='range'] {

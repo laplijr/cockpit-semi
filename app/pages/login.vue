@@ -29,7 +29,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center px-4">
+  <div class="flex min-h-dvh items-center justify-center px-4">
     <form class="tile w-full max-w-[360px] gap-4" @submit.prevent="submit">
       <div
         class="display flex items-center gap-[10px] text-xl font-bold tracking-[0.06em] uppercase"

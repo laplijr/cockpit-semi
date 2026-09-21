@@ -13,6 +13,29 @@ withDefaults(
 )
 
 const ui = useUiStore()
+
+/**
+ * Le seul chiffre de la cellule est celui du réalisé dès que la séance est
+ * faite et mesurée : ce qu'on avait demandé n'intéresse plus (§ 8, P7.4).
+ * Une séance sans kilométrage se lit en durée — vélo et muscu.
+ */
+function figureOf(session: PlanSession): string {
+  const done = session.status === 'faite'
+
+  if (session.prescription.totalDistanceM > 0) {
+    return formatDistance(
+      done && session.actualDistanceM !== null
+        ? session.actualDistanceM
+        : session.prescription.totalDistanceM,
+    )
+  }
+
+  return formatMinutes(
+    done && session.actualDurationMin !== null
+      ? session.actualDurationMin
+      : session.prescription.durationMin,
+  )
+}
 </script>
 
 <template>
@@ -45,8 +68,11 @@ const ui = useUiStore()
           :class="sportStyle(session.sport).tone"
           :label="SPORT_LABELS[session.sport] ?? session.sport"
         />
+        <!-- Sous la rupture le nom se plie sur deux lignes au lieu d'être
+             rogné : c'est lui qu'on vient lire dans une colonne de jour
+             (§ 8, P7.4). Au-dessus, la troncature d'origine. -->
         <span
-          class="display truncate text-[15px] font-semibold"
+          class="display line-clamp-2 min-w-0 text-[15px] leading-[1.15] font-semibold lean:block lean:truncate lean:leading-normal"
           :class="['sautee', 'annulee'].includes(session.status) && 'text-text-dim line-through'"
         >
           {{ SESSION_LABELS[session.code] ?? session.code }}
@@ -62,12 +88,7 @@ const ui = useUiStore()
         </UiHoverBubble>
       </span>
       <span class="mono flex items-center gap-1 pl-[19px] text-[11px] text-text-dim">
-        <!-- Une séance sans kilométrage se lit en durée : vélo et muscu. -->
-        {{
-          session.prescription.totalDistanceM > 0
-            ? formatDistance(session.prescription.totalDistanceM)
-            : formatMinutes(session.prescription.durationMin)
-        }}
+        {{ figureOf(session) }}
         <!-- « · faite » devient une coche : le mot ne s'écrit plus (§ 8, P6.35). -->
         <UiAppIcon
           v-if="session.status === 'faite'"

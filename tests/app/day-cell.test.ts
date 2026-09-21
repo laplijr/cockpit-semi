@@ -49,6 +49,22 @@ describe('cellule de jour', () => {
     ).toBe(false)
   })
 
+  it('montre le réalisé dès que la séance est faite et mesurée (§ 8, P7.4)', async () => {
+    const done = { ...session(false), status: 'faite', actualDistanceM: 4200 }
+    const mounted = await cell({ label: 'mar', date: '2026-11-24', sessions: [done] })
+
+    expect(mounted.text()).toContain('4,2 km')
+    expect(mounted.text()).not.toContain('5,0 km')
+  })
+
+  it('garde le prescrit quand la séance faite n’a pas de mesure', async () => {
+    const done = { ...session(false), status: 'faite' }
+
+    expect((await cell({ label: 'mar', date: '2026-11-24', sessions: [done] })).text()).toContain(
+      '5,0 km',
+    )
+  })
+
   it('remplace « · faite » par une coche, qui porte enfin son nom', async () => {
     const done = { ...session(false), status: 'faite' }
     const mounted = await cell({ label: 'mar', date: '2026-11-24', sessions: [done] })

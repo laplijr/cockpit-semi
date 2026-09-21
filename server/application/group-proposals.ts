@@ -68,3 +68,73 @@ export function groupProposals(pending: PendingProposal[]): ProposalGroup[] {
 
   return [...groups.values()]
 }
+
+/** Une proposition déjà décidée, telle que la base la rend. */
+export interface DecidedProposal {
+  id: number
+  ruleId: string
+  effect: string
+  before: string
+  after: string
+  status: string
+  createdAt: Date | string
+}
+
+export interface DecisionGroup {
+  /** Règle, effet, statut et moment : la décision telle qu'elle a été prise. */
+  key: string
+  ruleId: string
+  effect: string
+  status: string
+  /** Propositions décidées ensemble ; au-delà de une, la ligne le dit. */
+  count: number
+  /** Nuls quand les membres ne changeaient pas la même valeur. */
+  before: string | null
+  after: string | null
+  /**
+   * Le jour où la règle s'est déclenchée — sur l'horloge du domaine, comme
+   * tout le reste de l'app. `decidedAt` est écrit à l'horloge de la machine
+   * et ne dirait pas la même journée sur un seed daté.
+   */
+  createdAt: string
+}
+
+function asIso(value: Date | string): string {
+  return typeof value === 'string' ? value : value.toISOString()
+}
+
+/**
+ * L'historique se groupe comme « À décider », avec une dimension de plus : le
+ * moment. Une règle qui se redéclenche trois semaines plus tard est une autre
+ * décision, pas la même — la clé porte donc la date de création, celle que
+ * toutes les lignes d'une même évaluation partagent (§ 9, P7.4).
+ */
+export function groupDecisions(decided: DecidedProposal[]): DecisionGroup[] {
+  const groups = new Map<string, DecisionGroup>()
+
+  for (const item of decided) {
+    const createdAt = asIso(item.createdAt)
+    const key = `${item.status}:${item.ruleId}:${item.effect}:${createdAt}`
+    const group = groups.get(key)
+
+    if (!group) {
+      groups.set(key, {
+        key,
+        ruleId: item.ruleId,
+        effect: item.effect,
+        status: item.status,
+        count: 1,
+        before: item.before,
+        after: item.after,
+        createdAt,
+      })
+      continue
+    }
+
+    group.count += 1
+    if (group.before !== item.before) group.before = null
+    if (group.after !== item.after) group.after = null
+  }
+
+  return [...groups.values()]
+}

@@ -52,7 +52,7 @@ watch(
     <!-- Le gabarit d'un jour chargé — un libellé et deux séances — parce que
          c'est le jour le plus haut qui donne sa hauteur à la rangée. -->
     <UiAxisScroller>
-      <div class="grid min-w-[620px] grid-cols-7 gap-2 lean:min-w-0">
+      <div class="grid min-w-[776px] grid-cols-7 gap-2 lean:min-w-0">
         <div
           v-for="day in WEEKDAY_LABELS"
           :key="day"
@@ -85,8 +85,11 @@ watch(
       </span>
     </div>
 
+    <!-- 776 px, soit 104 px par colonne : la largeur qui tient « Endurance »
+         sur une ligne. À 620 px le nom de la séance — ce qu'on vient lire —
+         était rogné dès le neuvième caractère (§ 8, P7.4). -->
     <UiAxisScroller ref="axis">
-      <div class="grid min-w-[620px] grid-cols-7 gap-2 lean:min-w-0">
+      <div class="grid min-w-[776px] grid-cols-7 gap-2 lean:min-w-0">
         <CockpitDayCell
           v-for="day in days"
           :key="day.date"

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { groupProposals, type PendingProposal } from '~~/server/application/group-proposals'
+import {
+  groupDecisions,
+  groupProposals,
+  type DecidedProposal,
+  type PendingProposal,
+} from '~~/server/application/group-proposals'
 import { ProposalEffect, RuleId } from '~~/server/domain/rules/rules'
 
 let nextId = 1
@@ -83,5 +88,62 @@ describe('décisions groupées (§ 9, P5.19)', () => {
 
     expect(groups[0]!.targets).toEqual([])
     expect(groups[0]!.ids).toHaveLength(1)
+  })
+})
+
+let nextDecided = 1
+
+function decision(over: Partial<DecidedProposal> = {}): DecidedProposal {
+  return {
+    id: nextDecided++,
+    ruleId: RuleId.R2,
+    effect: ProposalEffect.ReduceEasyVolume,
+    before: '7,4 km',
+    after: '5,2 km',
+    status: 'acceptee',
+    createdAt: '2026-11-22T12:00:00.000Z',
+    ...over,
+  }
+}
+
+describe('historique groupé (§ 9, P7.4)', () => {
+  it('réunit trois lignes de la même décision en une', () => {
+    const groups = groupDecisions([decision(), decision(), decision()])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0]!.count).toBe(3)
+    expect(groups[0]!.before).toBe('7,4 km')
+  })
+
+  it('sépare la même règle redéclenchée un autre jour', () => {
+    const groups = groupDecisions([decision(), decision({ createdAt: '2026-12-13T12:00:00.000Z' })])
+
+    expect(groups).toHaveLength(2)
+  })
+
+  it('sépare une acceptation d’un refus', () => {
+    const groups = groupDecisions([decision(), decision({ status: 'refusee' })])
+
+    expect(groups.map((group) => group.status)).toEqual(['acceptee', 'refusee'])
+  })
+
+  it('n’affiche plus une valeur commune quand les membres ne changent pas la même', () => {
+    const groups = groupDecisions([decision(), decision({ before: '5,1 km', after: '4,6 km' })])
+
+    expect(groups[0]!.before).toBeNull()
+    expect(groups[0]!.after).toBeNull()
+  })
+
+  it('date le groupe du jour où la règle s’est déclenchée', () => {
+    expect(groupDecisions([decision()])[0]!.createdAt).toBe('2026-11-22T12:00:00.000Z')
+  })
+
+  it('accepte les dates telles que la base les rend, en objets', () => {
+    const groups = groupDecisions([
+      decision({ createdAt: new Date('2026-11-22T12:00:00.000Z') }),
+      decision(),
+    ])
+
+    expect(groups).toHaveLength(1)
   })
 })

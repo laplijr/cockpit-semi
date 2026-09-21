@@ -1,5 +1,5 @@
 import { and, inArray } from 'drizzle-orm'
-import { groupProposals } from '../../application/group-proposals'
+import { groupDecisions, groupProposals } from '../../application/group-proposals'
 import { ProposalStatus } from '../../domain/rules/proposal-status'
 import { useDatabase } from '../../infra/db/client'
 import { athleteWeekIds } from '../../infra/db/plan-gateway'
@@ -48,6 +48,7 @@ export default defineEventHandler(async (event) => {
     pending,
     /** Une décision par règle et par effet : c'est ce que la cloche compte. */
     groups: groupProposals(pending),
-    decided: rows.filter((row) => row.status !== ProposalStatus.Proposed),
+    /** L'historique compte les décisions de Ronan, pas les lignes du moteur. */
+    decided: groupDecisions(rows.filter((row) => row.status !== ProposalStatus.Proposed)),
   }
 })

@@ -29,7 +29,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex min-h-screen">
+  <div class="flex min-h-dvh">
+    <!-- `dvh` et non `vh` : sur un navigateur de téléphone, `100vh` est la
+         hauteur barres rétractées, donc un document plus haut que ce qu'on voit
+         et un vide noir sous la barre du bas (§ 8, P7.4). -->
     <ShellSideBar />
     <div class="flex min-w-0 flex-1 flex-col">
       <ShellTopBar />

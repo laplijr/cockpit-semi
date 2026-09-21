@@ -64,7 +64,7 @@ function daysOf(week: { id: number; startDate: string }) {
       </div>
 
       <UiAxisScroller>
-        <div class="grid min-w-[620px] grid-cols-7 gap-2 lean:min-w-0">
+        <div class="grid min-w-[776px] grid-cols-7 gap-2 lean:min-w-0">
           <CockpitDayCell
             v-for="day in daysOf(week)"
             :key="day.date"

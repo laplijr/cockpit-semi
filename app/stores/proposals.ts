@@ -1,4 +1,8 @@
-import type { ProposalGroup, ProposalTargetSession } from '~~/server/application/group-proposals'
+import type {
+  DecisionGroup,
+  ProposalGroup,
+  ProposalTargetSession,
+} from '~~/server/application/group-proposals'
 
 export interface ProposalRow {
   id: number
@@ -20,7 +24,7 @@ export type PendingRow = ProposalRow & { target: ProposalTargetSession | null }
 interface ProposalsPayload {
   pending: PendingRow[]
   groups: ProposalGroup[]
-  decided: ProposalRow[]
+  decided: DecisionGroup[]
 }
 
 /**
@@ -30,7 +34,7 @@ interface ProposalsPayload {
 export const usePropositionsStore = defineStore('proposals', () => {
   const pending = ref<PendingRow[]>([])
   const groups = ref<ProposalGroup[]>([])
-  const decided = ref<ProposalRow[]>([])
+  const decided = ref<DecisionGroup[]>([])
   const selected = ref<string[]>([])
   /** Vrai dès la première réponse : une recharge garde la liste déjà affichée. */
   const loaded = ref(false)

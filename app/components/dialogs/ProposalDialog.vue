@@ -5,11 +5,12 @@ const emit = defineEmits<{ decided: [] }>()
 const proposals = usePropositionsStore()
 const plan = usePlanStore()
 
-const proposal = computed(() =>
-  [...proposals.pending, ...proposals.decided].find((item) => item.id === props.proposalId),
-)
-
-const pending = computed(() => proposal.value?.status === 'proposee')
+/**
+ * Seules les propositions en attente s'ouvrent : l'historique est groupé
+ * depuis P7.4 et ne porte plus de ligne à ouvrir. Une décision prise ferme la
+ * fenêtre — la proposition quitte la liste, la fenêtre n'a plus de sujet.
+ */
+const proposal = computed(() => proposals.pending.find((item) => item.id === props.proposalId))
 /** Verrou de rangée : celle des deux qui ne travaille pas se verrouille aussi. */
 const busy = ref(false)
 
@@ -61,12 +62,11 @@ async function refuse() {
 
     <!-- Appliquer et refuser sont les deux faces d'une même décision : côte à
          côte au clavier, l'une sous l'autre en pleine cible au pouce. -->
-    <div v-if="pending" class="grid grid-cols-1 gap-2 lean:flex">
+    <div class="grid grid-cols-1 gap-2 lean:flex">
       <UiActionButton class="btn" :pending="busy" :action="accept">Appliquer</UiActionButton>
       <UiActionButton class="btn btn-ghost" :pending="busy" :action="refuse">
         Refuser
       </UiActionButton>
     </div>
-    <p v-else class="text-[13px] text-text-dim">Décision déjà prise : {{ proposal.status }}.</p>
   </div>
 </template>
