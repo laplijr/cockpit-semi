@@ -9,6 +9,7 @@ export const MODAL_IDS = [
   'seance-biblio',
   'proposition',
   'bloc',
+  'publication',
 ] as const
 
 /** Cadrans du cockpit qui ouvrent un détail (§ 8). */

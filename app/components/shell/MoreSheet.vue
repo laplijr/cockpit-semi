@@ -3,7 +3,7 @@ const route = useRoute()
 const emit = defineEmits<{ navigate: [] }>()
 const athlete = useAthleteStore()
 
-const groups = computed(() => moreGroupsFor(athlete.sports))
+const groups = computed(() => moreGroupsFor(athlete.sports, athlete.inCircle))
 
 async function go(path: string) {
   emit('navigate')

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { shiftWeek, weekOf } from '../../domain/circle/post'
-import { circleMembers, postsOfWeek } from '../../infra/db/circle-gateway'
+import { circleMembers, identitiesOf, postsOfWeek } from '../../infra/db/circle-gateway'
 import { useDatabase } from '../../infra/db/client'
 import { currentAthleteId, systemClock } from '../../utils/context'
 import { circleMember } from '../../utils/scope'
@@ -26,13 +26,21 @@ export default defineEventHandler(async (event) => {
   const current = weekOf(systemClock.today())
   const week = semaine ? weekOf(semaine) : current
 
+  const posts = await postsOfWeek(db, athleteId, week)
+
   return {
     week,
+    today: systemClock.today(),
     isCurrent: week.from === current.from,
     previous: shiftWeek(week, -1).from,
     next: week.from < current.from ? shiftWeek(week, 1).from : null,
     me: athleteId,
     members: await circleMembers(db),
-    posts: await postsOfWeek(db, athleteId, week),
+    /**
+     * Les auteurs des publications de la semaine, membres ou non : quitter le
+     * cercle ne retire pas son prénom de ce qu'on y a laissé (§ 9, P9.2).
+     */
+    authors: await identitiesOf(db, [...new Set(posts.map((one) => one.athleteId))]),
+    posts,
   }
 })

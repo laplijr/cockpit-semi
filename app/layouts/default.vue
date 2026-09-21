@@ -11,8 +11,11 @@ const plan = usePlanStore()
  * qui l'attendent portent leur squelette (§ 8). Les pages qui n'ont rien à
  * montrer sans lui — Semaine, Courses — l'attendent, elles, dans leur setup.
  */
+const circleUnread = useCircleUnread()
+
 onMounted(() => {
   plan.ensureLoaded()
+  circleUnread.refresh()
 })
 
 useShellShortcuts()

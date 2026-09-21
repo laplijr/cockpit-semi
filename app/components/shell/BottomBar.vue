@@ -2,6 +2,8 @@
 const route = useRoute()
 const ui = useUiStore()
 const proposals = usePropositionsStore()
+
+const { unread } = useCircleUnread()
 </script>
 
 <template>
@@ -51,7 +53,15 @@ const proposals = usePropositionsStore()
       :aria-expanded="ui.panel === 'plus'"
       @click="ui.openPanel('plus')"
     >
-      <UiAppIcon name="more" :size="20" class="text-icon" />
+      <span class="relative inline-flex">
+        <UiAppIcon name="more" :size="20" class="text-icon" />
+        <!-- Le cercle vit dans « Plus » : c'est « Plus » qui porte son point. -->
+        <span
+          v-if="unread"
+          aria-label="publications non lues"
+          class="absolute -top-1 -right-[7px] size-[7px] rounded-full bg-accent"
+        />
+      </span>
       <span class="text-[10.5px]">Plus</span>
     </button>
   </nav>

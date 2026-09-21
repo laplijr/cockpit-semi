@@ -14,6 +14,7 @@ const WIDTHS: Record<string, number> = {
   'seance-muscu': 640,
   'seance-biblio': 880,
   bloc: 880,
+  publication: 600,
 }
 
 const TITLES: Record<string, string> = {
@@ -26,6 +27,7 @@ const TITLES: Record<string, string> = {
   'seance-muscu': 'Séance de renforcement',
   'seance-biblio': 'Séance',
   bloc: 'Bloc',
+  publication: 'Publication',
 }
 
 /** Un jour sans séance n'est pas une séance : la fenêtre le dit dans son titre. */
@@ -43,6 +45,11 @@ async function onRaceChanged() {
   await refreshNuxtData()
   await plan.load()
   ui.closeModal()
+}
+
+/** Un commentaire ou un retrait change la semaine affichée derrière la fenêtre. */
+async function onPostChanged() {
+  await useCircleStore().load()
 }
 
 async function onDecided() {
@@ -106,6 +113,12 @@ async function onDecided() {
       <DialogsBlockDialog
         v-else-if="ui.modal === 'bloc' && ui.modalTargetId"
         :phase-id="ui.modalTargetId"
+      />
+
+      <DialogsPostDialog
+        v-else-if="ui.modal === 'publication' && ui.modalTargetId"
+        :post-id="ui.modalTargetId"
+        @changed="onPostChanged"
       />
     </ShellAppModal>
   </Teleport>

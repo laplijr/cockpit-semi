@@ -43,6 +43,15 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Apprentissage', to: '/apprentissage', icon: 'learn', phase: 'P6' },
     ],
   },
+  /**
+   * Le cercle est après « Comprendre » et avant « Réglages » : c'est sa
+   * hauteur réelle dans la hiérarchie du cockpit, ce n'est pas du pilotage
+   * (§ 8, P9).
+   */
+  {
+    title: 'Entre nous',
+    items: [{ label: 'Cercle', to: '/cercle', icon: 'people', phase: 'P9' }],
+  },
   {
     title: 'Réglages',
     items: [
@@ -79,24 +88,28 @@ const SPORT_BY_PATH: Record<string, Sport> = {
   '/velo': Sport.Cycling,
 }
 
+/** L'entrée du cercle disparaît pour qui l'a quitté, comme un sport non déclaré. */
+const CIRCLE_PATH = '/cercle'
+
 /**
  * Navigation d'un athlète donné. Sans liste de sports déclarée, c'est
  * `NAV_GROUPS` sans retrait : le cockpit de Ronan ne bouge pas.
  */
-export function navGroupsFor(sports?: Sport[]): NavGroup[] {
-  if (!sports) return NAV_GROUPS
+export function navGroupsFor(sports?: Sport[], inCircle = true): NavGroup[] {
+  if (!sports && inCircle) return NAV_GROUPS
 
   return NAV_GROUPS.map((group) => ({
     ...group,
     items: group.items.filter((item) => {
+      if (item.to === CIRCLE_PATH) return inCircle
       const sport = SPORT_BY_PATH[item.to]
-      return sport === undefined || sports.includes(sport)
+      return sport === undefined || !sports || sports.includes(sport)
     }),
   })).filter((group) => group.items.length > 0)
 }
 
-export function moreGroupsFor(sports?: Sport[]): NavGroup[] {
-  return navGroupsFor(sports).filter((group) => group.title !== BOTTOM_BAR_GROUP)
+export function moreGroupsFor(sports?: Sport[], inCircle = true): NavGroup[] {
+  return navGroupsFor(sports, inCircle).filter((group) => group.title !== BOTTOM_BAR_GROUP)
 }
 
 const BY_PATH = new Map(NAV_GROUPS.flatMap((group) => group.items).map((item) => [item.to, item]))

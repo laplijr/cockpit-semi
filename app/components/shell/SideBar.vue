@@ -2,7 +2,8 @@
 const route = useRoute()
 const athlete = useAthleteStore()
 
-const groups = computed(() => navGroupsFor(athlete.sports))
+const groups = computed(() => navGroupsFor(athlete.sports, athlete.inCircle))
+const { unread } = useCircleUnread()
 </script>
 
 <template>
@@ -42,6 +43,13 @@ const groups = computed(() => navGroupsFor(athlete.sports))
           :class="route.path === item.to ? 'text-accent' : 'text-icon'"
         />
         <span class="hidden wide:inline">{{ item.label }}</span>
+
+        <!-- Un point, pas un nombre : il y a du neuf, on ne doit rien (§ 8, P9). -->
+        <span
+          v-if="item.to === '/cercle' && unread"
+          aria-label="publications non lues"
+          class="absolute top-[9px] right-[9px] size-[7px] rounded-full bg-accent wide:static wide:ml-auto"
+        />
 
         <!-- Sans intitulé à l'écran, la bulle le rend au survol et au focus. -->
         <span

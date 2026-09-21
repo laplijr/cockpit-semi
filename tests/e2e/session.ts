@@ -9,7 +9,7 @@ import { expect, type Page } from '@playwright/test'
 const LOGIN = process.env.NUXT_E2E_LOGIN ?? 'ronan'
 const PASSWORD = process.env.NUXT_E2E_PASSWORD ?? 'cockpit-dev-2026'
 
-export async function login(page: Page) {
+export async function login(page: Page, login = LOGIN, password = PASSWORD) {
   await page.goto('/login')
 
   /*
@@ -18,15 +18,15 @@ export async function login(page: Page) {
    * ait pris la main — un serveur de dev compile la page à la demande.
    */
   await expect(async () => {
-    await page.getByLabel('Identifiant').fill(LOGIN)
-    await page.getByLabel('Mot de passe').fill(PASSWORD)
+    await page.getByLabel('Identifiant').fill(login)
+    await page.getByLabel('Mot de passe').fill(password)
     await expect(page.getByRole('button', { name: 'Entrer' })).toBeEnabled({ timeout: 1_000 })
   }).toPass({ timeout: 60_000 })
 
   await page.getByRole('button', { name: 'Entrer' }).click()
 
   /** Un échec ici veut dire une base non seedée, pas une régression de l'app. */
-  await expect(page, `Connexion refusée pour « ${LOGIN} » — la base est-elle seedée ?`).toHaveURL(
+  await expect(page, `Connexion refusée pour « ${login} » — la base est-elle seedée ?`).toHaveURL(
     '/',
   )
 }

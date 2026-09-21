@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, lte, ne } from 'drizzle-orm'
 import type { CircleWeek, PublishedPost } from '../../domain/circle/post'
 import type { Database } from './client'
 import { athlete, post, postComment, postReaction } from './schema'
@@ -176,6 +176,17 @@ export async function isMember(db: Database, athleteId: number): Promise<boolean
     .where(eq(athlete.id, athleteId))
     .limit(1)
   return row?.inCircle ?? false
+}
+
+/** Date de la dernière publication de quelqu'un d'autre ; nulle sans aucune. */
+export async function latestPostAt(db: Database, athleteId: number): Promise<Date | null> {
+  const [row] = await db
+    .select({ publishedAt: post.publishedAt })
+    .from(post)
+    .where(ne(post.athleteId, athleteId))
+    .orderBy(desc(post.publishedAt))
+    .limit(1)
+  return row?.publishedAt ?? null
 }
 
 /** Publication déjà faite pour une séance ou une course : le geste ne se répète pas. */

@@ -255,6 +255,12 @@
     color: var(--color-ok);
   }
 
+  /* Une course courue : le seul objet du cercle qui prenne l'accent (§ 8, P9). */
+  .pill-race {
+    background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+    color: var(--color-accent);
+  }
+
   .pill-warn {
     background: color-mix(in srgb, var(--color-warn) 16%, transparent);
     color: var(--color-warn);

@@ -10,12 +10,13 @@ import {
 } from '~/utils/navigation'
 
 describe('carte de navigation', () => {
-  it('expose les cinq groupes du cockpit dans l’ordre de lecture', () => {
+  it('expose les six groupes du cockpit dans l’ordre de lecture', () => {
     expect(NAV_GROUPS.map((group) => group.title)).toEqual([
       'Piloter',
       'Objectifs',
       'Bibliothèques',
       'Comprendre',
+      'Entre nous',
       'Réglages',
     ])
   })
@@ -56,11 +57,12 @@ describe('partition de la navigation du téléphone', () => {
     expect(BOTTOM_BAR_ITEMS.map((item) => item.to)).toEqual(['/', '/semaine', '/propositions'])
   })
 
-  it('laisse les quatre autres groupes à la feuille « Plus », dans l’ordre de lecture', () => {
+  it('laisse les cinq autres groupes à la feuille « Plus », dans l’ordre de lecture', () => {
     expect(MORE_GROUPS.map((group) => group.title)).toEqual([
       'Objectifs',
       'Bibliothèques',
       'Comprendre',
+      'Entre nous',
       'Réglages',
     ])
   })
@@ -107,6 +109,19 @@ describe('navigation selon les sports déclarés (§ 9, P8.2)', () => {
   it('garde les trois sports quand ils sont tous déclarés', () => {
     const declared = navGroupsFor([Sport.Running, Sport.Cycling, Sport.Strength])
     expect(pathsOf(declared)).toEqual(pathsOf(NAV_GROUPS))
+  })
+
+  it('cache l’entrée du cercle à qui l’a quitté, et rien d’autre (P9)', () => {
+    const left = pathsOf(navGroupsFor(undefined, false))
+    expect(left).not.toContain('/cercle')
+    expect(left).toContain('/mes-donnees')
+    expect(navGroupsFor(undefined, false).map((group) => group.title)).not.toContain('Entre nous')
+    expect(pathsOf(navGroupsFor(undefined))).toContain('/cercle')
+  })
+
+  it('applique le même retrait à la feuille « Plus »', () => {
+    const titles = moreGroupsFor([Sport.Running], false).map((group) => group.title)
+    expect(titles).not.toContain('Entre nous')
   })
 
   it('ne touche à aucun groupe hors bibliothèques', () => {

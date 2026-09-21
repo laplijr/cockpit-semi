@@ -379,7 +379,7 @@ async function seedCircle(ronanId: number, nourId: number) {
     legs: 'Squat 4 × 5 à 62,5 kg, enfin.',
   }
 
-  const ids: number[] = []
+  const ronanPosts: number[] = []
   for (const row of mine.filter((one) => NOTES[one.code]).slice(0, 3)) {
     const note = NOTES[row.code]!
     const outcome = publishSession(
@@ -396,7 +396,7 @@ async function seedCircle(ronanId: number, nourId: number) {
       },
       note,
     )
-    if (outcome.ok) ids.push(await insertPost(db, ronanId, outcome.post))
+    if (outcome.ok) ronanPosts.push(await insertPost(db, ronanId, outcome.post))
   }
 
   /** Nour n'a pas d'historique simulé : deux de ses séances se font ici. */
@@ -417,6 +417,7 @@ async function seedCircle(ronanId: number, nourId: number) {
     { distanceM: 8_000, durationMin: 46, note: 'Footing court avant le boulot.' },
   ]
 
+  const nourPosts: number[] = []
   for (const [index, done] of NOUR_SESSIONS.entries()) {
     const row = hers[index]
     if (!row) continue
@@ -443,22 +444,25 @@ async function seedCircle(ronanId: number, nourId: number) {
       },
       done.note,
     )
-    if (outcome.ok) ids.push(await insertPost(db, nourId, outcome.post))
+    if (outcome.ok) nourPosts.push(await insertPost(db, nourId, outcome.post))
   }
 
-  const [first, second, third] = ids
-  if (first) {
-    await toggleBravo(db, nourId, first)
-    await insertComment(db, nourId, first, 'Bonne nouvelle pour ce pied.')
+  /** Les réactions traversent : chacun dit bravo chez l'autre, jamais chez soi. */
+  const [ronanFirst, ronanSecond] = ronanPosts
+  const [nourFirst] = nourPosts
+
+  if (ronanFirst) {
+    await toggleBravo(db, nourId, ronanFirst)
+    await insertComment(db, nourId, ronanFirst, 'Trois degrés, tu es courageux.')
   }
-  if (second) await toggleBravo(db, nourId, second)
-  if (third) {
-    await toggleBravo(db, ronanId, third)
-    await insertComment(db, ronanId, third, 'Seize bornes en novembre, chapeau.')
-    await insertComment(db, nourId, third, 'Merci, on remet ça dimanche ?')
+  if (ronanSecond) await toggleBravo(db, nourId, ronanSecond)
+  if (nourFirst) {
+    await toggleBravo(db, ronanId, nourFirst)
+    await insertComment(db, ronanId, nourFirst, 'Seize bornes en novembre, chapeau.')
+    await insertComment(db, nourId, nourFirst, 'Merci, on remet ça dimanche ?')
   }
 
-  console.log(`Cercle — ${ids.length} publications, entre Ronan et Nour.`)
+  console.log(`Cercle — ${ronanPosts.length + nourPosts.length} publications, entre Ronan et Nour.`)
 }
 
 await seed()
