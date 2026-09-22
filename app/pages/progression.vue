@@ -294,7 +294,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         <span class="label"><UiInfoHint term="record">Records</UiInfoHint></span>
 
         <p v-if="(data?.records.length ?? 0) === 0" class="text-[13px] text-text-dim">
-          Aucun chrono représentatif : un record se court, il ne s'estime pas.
+          Aucun chrono représentatif.
         </p>
 
         <div
@@ -461,8 +461,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       </div>
 
       <p v-if="forecasts.total === 0" class="text-[13px] text-text-dim">
-        Aucune échéance passée depuis la première annonce : la première comparaison tombera au
-        prochain test.
+        Aucune échéance passée : la première comparaison tombera au prochain test.
       </p>
 
       <template v-else>

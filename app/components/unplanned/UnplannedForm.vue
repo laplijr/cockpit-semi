@@ -109,8 +109,7 @@ onMounted(async () => {
     </label>
 
     <p class="text-[12px] text-text-dim">
-      Seules la date du jour et tes séances prévues accompagnent ce texte. Aucun réalisé, aucun
-      ressenti ne quitte le serveur.
+      Seules la date du jour et tes séances prévues accompagnent ce texte.
     </p>
 
     <div v-if="draftId === null">

@@ -44,7 +44,7 @@ async function generate() {
     <p v-if="error" class="text-[12.5px] text-warn">{{ error }}</p>
 
     <p v-else-if="!fuelPlan" class="text-[12.5px] text-text-dim">
-      Généré à J−7, ou tout de suite depuis la baguette. Le détail des prises se lit dans Nutrition.
+      Généré à J−7, ou tout de suite depuis la baguette.
     </p>
 
     <template v-else>
@@ -62,9 +62,6 @@ async function generate() {
           <span class="mono text-[15px]">{{ fuelPlan.intakes.length }}</span>
         </div>
       </div>
-      <span class="text-[12px] text-text-dim">
-        Le détail par kilomètre se lit dans Nutrition, la semaine de la course.
-      </span>
     </template>
   </div>
 </template>

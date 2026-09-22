@@ -250,11 +250,6 @@ async function logout() {
 
     <div class="tile">
       <span class="label">Volume de course</span>
-      <p class="text-[13px] text-text-dim">
-        Le plan part du volume de départ, monte de
-        {{ form.profile ? defaultsFor(form.profile).maxWeeklyIncreasePct : 10 }} % par semaine au
-        maximum et plafonne au pic.
-      </p>
       <ProfilVolumeFields
         v-model:start="form.startWeeklyVolumeM"
         v-model:peak="form.peakWeeklyVolumeM"

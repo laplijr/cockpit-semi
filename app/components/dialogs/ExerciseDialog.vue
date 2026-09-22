@@ -101,9 +101,6 @@ function rootOf(exercise: Exercise, all: Exercise[]): Exercise {
           </template>
           <template v-else>—</template>
         </span>
-        <span v-if="lastLoadKg === null && lastReps === null" class="text-[12px] text-text-dim">
-          Ça apparaîtra après la première séance enregistrée.
-        </span>
       </div>
     </div>
 
@@ -125,10 +122,5 @@ function rootOf(exercise: Exercise, all: Exercise[]): Exercise {
         <span v-if="item.id === exercise.id" class="pill ml-auto">à faire</span>
       </div>
     </div>
-
-    <p v-if="exercise.lowerBody" class="text-[13px] text-text-dim">
-      Cet exercice charge les jambes : il est retiré du plan quand une pause interdit le
-      renforcement des jambes.
-    </p>
   </div>
 </template>

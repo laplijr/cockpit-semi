@@ -38,9 +38,5 @@ function onChange(event: Event) {
       {{ defaultsFor(profile).runsPerWeek }} courses par semaine, montée bornée à
       {{ defaultsFor(profile).maxWeeklyIncreasePct }} % par semaine.
     </span>
-    <span v-else class="text-[12px] text-text-dim">
-      Le profil pré-remplit le volume, le pic et le nombre de courses, et borne la montée
-      hebdomadaire. Tout reste modifiable ensuite.
-    </span>
   </label>
 </template>

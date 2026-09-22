@@ -138,9 +138,8 @@ async function save() {
     <label class="flex flex-col gap-[6px]">
       <span class="label text-[10.5px]">Chrono réalisé</span>
       <input v-model="form.chrono" type="text" class="input mono" placeholder="1:52:30" />
-      <span class="text-[12px] text-text-dim">
-        Heures, minutes et secondes, comme sur la montre.
-        <span v-if="resultatS > 0" class="mono">{{ formatDuration(resultatS) }}</span>
+      <span v-if="resultatS > 0" class="mono text-[12px] text-text-dim">
+        {{ formatDuration(resultatS) }}
       </span>
     </label>
 

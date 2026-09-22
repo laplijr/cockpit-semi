@@ -181,9 +181,6 @@ async function save() {
       <UiActionButton class="btn btn-lg" :disabled="!canSave" :action="save">
         Ajouter et régénérer le plan
       </UiActionButton>
-      <span class="text-[13px] text-text-dim">
-        Chaque valeur reste modifiable avant l'enregistrement.
-      </span>
     </div>
   </div>
 </template>

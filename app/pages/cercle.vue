@@ -94,15 +94,6 @@ const postsOfDay = (date: string) => circle.posts.filter((post) => post.date ===
       </div>
     </div>
 
-    <!--
-      Appartenir n'est pas publier : la ligne le dit là où on vient le lire,
-      parce qu'aucun écran d'onboarding ne le dira (§ 9, P9.2).
-    -->
-    <p class="-mt-2 text-[12px] text-text-dim">
-      Tout le monde fait partie du cercle. On y voit ce que les autres publient, on n'y publie que
-      ce qu'on veut, et on le quitte depuis Mes données.
-    </p>
-
     <template v-for="day in circle.days" :key="day">
       <div class="flex flex-col gap-2">
         <div class="flex items-baseline gap-2">

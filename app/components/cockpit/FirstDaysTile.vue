@@ -15,10 +15,6 @@ defineProps<{ pending: PendingInstrument[] }>()
   <div class="tile dial border-dashed">
     <span class="label">Les premiers jours</span>
 
-    <p class="text-[13px] text-text-dim">
-      Le cockpit se remplit en t'écoutant. Voici ce qui manque encore.
-    </p>
-
     <ul class="flex flex-col gap-[6px]">
       <li v-for="item in pending" :key="item.label" class="flex items-baseline gap-2 text-[13px]">
         <span class="mt-[6px] size-[5px] shrink-0 rounded-full bg-line-strong" />

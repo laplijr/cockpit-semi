@@ -71,10 +71,7 @@ async function submit() {
       </template>
 
       <template v-else>
-        <p class="text-[14px]">
-          Tu as reçu une invitation. Choisis un identifiant et un mot de passe : le cockpit te
-          posera ensuite six questions pour construire ton plan.
-        </p>
+        <p class="text-[14px]">Choisis un identifiant et un mot de passe.</p>
         <label class="flex flex-col gap-[6px]">
           <span class="label">Identifiant</span>
           <input v-model="login" type="text" class="input" autocomplete="username" />

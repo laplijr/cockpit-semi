@@ -156,12 +156,8 @@ const EVENT_LABELS: Record<string, string> = {
     </div>
 
     <p v-else class="text-[12.5px] text-text-dim">
-      <template v-if="points.length === 1">
-        Une courbe demande au moins deux points : elle vient à la mesure suivante.
-      </template>
-      <template v-else>
-        Aucune course A dont l'objectif soit fixé : il n'y a pas encore de chrono à projeter.
-      </template>
+      <template v-if="points.length === 1">Une mesure : la courbe vient à la suivante.</template>
+      <template v-else>Aucune course A dont l'objectif soit fixé.</template>
     </p>
 
     <div v-if="drawable" class="flex items-baseline justify-between">

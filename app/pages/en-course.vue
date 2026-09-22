@@ -473,7 +473,7 @@ async function record(payload: {
             }}</span>
           </div>
           <p v-if="tracker.kilometres.value.length === 0" class="text-[12.5px] text-text-dim">
-            Moins d'un kilomètre : aucun temps de tour à montrer.
+            Moins d'un kilomètre.
           </p>
         </div>
 

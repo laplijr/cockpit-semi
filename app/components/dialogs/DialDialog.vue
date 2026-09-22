@@ -400,10 +400,6 @@ const title = computed(
             </span>
           </div>
         </div>
-        <span class="text-[12px] text-text-dim">
-          Du plus ambitieux au plus sûr : plus le chrono s'accorde de temps, plus la confiance
-          monte. Un seul des trois est « l'objectif » — le réaliste.
-        </span>
       </div>
 
       <p class="text-[13px] text-text-dim">

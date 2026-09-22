@@ -86,8 +86,7 @@ async function removeAccount() {
     <div class="tile">
       <span class="label">Ce que le cockpit garde</span>
       <p class="text-[13px] text-text-dim">
-        Tout reste sur la base du cockpit. Rien n'est vendu, rien n'est partagé, et aucune donnée
-        d'entraînement n'est envoyée à un modèle de langage.
+        Aucune donnée d'entraînement n'est envoyée à un modèle de langage.
       </p>
       <ul class="flex flex-col gap-2">
         <li v-for="item in account?.stored ?? []" :key="item.label" class="flex flex-col gap-px">
@@ -103,12 +102,6 @@ async function removeAccount() {
     -->
     <div class="tile">
       <span class="label">Le cercle</span>
-      <p class="text-[13px] text-text-dim">
-        Tout le monde en fait partie par défaut. Les membres voient les séances et les courses que
-        vous publiez vous-même, avec le mot que vous y mettez — jamais votre plan, vos ressentis,
-        vos douleurs, votre poids, votre adresse ni vos itinéraires.
-      </p>
-
       <template v-if="account?.circle?.member">
         <div class="flex flex-wrap items-center gap-2">
           <span
@@ -140,9 +133,7 @@ async function removeAccount() {
     <div class="tile">
       <span class="label">Appels externes du jour</span>
       <p class="text-[13px] text-text-dim">
-        L'Imprévu, la recherche de course et les itinéraires passent par des services payés par le
-        compte principal. Au-delà du quota, la fonction attend demain ; le reste du cockpit
-        fonctionne.
+        Au-delà du quota, la fonction attend demain ; le reste du cockpit fonctionne.
       </p>
       <p v-if="(account?.usage ?? []).length === 0" class="mono text-[12px] text-text-dim">
         Aucun appel aujourd'hui.
@@ -161,10 +152,7 @@ async function removeAccount() {
 
     <div v-if="account?.owner" class="tile">
       <span class="label">Invitations</span>
-      <p class="text-[13px] text-text-dim">
-        Le cockpit est fermé : on n'y entre que par un lien, transmis de la main à la main. Un lien
-        ne sert qu'une fois.
-      </p>
+      <p class="text-[13px] text-text-dim">Un lien ne sert qu'une fois.</p>
 
       <div class="flex flex-wrap items-end gap-3">
         <label class="flex flex-1 flex-col gap-[6px]">

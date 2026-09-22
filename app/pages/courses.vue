@@ -57,9 +57,6 @@ await plan.ensureLoaded()
 
     <div v-if="toRecord.length > 0" class="tile">
       <span class="label">À renseigner</span>
-      <p class="text-[12.5px] text-text-dim">
-        Ces courses ont eu lieu. Leur chrono recale le VDOT, les records et les projections.
-      </p>
       <button
         v-for="race in toRecord"
         :key="race.id"

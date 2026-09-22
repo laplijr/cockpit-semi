@@ -12,8 +12,7 @@ const notices = useBrowserNotices()
     <span class="label">Rappels du navigateur</span>
 
     <p class="text-[13px] text-text-dim">
-      Un rappel quand un ressenti manque ou qu'une décision attend. Jamais pour une séance à faire.
-      Il ne part que depuis un onglet ouvert : le cockpit ne s'installe pas sur l'appareil.
+      Un rappel quand un ressenti manque ou qu'une décision attend, depuis un onglet ouvert.
     </p>
 
     <template v-if="!notices.supported">

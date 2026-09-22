@@ -203,9 +203,6 @@ async function onRaceCreated() {
             v-model:birth-date="form.birthDate"
             v-model:weight-kg="form.weightKg"
           />
-          <p class="text-[13px] text-text-dim">
-            La photo et l'adresse de départ des sorties se règlent dans Profil, plus tard.
-          </p>
         </div>
       </template>
 
@@ -234,14 +231,9 @@ async function onRaceCreated() {
                 {{ formatDistance(race.distanceM) }}
               </span>
             </span>
-            <p class="text-[13px] text-text-dim">
-              Les suivantes s'ajoutent depuis Courses, une fois le plan en route.
-            </p>
           </template>
           <p v-else class="text-[13px] text-text-dim">
-            Sans course, le plan tourne en cycle d'entretien : des blocs de quatre semaines qui
-            entretiennent la forme, sans affûtage puisqu'il n'y a rien à préparer. Une course
-            ajoutée plus tard reprend la main.
+            Sans course, le plan tourne en cycle d'entretien.
           </p>
           <button
             v-if="!hasRace"

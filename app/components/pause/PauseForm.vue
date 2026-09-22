@@ -99,10 +99,7 @@ async function declare() {
     <label class="flex flex-col gap-[6px]">
       <span class="label text-[10.5px]">Reprise estimée</span>
       <input v-model="form.estimatedEndDate" type="date" class="input mono" />
-      <span class="text-[12px] text-text-dim">
-        Laisse vide si tu ne sais pas : le plan repart alors en semaines non datées, et les séances
-        apparaissent quand tu marques la reprise.
-      </span>
+      <span class="text-[12px] text-text-dim"> Vide : le plan repart en semaines non datées. </span>
     </label>
 
     <div class="flex flex-col gap-[6px]">

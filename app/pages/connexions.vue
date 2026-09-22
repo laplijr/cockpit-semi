@@ -63,20 +63,6 @@ function onPick(event: Event) {
         L'accès à l'API Strava est passé derrière l'abonnement payant. Le cockpit n'a donc aucune
         connexion automatique : le réalisé se saisit à la main, ou s'importe depuis un fichier.
       </p>
-      <div class="flex flex-col gap-1 border-t border-line-soft pt-2">
-        <span class="label text-[10px]">Ce que ça change</span>
-        <ul class="flex flex-col gap-1 text-[13px] text-text-dim">
-          <li>
-            Une séance se marque faite depuis le cockpit, ressenti compris, en une vingtaine de
-            secondes.
-          </li>
-          <li>
-            Le ratio de charge attend 28 jours de saisie au lieu d'être fourni d'emblée par
-            l'import.
-          </li>
-          <li>Les allures et la FC ne remontent pas seules : elles sont saisies ou importées.</li>
-        </ul>
-      </div>
     </div>
 
     <div class="tile">

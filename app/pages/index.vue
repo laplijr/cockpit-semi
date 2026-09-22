@@ -147,8 +147,7 @@ async function onResume() {
 
         <template v-if="plan.awaitingResumption">
           <p class="text-[13px] text-text-dim">
-            Le plan est calculé — phases, volumes, cap — mais il n'est pas daté : les séances
-            apparaîtront quand tu marqueras la reprise.
+            Plan calculé mais non daté : les séances arrivent à la reprise.
           </p>
         </template>
         <template v-else-if="plan.pause">

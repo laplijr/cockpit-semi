@@ -27,10 +27,6 @@ function toggle(sport: Sport) {
 <template>
   <div class="flex flex-col gap-2">
     <span class="label text-[10.5px]">Sports pratiqués</span>
-    <p class="text-[13px] text-text-dim">
-      Le moteur est une périodisation de course à pied. Le vélo et le renforcement sont des séances
-      de soutien : sans eux, la semaine ne garde que la course.
-    </p>
     <div class="flex flex-wrap gap-2">
       <span class="btn btn-ghost border-accent bg-accent/15 text-text">
         <UiAppIcon :name="sportStyle(Sport.Running).icon" :size="15" />
@@ -86,10 +82,6 @@ function toggle(sport: Sport) {
           {{ EQUIPMENT_LABELS[value] }}
         </button>
       </div>
-      <p class="text-[13px] text-text-dim">
-        Chaque exercice a son remplaçant au niveau du dessous : la séance ne demande jamais un objet
-        que tu n'as pas.
-      </p>
     </div>
   </div>
 </template>

@@ -75,9 +75,7 @@ async function search() {
       </UiActionButton>
     </div>
 
-    <p class="text-[12px] text-text-dim">
-      Seul le nom tapé quitte le serveur. Chaque valeur trouvée reste modifiable à droite.
-    </p>
+    <p class="text-[12px] text-text-dim">Seul le nom tapé quitte le serveur.</p>
     <p v-if="pending" class="text-[12px] text-text-dim">
       La recherche lit plusieurs sources : compte jusqu'à deux minutes.
     </p>
