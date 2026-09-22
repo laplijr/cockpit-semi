@@ -17,6 +17,7 @@ const SHAPES: Record<ModalId, { columns: number; tiles: number; lines: number }>
   'seance-biblio': { columns: 4, tiles: 4, lines: 4 },
   bloc: { columns: 2, tiles: 4, lines: 2 },
   'nouvelle-course': { columns: 2, tiles: 2, lines: 3 },
+  'course-passee': { columns: 1, tiles: 1, lines: 6 },
   publication: { columns: 1, tiles: 2, lines: 3 },
 }
 

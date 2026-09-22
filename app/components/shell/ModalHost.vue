@@ -6,6 +6,7 @@ const proposals = usePropositionsStore()
 /** Largeur par fenêtre : un détail de séance a besoin de plus qu'une proposition. */
 const WIDTHS: Record<string, number> = {
   'nouvelle-course': 1040,
+  'course-passee': 560,
   seance: 1040,
   cadran: 880,
   proposition: 760,
@@ -19,6 +20,7 @@ const WIDTHS: Record<string, number> = {
 
 const TITLES: Record<string, string> = {
   'nouvelle-course': 'Nouvelle course',
+  'course-passee': 'Course déjà courue',
   seance: 'Séance',
   cadran: 'Détail',
   proposition: 'Proposition',
@@ -72,6 +74,9 @@ async function onDecided() {
 
       <!-- Une course créée peut avoir régénéré le plan, comme une course modifiée. -->
       <RacesNewRaceWindow v-if="ui.modal === 'nouvelle-course'" @created="onRaceChanged" />
+
+      <!-- L'autre porte : une course qu'on a déjà courue (§ 9, P7.5). -->
+      <RacesPastRaceWindow v-else-if="ui.modal === 'course-passee'" @created="onRaceChanged" />
 
       <DialogsSessionDialog
         v-else-if="ui.modal === 'seance' && (ui.modalTargetId || ui.modalDate)"

@@ -189,8 +189,21 @@ await plan.ensureLoaded()
       </div>
     </div>
 
-    <div v-if="past.length > 0" class="tile">
-      <span class="label">Courses passées</span>
+    <!-- La tuile s'affiche toujours, vide comprise : sinon la porte n'existe
+         pas le premier jour, celui où elle sert le plus (§ 9, P7.5). -->
+    <div class="tile">
+      <div class="flex items-center gap-3">
+        <span class="label">Courses passées</span>
+        <button
+          type="button"
+          class="btn btn-ghost ml-auto h-7 px-[10px] text-[12px]"
+          @click="ui.openModal('course-passee')"
+        >
+          <UiAppIcon name="plus" :size="14" />
+          Ajouter
+        </button>
+      </div>
+      <p v-if="past.length === 0" class="text-[13px] text-text-dim">Aucune course enregistrée.</p>
       <div
         v-for="race in past"
         :key="race.id"

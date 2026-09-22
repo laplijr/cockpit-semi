@@ -1,6 +1,7 @@
 export const PANEL_IDS = ['imprevu', 'pause', 'plus'] as const
 export const MODAL_IDS = [
   'nouvelle-course',
+  'course-passee',
   'seance',
   'cadran',
   'course',

@@ -7,6 +7,12 @@ const emit = defineEmits<{ created: [] }>()
 
 const { data: races } = await useFetch('/api/races')
 
+const ui = useUiStore()
+const plan = usePlanStore()
+
+/** Le jour même compte comme à venir : c'est encore une course qu'on prépare. */
+const isPast = computed(() => /^\d{4}-\d{2}-\d{2}$/.test(form.date) && form.date < plan.today)
+
 const DISTANCES = [
   { label: '5 km', value: 5000 },
   { label: '10 km', value: 10000 },
@@ -84,7 +90,9 @@ watch(
   { immediate: true },
 )
 
-const canSave = computed(() => form.name.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(form.date))
+const canSave = computed(
+  () => form.name.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(form.date) && !isPast.value,
+)
 
 async function save() {
   error.value = ''
@@ -125,7 +133,7 @@ async function save() {
       </label>
       <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
         <span class="label text-[10.5px]">Date</span>
-        <input v-model="form.date" type="date" class="input mono" />
+        <input v-model="form.date" type="date" class="input mono" :min="plan.today" />
       </label>
       <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
         <span class="label text-[10.5px]">Distance</span>
@@ -156,6 +164,16 @@ async function save() {
       :proposed="proposed"
       :record-s="recordS"
     />
+
+    <!-- Une date passée ne se refuse pas : elle renvoie vers l'autre porte,
+         celle d'une course déjà courue (§ 9, P7.5). -->
+    <p v-if="isPast" class="text-[13px] text-text-dim">
+      Cette date est passée. Une course déjà courue s'enregistre ailleurs, avec son chrono :
+      <button type="button" class="text-accent underline" @click="ui.openModal('course-passee')">
+        enregistrer une course déjà courue
+      </button>
+      .
+    </p>
 
     <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
 
