@@ -186,7 +186,7 @@ async function onRaceCreated() {
             que tu fais vraiment. Il ne t'impose rien : il propose, tu décides.
           </p>
           <p class="text-[14px]">
-            Il est fait pour la course à pied. Le vélo et la musculation y tiennent le rôle de
+            Il est fait pour la course à pied. Le vélo et le renforcement y tiennent le rôle de
             séances de soutien, posées autour des courses et jamais à leur place.
           </p>
           <p class="text-[14px]">
