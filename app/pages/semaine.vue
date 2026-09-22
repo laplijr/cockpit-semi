@@ -2,6 +2,15 @@
 const plan = usePlanStore()
 await plan.ensureLoaded()
 
+/* Les courses ne sont pas dans le plan : elles ne se déduisent pas des
+   séances, et le générateur laisse leur jour vide (§ 5). Sans elles la
+   semaine d'une course affichait « repos » le jour de la course. */
+const { data: races } = useFetch('/api/races', { lazy: true })
+
+const calendarRaces = computed(() =>
+  (races.value ?? []).filter((race) => race.status !== 'annulee'),
+)
+
 const BLOCK_SIZE = 4
 const offset = ref(0)
 
@@ -28,6 +37,7 @@ function daysOf(week: { id: number; startDate: string }) {
       date,
       isToday: date === plan.today,
       sessions: sessions.filter((s) => s.date === date),
+      race: calendarRaces.value.find((race) => race.date === date),
     }
   })
 }
@@ -71,6 +81,7 @@ function daysOf(week: { id: number; startDate: string }) {
             :label="day.label"
             :date="day.date"
             :sessions="day.sessions"
+            :race="day.race"
             :is-today="day.isToday"
             compact
           />

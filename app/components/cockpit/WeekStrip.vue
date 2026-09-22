@@ -1,12 +1,17 @@
 <script setup lang="ts">
+import type { DayRace } from '~/components/cockpit/DayCell.vue'
 import type { PlanSession, PlanWeekRow } from '~/stores/plan'
 
-const props = defineProps<{
-  week?: PlanWeekRow
-  sessions: PlanSession[]
-  today: string
-  loading?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    week?: PlanWeekRow
+    sessions: PlanSession[]
+    races?: (DayRace & { date: string })[]
+    today: string
+    loading?: boolean
+  }>(),
+  { week: undefined, races: () => [], loading: false },
+)
 
 const days = computed(() => {
   if (!props.week) return []
@@ -18,6 +23,7 @@ const days = computed(() => {
       date,
       isToday: date === props.today,
       sessions: props.sessions.filter((session) => session.date === date),
+      race: props.races.find((race) => race.date === date),
     }
   })
 })
@@ -96,6 +102,7 @@ watch(
           :label="day.label"
           :date="day.date"
           :sessions="day.sessions"
+          :race="day.race"
           :is-today="day.isToday"
           :data-today="day.isToday || undefined"
         />

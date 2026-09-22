@@ -1,15 +1,23 @@
 <script setup lang="ts">
 import type { PlanSession } from '~/stores/plan'
 
+/** Ce qu'une course a besoin de montrer dans une journée (§ 8). */
+export interface DayRace {
+  id: number
+  name: string
+  distanceM: number
+}
+
 withDefaults(
   defineProps<{
     label: string
     date: string
     sessions: PlanSession[]
+    race?: DayRace
     isToday?: boolean
     compact?: boolean
   }>(),
-  { isToday: false, compact: false },
+  { race: undefined, isToday: false, compact: false },
 )
 
 const ui = useUiStore()
@@ -48,13 +56,38 @@ function figureOf(session: PlanSession): string {
   >
     <span class="label text-[10px]">{{ label }}</span>
 
+    <!-- Le jour d'une course porte la course, et non le repos que le générateur
+         y pose : c'est le seul jour de la semaine qui ne s'entraîne pas et qui
+         compte quand même (§ 8). -->
+    <div
+      v-if="race"
+      class="tap tile-action -mx-1 flex flex-col justify-center gap-px rounded-sm border border-transparent px-1"
+      role="button"
+      :tabindex="0"
+      @click="ui.openModal('course', race.id)"
+      @keydown.enter.prevent="ui.openModal('course', race.id)"
+      @keydown.space.prevent="ui.openModal('course', race.id)"
+    >
+      <span class="flex items-center gap-[6px]">
+        <UiAppIcon name="flag" :size="13" class="text-accent" label="Course" />
+        <span
+          class="display line-clamp-2 min-w-0 text-[15px] leading-[1.15] font-semibold text-accent lean:block lean:truncate lean:leading-normal"
+        >
+          {{ race.name }}
+        </span>
+      </span>
+      <span class="mono pl-[19px] text-[11px] text-text-dim">
+        {{ formatDistance(race.distanceM) }}
+      </span>
+    </div>
+
     <!-- Plusieurs séances le même jour : chacune porte l'icône de son sport et
          elles sont séparées par un filet, pour qu'on ne les confonde pas. -->
     <div
       v-for="(session, index) in sessions"
       :key="session.id"
       class="tap tile-action -mx-1 flex flex-col justify-center gap-px rounded-sm border border-transparent px-1"
-      :class="index > 0 && 'mt-1 border-t-line-soft pt-2'"
+      :class="(index > 0 || race) && 'mt-1 border-t-line-soft pt-2'"
       role="button"
       :tabindex="0"
       @click="ui.openModal('seance', session.id)"
@@ -102,7 +135,7 @@ function figureOf(session: PlanSession): string {
 
     <!-- Un jour de repos a son détail, lui aussi : ses repas (§ 9, P6.4). -->
     <button
-      v-if="sessions.length === 0"
+      v-if="sessions.length === 0 && !race"
       type="button"
       class="tile-action -mx-1 flex-1 rounded-sm border border-transparent px-1 text-left text-[12px] text-text-dim"
       @click="ui.openDay(date)"

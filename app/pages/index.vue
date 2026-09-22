@@ -28,6 +28,11 @@ const raceA = computed(() =>
     .at(0),
 )
 
+/** Une course annulée n'a plus de jour : elle ne prend pas la journée (§ 8). */
+const calendarRaces = computed(() =>
+  (races.value ?? []).filter((race) => race.status !== 'annulee'),
+)
+
 const upcoming = computed(() =>
   (races.value ?? [])
     .filter((race) => race.status === 'planifiee' && race.date >= plan.today)
@@ -229,6 +234,7 @@ async function onResume() {
     <CockpitWeekStrip
       :week="plan.currentWeek"
       :sessions="currentWeekSessions"
+      :races="calendarRaces"
       :today="plan.today"
       :loading="!plan.loaded"
     />
