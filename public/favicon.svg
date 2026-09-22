@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Cockpit">
+  <defs>
+    <clipPath id="cadran"><circle cx="256" cy="256" r="146" /></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#161514" />
+  <circle cx="256" cy="256" r="146" fill="#26231f" />
+  <g clip-path="url(#cadran)" transform="rotate(-14 256 256)">
+    <rect x="60" y="256" width="392" height="240" fill="#3a2c17" />
+    <rect x="60" y="243" width="392" height="26" fill="#f2a23a" />
+  </g>
+  <circle cx="256" cy="256" r="146" fill="none" stroke="#3a3632" stroke-width="28" />
+  <path d="M130 256 H190 M322 256 H382" stroke="#f3efe8" stroke-width="24" stroke-linecap="round" />
+</svg>

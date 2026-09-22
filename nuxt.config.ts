@@ -38,8 +38,18 @@ export default defineNuxtConfig({
           content: 'width=device-width, initial-scale=1, interactive-widget=resizes-content',
         },
         { name: 'color-scheme', content: 'dark' },
+        { name: 'theme-color', content: '#161514' },
+        { name: 'apple-mobile-web-app-title', content: 'Cockpit' },
       ],
       link: [
+        /*
+         * Le `.ico` reste pour les navigateurs qui ignorent le SVG ; son entrée
+         * 16 px porte le dessin allégé, sans moustaches.
+         */
+        { rel: 'icon', href: '/favicon.ico', sizes: '48x48' },
+        { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml', sizes: 'any' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/site.webmanifest' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
