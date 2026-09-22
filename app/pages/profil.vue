@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { MIN_AVAILABLE_DAYS } from '~~/server/domain/athlete/onboarding'
 import { defaultsFor, type AthleteProfile } from '~~/server/domain/athlete/profile'
+import { FitnessDeclaration } from '~~/server/domain/fitness/declaration'
 import { Sport } from '~~/server/domain/shared/sport'
 import { StrengthEquipment } from '~~/server/domain/strength/equipment'
 import { StrengthIntent } from '~~/server/domain/strength/intent'
@@ -34,6 +35,34 @@ const form = reactive({
 
 const saved = ref(false)
 const photoError = ref('')
+
+/**
+ * Le point de départ se déclare aussi après l'onboarding : sans cette tuile,
+ * un « je ne sais pas » ne se rattrapait plus (§ 9, P7.5).
+ */
+const { data: fitness, refresh: refreshFitness } = await useFetch('/api/fitness')
+
+const declaring = ref(false)
+/** Sans « je ne sais pas », le premier choix est le chrono : rien n'est vide. */
+const declaration = ref<FitnessStartValue>({
+  ...emptyFitnessStart(plan.today),
+  kind: FitnessDeclaration.Chrono,
+})
+const declareError = ref('')
+
+async function declare() {
+  declareError.value = ''
+  try {
+    await $fetch('/api/fitness', {
+      method: 'POST',
+      body: { declaration: fitnessStartBody(declaration.value) },
+    })
+    declaring.value = false
+    await Promise.all([refreshFitness(), plan.load()])
+  } catch (failure) {
+    declareError.value = apiMessage(failure, 'Déclaration refusée.')
+  }
+}
 
 /** Valeurs avant application d'un profil, pour afficher l'ancienne barrée (§ 8). */
 const replaced = ref<{ start: number; peak: number; runs: number | null } | null>(null)
@@ -177,6 +206,45 @@ async function logout() {
       <div class="border-t border-line-soft pt-3">
         <ProfilLevelField v-model="form.profile" @chosen="onProfileChosen" />
       </div>
+    </div>
+
+    <!-- Le point de forme courant, dit en clair : l'absence devient visible
+         au lieu d'être déductible (§ 9, P7.5). -->
+    <div class="tile">
+      <span class="label">Point de départ</span>
+
+      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <template v-if="fitness?.point">
+          <span class="display text-[24px] font-semibold">
+            {{ formatDecimal(fitness.point.vdot, 1) }}
+          </span>
+          <span class="pill">{{ fitness.point.isFloor ? 'plancher' : 'mesure' }}</span>
+          <span class="mono text-[11.5px] text-text-dim">
+            {{ FITNESS_ORIGIN_LABELS[fitness.point.origin] ?? fitness.point.origin }} ·
+            {{ formatDateWithYear(fitness.point.date) }}
+          </span>
+        </template>
+        <span v-else class="text-[13px] text-text-dim">— aucun point de forme</span>
+      </div>
+
+      <ProfilFitnessStartFields
+        v-if="declaring"
+        v-model="declaration"
+        :allow-unknown="false"
+        class="border-t border-line-soft pt-3"
+      />
+      <UiActionButton v-if="declaring" class="btn self-stretch lean:self-start" :action="declare">
+        Enregistrer et régénérer le plan
+      </UiActionButton>
+      <button
+        v-else
+        type="button"
+        class="btn btn-ghost self-stretch lean:self-start"
+        @click="declaring = true"
+      >
+        Déclarer mon niveau
+      </button>
+      <p v-if="declareError" class="text-[13px] text-warn">{{ declareError }}</p>
     </div>
 
     <div class="tile">

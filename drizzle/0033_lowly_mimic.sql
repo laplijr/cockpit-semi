@@ -1,0 +1,1 @@
+ALTER TYPE "public"."plan_trigger" ADD VALUE 'forme_declaree';

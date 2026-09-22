@@ -232,6 +232,13 @@
       "when": 1790025958645,
       "tag": "0032_bouncy_smiling_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790069728739,
+      "tag": "0033_lowly_mimic",
+      "breakpoints": true
     }
   ]
 }

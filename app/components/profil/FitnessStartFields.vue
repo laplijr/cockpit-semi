@@ -4,6 +4,12 @@ import { RACE_DISTANCES_M, vdotFromEasyPace, vdotFromRace } from '~~/server/doma
 
 const value = defineModel<FitnessStartValue>({ required: true })
 
+/**
+ * Hors onboarding, « je ne sais pas » disparaît : il n'écrit rien, il ne veut
+ * plus rien dire une fois qu'on vient déclarer quelque chose (§ 9, P7.5).
+ */
+const { allowUnknown = true } = defineProps<{ allowUnknown?: boolean }>()
+
 const DISTANCES = [
   { label: '5 km', value: RACE_DISTANCES_M.fiveK },
   { label: '10 km', value: RACE_DISTANCES_M.tenK },
@@ -11,7 +17,7 @@ const DISTANCES = [
   { label: 'Marathon', value: RACE_DISTANCES_M.marathon },
 ]
 
-const CHOICES = [
+const ALL_CHOICES = [
   {
     kind: FitnessDeclaration.Chrono,
     label: 'J’ai un chrono de référence',
@@ -28,6 +34,12 @@ const CHOICES = [
     hint: 'Le plan démarre en endurance seule et pose un test de 20 minutes en semaine 2.',
   },
 ]
+
+const CHOICES = computed(() =>
+  allowUnknown
+    ? ALL_CHOICES
+    : ALL_CHOICES.filter((choice) => choice.kind !== FitnessDeclaration.Unknown),
+)
 
 /** Le VDOT que produirait la réponse en cours : la conséquence se lit avant de valider. */
 const preview = computed(() => {

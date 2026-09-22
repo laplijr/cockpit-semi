@@ -135,6 +135,14 @@ export function formatDecimal(value: number | null | undefined, decimals = 2): s
   return text.includes(',') ? text.replace(/0+$/, '').replace(/,$/, '') : text
 }
 
+/** D'où vient un point de forme (§ 5, P8.1 et P7.5). */
+export const FITNESS_ORIGIN_LABELS: Record<string, string> = {
+  course: 'Course',
+  test: 'Test 20′',
+  import_initial: 'Import',
+  declare: 'Allure déclarée',
+}
+
 /** Habitudes détectées (§ 5, P6). */
 export const HABIT_LABELS: Record<string, string> = {
   glissement_de_jour: 'Glissement de jour',

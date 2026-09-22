@@ -104,9 +104,10 @@ async function persist() {
   }
 
   if (step.value === OnboardingStep.Fitness) {
-    await $fetch('/api/onboarding/fitness', {
+    /** La dernière étape génère une fois : ici on déclare, on ne régénère pas. */
+    await $fetch('/api/fitness', {
       method: 'POST',
-      body: fitnessStartBody(fitness.value),
+      body: { declaration: fitnessStartBody(fitness.value), regenerate: false },
     })
     return
   }

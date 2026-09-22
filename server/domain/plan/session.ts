@@ -34,6 +34,8 @@ export enum PlanTrigger {
   RaceRecorded = 'resultat_enregistre',
   /** Une journée posée à la main est rendue au générateur (§ 5, P6.43). */
   DayRestored = 'journee_rendue',
+  /** Un point de forme déclaré depuis Profil, après l'onboarding (§ 9, P7.5). */
+  FitnessDeclared = 'forme_declaree',
 }
 
 /** Une séance telle qu'elle est stockée, lue par les modules qui la retouchent. */
