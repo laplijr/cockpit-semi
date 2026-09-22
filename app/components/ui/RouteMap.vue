@@ -8,6 +8,11 @@ import 'leaflet/dist/leaflet.css'
  * et il n'existe pas de fond sombre chez OSM sans passer par un second tiers.
  * Aucune donnée d'entraînement ne part : le navigateur ne demande que des
  * tuiles, repérées par leur seule coordonnée.
+ *
+ * Les couches se construisent une fois et ne bougent plus : un relevé GPS ne
+ * fait que rallonger la trace et déplacer le point courant (§ 9, P18). Jeter
+ * les couches à chaque relevé rechargeait toutes les tuiles — la carte
+ * clignotait une fois par seconde — et recadrer défaisait le zoom choisi.
  */
 const props = withDefaults(
   defineProps<{
@@ -17,46 +22,81 @@ const props = withDefaults(
     guide?: { lat: number; lon: number }[]
     /** Position courante, pendant une sortie. */
     position?: { lat: number; lon: number } | null
+    /** Plein cadre : la carte est le fond de l'écran de course (§ 9, P18). */
+    fill?: boolean
   }>(),
-  { height: 220, guide: undefined, position: null },
+  { height: 220, guide: undefined, position: null, fill: false },
 )
+
+/** Vrai dès que le doigt a déplacé la carte : elle ne suit plus le coureur. */
+const emit = defineEmits<{ adrift: [boolean] }>()
 
 const container = ref<HTMLElement>()
 let map: L.Map | undefined
-let bounds: L.LatLngBounds | undefined
+let guideLine: L.Polyline | undefined
+let trackLine: L.Polyline | undefined
+let startMark: L.CircleMarker | undefined
+let hereMark: L.CircleMarker | undefined
 let observer: ResizeObserver | undefined
 
-/**
- * Leaflet mesure son conteneur au moment où il se construit. Dans un dialog,
- * cette taille n'est pas encore la bonne : sans ce recadrage à chaque
- * redimensionnement, la boucle sort du cadre.
- */
-function refit() {
-  if (!map || !bounds) return
-  map.invalidateSize()
-  map.fitBounds(bounds, { padding: [16, 16] })
+/** Vrai tant que la carte suit le coureur ; un geste sur la carte l'arrête. */
+let following = true
+/** Un recadrage demandé par l'écran n'est pas un geste du doigt. */
+let fromScreen = false
+/** Le premier cadrage se pose une fois ; ensuite le zoom appartient au doigt. */
+let framed = false
+
+/** Zoom de départ quand rien n'est encore tracé : l'échelle du pâté de maisons. */
+const START_ZOOM = 16
+
+/** Vue d'attente, le temps qu'un relevé arrive : elle ne se voit jamais. */
+const FRANCE: [number, number] = [46.6, 2.5]
+const COUNTRY_ZOOM = 5
+
+function latLngs(points: { lat: number; lon: number }[]): [number, number][] {
+  return points.map((point) => [point.lat, point.lon] as [number, number])
 }
 
-function draw() {
-  const hasGuide = (props.guide?.length ?? 0) > 1
-  if (!container.value || (props.points.length < 2 && !hasGuide)) return
+function frame(): L.LatLngBounds | undefined {
+  const all = [...latLngs(props.points), ...latLngs(props.guide ?? [])]
+  return all.length > 1 ? L.latLngBounds(all) : undefined
+}
 
-  const latLngs = props.points.map((point) => [point.lat, point.lon] as [number, number])
+/** Un mouvement de la carte demandé par l'écran, qui ne doit pas la décrocher. */
+function move(action: () => void) {
+  fromScreen = true
+  action()
+  fromScreen = false
+}
+
+function ensureMap(): L.Map | undefined {
+  if (map || !container.value) return map
 
   /*
    * Dans une feuille qui défile, le glissement d'un doigt appartient à la
    * feuille : laissé à Leaflet, il l'avale et la feuille se bloque sous le
-   * pouce. Sur pointeur grossier la carte ne se déplace donc plus au doigt —
-   * elle se pince pour zoomer et garde ses boutons + / − (§ 8, P6.8).
+   * pouce. Sur pointeur grossier la carte ne s'y déplace donc pas au doigt —
+   * elle se pince pour zoomer et garde ses boutons + / − (§ 8, P6.8). Plein
+   * cadre, il n'y a pas de feuille au-dessous : le doigt déplace la carte.
    */
   const coarse = window.matchMedia('(pointer: coarse)').matches
 
-  map ??= L.map(container.value, {
+  map = L.map(container.value, {
     attributionControl: true,
-    zoomControl: true,
-    dragging: !coarse,
+    zoomControl: !props.fill,
+    dragging: props.fill || !coarse,
   })
-  map.eachLayer((layer) => map!.removeLayer(layer))
+
+  /**
+   * Une couche posée sur une carte sans centre jette « Set map center and zoom
+   * first » : la vue se pose avant, même approximative — `reframe` l'ajuste
+   * juste après.
+   */
+  const bounds = frame()
+  const here = props.position
+  if (bounds) map.fitBounds(bounds, { padding: [16, 16], animate: false })
+  else if (here) map.setView([here.lat, here.lon], START_ZOOM, { animate: false })
+  else map.setView(FRANCE, COUNTRY_ZOOM, { animate: false })
 
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -64,61 +104,162 @@ function draw() {
   }).addTo(map)
 
   /** La boucle proposée passe dessous, en gris : c'est un repère, pas la course. */
-  if (props.guide && props.guide.length > 1) {
-    L.polyline(
-      props.guide.map((point) => [point.lat, point.lon] as [number, number]),
-      { color: '#6d665c', weight: 3, opacity: 0.9 },
-    ).addTo(map)
-  }
+  guideLine = L.polyline([], { color: '#6d665c', weight: 3, opacity: 0.9 }).addTo(map)
+  trackLine = L.polyline([], { color: '#f2a23a', weight: 4, opacity: 0.95 }).addTo(map)
 
-  L.polyline(latLngs, { color: '#f2a23a', weight: 4, opacity: 0.95 }).addTo(map)
+  map.on('dragstart zoomstart', () => {
+    if (fromScreen || !following) return
+    following = false
+    emit('adrift', true)
+  })
+
+  return map
+}
+
+function drawTrack() {
+  const current = ensureMap()
+  if (!current) return
+
+  const track = latLngs(props.points)
+  const guide = latLngs(props.guide ?? [])
+
+  guideLine?.setLatLngs(guide)
+  trackLine?.setLatLngs(track)
+
   /** Le départ est aussi l'arrivée : un seul repère suffit à s'orienter. */
-  L.circleMarker(latLngs[0]!, {
-    radius: 6,
-    color: '#f2a23a',
-    fillColor: '#161514',
-    fillOpacity: 1,
-    weight: 3,
-  }).addTo(map)
+  const start = track[0]
+  if (start && !startMark) {
+    startMark = L.circleMarker(start, {
+      radius: 6,
+      color: '#f2a23a',
+      fillColor: '#161514',
+      fillOpacity: 1,
+      weight: 3,
+    }).addTo(current)
+  } else if (start) {
+    startMark?.setLatLng(start)
+  }
+}
+
+function drawPosition() {
+  const current = ensureMap()
+  if (!current || !props.position) return
+
+  const here = L.latLng(props.position.lat, props.position.lon)
 
   /** Le point courant se lit en blanc : c'est le seul repère qui bouge. */
-  if (props.position) {
-    L.circleMarker([props.position.lat, props.position.lon], {
+  if (hereMark) hereMark.setLatLng(here)
+  else {
+    hereMark = L.circleMarker(here, {
       radius: 7,
       color: '#161514',
       fillColor: '#f3efe8',
       fillOpacity: 1,
       weight: 2,
-    }).addTo(map)
+    }).addTo(current)
   }
 
-  bounds = L.latLngBounds([
-    ...latLngs,
-    ...(props.guide ?? []).map((p) => [p.lat, p.lon] as [number, number]),
-  ])
-  refit()
+  /**
+   * Suivre, ce n'est pas recadrer : le zoom reste celui du doigt, et la carte
+   * ne se déplace que lorsque le coureur s'approche du bord.
+   */
+  if (following && !current.getBounds().pad(-0.25).contains(here)) {
+    move(() => current.panTo(here, { animate: false }))
+  }
 }
 
+/**
+ * Cadrage. Une trace figée — un bilan, une boucle proposée — se recadre à
+ * chaque changement : rien ne la suit, et passer d'une boucle à l'autre doit
+ * montrer la nouvelle. Une sortie en cours, elle, ne se cadre qu'une fois :
+ * ensuite la carte suit le coureur, et le zoom appartient au doigt.
+ */
+function reframe() {
+  const current = ensureMap()
+  if (!current) return
+
+  const bounds = frame()
+  const here = props.position
+
+  if (!here) {
+    if (bounds) move(() => current.fitBounds(bounds, { padding: [16, 16], animate: false }))
+    return
+  }
+
+  if (framed) return
+
+  if (bounds) move(() => current.fitBounds(bounds, { padding: [16, 16], animate: false }))
+  else move(() => current.setView([here.lat, here.lon], START_ZOOM, { animate: false }))
+
+  framed = true
+}
+
+/** Revenir sur le coureur, et le suivre à nouveau (§ 9, P18). */
+function recenter() {
+  const current = ensureMap()
+  if (!current) return
+
+  following = true
+  emit('adrift', false)
+
+  const here = props.position
+  if (here) {
+    move(() => current.setView([here.lat, here.lon], current.getZoom(), { animate: false }))
+    return
+  }
+
+  const bounds = frame()
+  if (bounds) move(() => current.fitBounds(bounds, { padding: [16, 16], animate: false }))
+}
+
+defineExpose({ recenter })
+
 onMounted(() => {
-  draw()
-  observer = new ResizeObserver(refit)
+  drawTrack()
+  drawPosition()
+  reframe()
+
+  /**
+   * Leaflet mesure son conteneur au moment où il se construit. Dans un dialog,
+   * cette taille n'est pas encore la bonne : sans ce recalcul à chaque
+   * redimensionnement, la carte ne remplit pas son cadre.
+   */
+  observer = new ResizeObserver(() => map?.invalidateSize())
   if (container.value) observer.observe(container.value)
 })
 
-watch([() => props.points, () => props.guide, () => props.position], draw, { deep: true })
+watch([() => props.points, () => props.guide], () => {
+  drawTrack()
+  reframe()
+})
+
+watch(
+  () => props.position,
+  () => {
+    drawPosition()
+    reframe()
+  },
+)
 
 onBeforeUnmount(() => {
   observer?.disconnect()
   observer = undefined
   map?.remove()
   map = undefined
-  bounds = undefined
+  guideLine = undefined
+  trackLine = undefined
+  startMark = undefined
+  hereMark = undefined
 })
 </script>
 
 <template>
+  <!-- Plein cadre, la carte se dessine toujours : elle est le fond de l'écran
+       de course, et attendre deux points laisserait un rectangle noir. -->
+  <div v-if="fill" ref="container" class="route-map route-map-fill absolute inset-0 size-full" />
+
   <div
-    v-if="points.length > 1 || (guide && guide.length > 1)"
+    v-else-if="points.length > 1 || (guide && guide.length > 1)"
     ref="container"
     class="route-map w-full rounded-md border border-line"
     :style="{ height: `${height}px` }"
@@ -152,11 +293,16 @@ onBeforeUnmount(() => {
 .route-map .leaflet-bar a {
   background: var(--color-surface);
   border-color: var(--color-line);
-  color: var(--color-text-dim);
+  color: var(--color-text);
 }
 
 .route-map .leaflet-bar a:hover {
   background: var(--color-surface-raised);
   color: var(--color-text);
+}
+
+/* La mention de source se pose au-dessus de la zone sûre, pas sous le pouce. */
+.route-map-fill .leaflet-control-attribution {
+  margin-bottom: calc(150px + env(safe-area-inset-bottom));
 }
 </style>

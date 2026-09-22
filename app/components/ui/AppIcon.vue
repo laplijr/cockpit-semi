@@ -70,6 +70,9 @@ const ICONS = {
   send: [path('M21 3 3 10.5l7 3 3 7z'), path('M21 3 10 13.5')],
   /** Partir d'où l'on est : la mire d'une position (§ 9, P10.3). */
   target: [circle(12, 12, 7), circle(12, 12, 1.5), path('M12 2v3M12 19v3M2 12h3M19 12h3')],
+  /** Les deux gestes de l'écran de course : arrêter, revenir sur soi (P18). */
+  stop: [rect(6, 6, 12, 12, 2)],
+  nav: [path('M3 11l19-9-9 19-2-8-8-2z')],
 } satisfies Record<string, Shape[]>
 
 export type IconName = keyof typeof ICONS

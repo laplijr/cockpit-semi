@@ -34,6 +34,13 @@
   --color-cycling: #8db8f0;
   --color-strava: #fc4c02;
 
+  /*
+   * Leaflet pose ses panneaux à 400 et ses contrôles à 1000 : ce qui se lit
+   * par-dessus la carte de l'écran de course doit passer au-dessus des deux
+   * (§ 9, P18).
+   */
+  --z-index-map: 1001;
+
   --spacing-sidebar: 232px;
   --spacing-topbar: 56px;
   --spacing-shell: 1440px;

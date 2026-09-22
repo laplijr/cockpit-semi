@@ -163,6 +163,62 @@ const stepLeft = computed(() => {
 const gap = computed(() => (target.value ? paceGap(target.value, tracker.pace.value) : null))
 const offBand = computed(() => paceOffBand(gap.value))
 
+/**
+ * L'écart se dit dans le sens où il se corrige. « − 80 s sur la cible » ne
+ * disait pas si on courait trop vite ou trop lentement (§ 9, P18).
+ */
+const gapLine = computed(() => {
+  const value = gap.value
+  if (value === null || !offBand.value) return ''
+  return value > 0 ? `${value} s trop lent` : `${Math.abs(value)} s plus rapide`
+})
+
+/**
+ * Cible dépassée sur la dernière étape : il n'y a pas d'étape suivante pour
+ * reprendre la main, et le décompte resterait à zéro. Le grand chiffre bascule
+ * alors sur ce qui a été couru au-delà (§ 9, P18).
+ */
+const beyond = computed(
+  () =>
+    targets.value.length > 0 &&
+    stepIndex.value === targets.value.length - 1 &&
+    remaining.value?.complete === true,
+)
+
+/** Le dépassement, dans l'unité de l'étape. */
+const stepOver = computed(() => {
+  const value = remaining.value
+  if (value?.overS !== null && value?.overS !== undefined) return `+ ${formatDuration(value.overS)}`
+  if (value?.overM !== null && value?.overM !== undefined) return `+ ${formatDistance(value.overM)}`
+  return '—'
+})
+
+/** Le grand chiffre de l'écran, replié comme déplié. */
+const headline = computed(() => {
+  if (targets.value.length === 0) return formatDuration(elapsedS.value)
+  return beyond.value ? stepOver.value : stepLeft.value
+})
+
+/** Ce que le grand chiffre décompte : la seule chose qui change de sens ici. */
+const headlineLabel = computed(() => {
+  if (targets.value.length === 0) return 'Temps de la sortie'
+  return beyond.value ? 'Au-delà de la cible' : 'Reste sur l’étape'
+})
+
+/** En course, l'écran est la carte : plus de colonne, plus de défilement. */
+const immersive = computed(() => started.value && tracker.phase.value === RunPhase.Running)
+
+/** Chiffres repliés : il ne reste qu'une ligne, et la carte prend le reste. */
+const folded = ref(false)
+
+/** La carte a été déplacée au doigt : elle ne suit plus, et le dit. */
+const adrift = ref(false)
+const map = useTemplateRef<{ recenter: () => void }>('map')
+
+function recenter() {
+  map.value?.recenter()
+}
+
 const offTrack = computed(() => {
   const position = tracker.position.value
   if (!position || guide.value.length < 2) return false
@@ -178,13 +234,22 @@ watch(remaining, (value) => {
   if (value?.complete) nextStep()
 })
 
+/** La cible atteinte se dit une fois : après, on court en connaissance. */
+const announcedTarget = ref(false)
+
+watch(beyond, (over) => {
+  if (!over || announcedTarget.value) return
+  announcedTarget.value = true
+  tracker.announce(`Cible atteinte, ${speakLine(target.value!)}`)
+})
+
 function nextStep() {
   if (stepIndex.value >= targets.value.length - 1) return
   stepIndex.value += 1
   stepSince.value = { ...mark.value }
 
   const next = targets.value[stepIndex.value]
-  if (next) tracker.announce(`${next.label}, ${describeTarget(next)}`)
+  if (next) tracker.announce(`${next.label}, ${speakLine(next)}`)
 }
 
 function describeTarget(step: StepTarget): string {
@@ -201,6 +266,22 @@ function targetLine(step: StepTarget): string {
   if (step.paceSecPerKm) return `${describeTarget(step)} à ${formatPace(step.paceSecPerKm)}/km`
   if (step.rpe) return `${describeTarget(step)} à RPE ${step.rpe}`
   return describeTarget(step)
+}
+
+/**
+ * La même étape, dite à voix haute. Ni « 8′ » ni « 4:15 » ne se lisent : la
+ * synthèse vocale en fait un prime muet et des heures (§ 9, P18).
+ */
+function speakLine(step: StepTarget): string {
+  const size = step.durationS
+    ? speakDuration(step.durationS)
+    : step.distanceM
+      ? speakDistance(step.distanceM)
+      : 'à la sensation'
+
+  if (step.paceSecPerKm) return `${size} à ${speakPace(step.paceSecPerKm)}`
+  if (step.rpe) return `${size} à RPE ${step.rpe}`
+  return size
 }
 
 /** Barre d'un split : le kilomètre le plus rapide fait la largeur pleine. */
@@ -267,7 +348,11 @@ async function record(payload: {
 
 <template>
   <div
-    class="flex min-h-dvh flex-col gap-3 bg-ink px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom))]"
+    :class="
+      immersive
+        ? 'relative h-dvh overflow-hidden bg-ink'
+        : 'flex min-h-dvh flex-col gap-3 bg-ink px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom))]'
+    "
   >
     <!-- `dvh` et non `vh` : sur un navigateur de téléphone, `100vh` est la
          hauteur barres rétractées — un document plus haut que ce qu'on voit,
@@ -494,108 +579,187 @@ async function record(payload: {
       </template>
     </template>
 
-    <!-- 3 · En course : le grand chiffre, l'écart d'allure, la trace. -->
+    <!-- 3 · En course : la carte prend l'écran, les chiffres se posent dessus,
+         et les deux gestes flottent au pouce (§ 9, P18). -->
     <template v-else>
-      <div class="flex items-center gap-3">
-        <div class="flex min-w-0 flex-1 flex-col gap-px">
-          <span class="text-[13.5px]">
-            <template v-if="targets.length > 0">
-              {{ brief?.label }} · étape {{ stepIndex + 1 }} / {{ targets.length }}
-            </template>
-            <template v-else-if="cycling">{{ session?.prescription.label }}</template>
-            <template v-else>Sortie libre</template>
-          </span>
-          <span class="mono truncate text-[11.5px] text-text-dim">
-            <template v-if="target">{{ target.label }} · {{ targetLine(target) }}</template>
-          </span>
-        </div>
-        <button
-          v-if="targets.length > 0"
-          type="button"
-          class="btn btn-ghost size-11 shrink-0 p-0"
-          aria-label="Passer à l'étape suivante"
-          @click="nextStep"
-        >
-          <UiAppIcon name="chevron" :size="18" />
-        </button>
-      </div>
-
-      <div class="flex gap-[3px]">
-        <span
-          v-for="(step, index) in targets"
-          :key="`bar-${index}`"
-          class="h-1 flex-1 rounded-sm"
-          :class="
-            index < stepIndex
-              ? 'bg-accent-track'
-              : index === stepIndex
-                ? 'bg-accent'
-                : 'bg-surface-muted'
-          "
-        />
-      </div>
-
-      <div class="flex flex-col items-center gap-1 pt-3 pb-1">
-        <!-- Sans étape à décompter — sortie libre ou vélo — le grand chiffre
-             est le temps de la sortie : c'est ce qu'on regarde (§ 8, P10.3). -->
-        <span class="label text-[10.5px]">
-          {{ targets.length > 0 ? 'Reste sur l’étape' : 'Temps de la sortie' }}
-        </span>
-        <span class="display text-[80px] leading-[0.95] font-bold">
-          {{ targets.length > 0 ? stepLeft : formatDuration(elapsedS) }}
-        </span>
-        <span v-if="target" class="mono text-[14px] text-text-dim">
-          cible {{ targetLine(target) }}
-        </span>
-      </div>
-
-      <div class="flex flex-wrap items-center justify-center gap-3 border-y border-line-soft py-3">
-        <span class="mono text-[30px]" :class="offBand ? 'text-warn' : 'text-text'">
-          <template v-if="cycling">{{ formatSpeed(tracker.pace.value) }}</template>
-          <template v-else>{{ formatPace(tracker.pace.value) }}</template>
-        </span>
-        <span v-if="!cycling" class="mono text-[13px] text-text-dim">/km</span>
-        <span v-if="gap !== null && offBand" class="pill pill-warn">
-          {{ gap > 0 ? '+' : '−' }} {{ Math.abs(gap) }} s sur la cible
-        </span>
-        <span v-if="tracker.lost.value" class="pill pill-warn">signal perdu</span>
-        <span v-else-if="offTrack" class="pill pill-warn">hors trace</span>
-      </div>
-
-      <div class="flex justify-between gap-3">
-        <span class="flex flex-col">
-          <span class="mono text-[20px]">{{ formatDistance(distanceM) }}</span>
-          <span class="label text-[9.5px]">distance</span>
-        </span>
-        <span class="flex flex-col">
-          <span class="mono text-[20px]">{{ formatDuration(elapsedS) }}</span>
-          <span class="label text-[9.5px]">temps</span>
-        </span>
-        <span class="flex flex-col">
-          <span class="mono text-[20px]">
-            <template v-if="!average">—</template>
-            <template v-else-if="cycling">{{ formatSpeed(average) }}</template>
-            <template v-else>{{ formatPace(average) }}/km</template>
-          </span>
-          <span class="label text-[9.5px]">{{ cycling ? 'vitesse moy.' : 'allure moy.' }}</span>
-        </span>
-      </div>
-
       <ClientOnly>
         <UiRouteMap
+          ref="map"
+          fill
           :points="tracker.track.value.points"
           :guide="guide"
           :position="tracker.position.value"
-          :height="190"
+          @adrift="adrift = $event"
         />
       </ClientOnly>
 
-      <div class="mt-auto flex flex-col gap-[10px]">
-        <button type="button" class="btn btn-lg h-[52px]" @click="tracker.pauseRun">
-          <UiAppIcon name="pause" :size="18" />
-          Pause
+      <!-- Le bandeau laisse passer le doigt, seuls ses objets le prennent :
+           sinon la moitié haute de la carte serait morte sous la main. -->
+      <div
+        class="pointer-events-none absolute inset-x-0 top-0 z-map flex flex-col gap-3 bg-gradient-to-b from-ink from-80% to-transparent px-4 pt-3 pb-10"
+      >
+        <div class="pointer-events-auto flex items-center gap-3">
+          <div class="flex min-w-0 flex-1 flex-col gap-px">
+            <span class="text-[13.5px]">
+              <template v-if="targets.length > 0">
+                {{ brief?.label }} · étape {{ stepIndex + 1 }} / {{ targets.length }}
+              </template>
+              <template v-else-if="cycling">{{ session?.prescription.label }}</template>
+              <template v-else>Sortie libre</template>
+            </span>
+            <span class="mono truncate text-[11.5px] text-text-dim">
+              <template v-if="target">{{ target.label }} · {{ targetLine(target) }}</template>
+            </span>
+          </div>
+          <button
+            v-if="targets.length > 0"
+            type="button"
+            class="btn btn-ghost size-11 shrink-0 bg-surface/95 p-0"
+            aria-label="Passer à l'étape suivante"
+            @click="nextStep"
+          >
+            <UiAppIcon name="chevron" :size="18" />
+          </button>
+        </div>
+
+        <div class="flex gap-[3px]">
+          <span
+            v-for="(step, index) in targets"
+            :key="`bar-${index}`"
+            class="h-1 flex-1 rounded-sm"
+            :class="
+              index < stepIndex
+                ? 'bg-accent-track'
+                : index === stepIndex
+                  ? beyond
+                    ? 'bg-ok'
+                    : 'bg-accent'
+                  : 'bg-surface-muted'
+            "
+          />
+        </div>
+
+        <!-- Replié, il ne reste que ce qui se lit d'un coup d'œil : la carte
+             prend alors presque tout l'écran. -->
+        <div v-if="folded" class="pointer-events-auto flex items-baseline gap-3">
+          <span
+            class="display text-[38px] leading-none font-bold"
+            :class="beyond && 'text-accent'"
+            >{{ headline }}</span
+          >
+          <span class="mono text-[17px]" :class="offBand ? 'text-warn' : 'text-text-dim'">
+            <template v-if="cycling">{{ formatSpeed(tracker.pace.value) }}</template>
+            <template v-else>{{ formatPace(tracker.pace.value) }}/km</template>
+          </span>
+          <button
+            type="button"
+            class="tap -my-2 -mr-2 ml-auto inline-flex size-11 items-center justify-center self-center text-text-dim"
+            aria-label="Déplier les chiffres"
+            @click="folded = false"
+          >
+            <UiAppIcon name="chevron" :size="20" class="rotate-90" />
+          </button>
+        </div>
+
+        <template v-else>
+          <div class="flex flex-col items-center gap-1 pt-1">
+            <!-- Sans étape à décompter — sortie libre ou vélo — le grand chiffre
+                 est le temps de la sortie : c'est ce qu'on regarde (§ 8, P10.3). -->
+            <span class="label text-[10.5px]">{{ headlineLabel }}</span>
+            <span
+              class="display text-[72px] leading-[0.92] font-bold"
+              :class="beyond && 'text-accent'"
+              >{{ headline }}</span
+            >
+            <span v-if="target" class="mono pt-1 text-[12.5px] text-text-dim">
+              cible {{ targetLine(target) }}
+            </span>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+            <span class="mono text-[26px]" :class="offBand ? 'text-warn' : 'text-text'">
+              <template v-if="cycling">{{ formatSpeed(tracker.pace.value) }}</template>
+              <template v-else>{{ formatPace(tracker.pace.value) }}</template>
+            </span>
+            <span v-if="!cycling" class="mono text-[12px] text-text-dim">/km</span>
+            <span v-if="beyond" class="pill bg-ok/15 text-ok">cible atteinte</span>
+            <span v-else-if="gapLine" class="pill pill-warn">{{ gapLine }}</span>
+            <span v-if="tracker.lost.value" class="pill pill-warn">signal perdu</span>
+            <span v-else-if="offTrack" class="pill pill-warn">hors trace</span>
+          </div>
+
+          <div class="flex items-end justify-between gap-2 border-t border-line-soft pt-3">
+            <span class="flex flex-col gap-px">
+              <span class="mono text-[17px]">{{ formatDistance(distanceM) }}</span>
+              <span class="label text-[9.5px]">distance</span>
+            </span>
+            <span class="flex flex-col gap-px">
+              <span class="mono text-[17px]">{{ formatDuration(elapsedS) }}</span>
+              <span class="label text-[9.5px]">temps</span>
+            </span>
+            <span class="flex flex-col gap-px text-right">
+              <span class="mono text-[17px]">
+                <template v-if="!average">—</template>
+                <template v-else-if="cycling">{{ formatSpeed(average) }}</template>
+                <template v-else>{{ formatPace(average) }}/km</template>
+              </span>
+              <span class="label text-[9.5px]">{{ cycling ? 'vitesse moy.' : 'allure moy.' }}</span>
+            </span>
+            <button
+              type="button"
+              class="tap pointer-events-auto -mr-2 -mb-2 inline-flex size-11 items-center justify-center text-text-dim"
+              aria-label="Replier les chiffres"
+              @click="folded = true"
+            >
+              <UiAppIcon name="chevron" :size="20" class="-rotate-90" />
+            </button>
+          </div>
+        </template>
+      </div>
+
+      <!-- Un voile, pas un bandeau : les ronds restent lisibles sur la carte
+           sans lui prendre le bas de l'écran. -->
+      <div
+        class="pointer-events-none absolute inset-x-0 bottom-0 z-map h-[190px] bg-gradient-to-t from-ink to-transparent"
+      />
+
+      <div
+        class="absolute bottom-[calc(28px+env(safe-area-inset-bottom))] left-6 z-map flex flex-col items-center gap-2"
+      >
+        <UiActionButton
+          class="btn size-[76px] rounded-full p-0"
+          :class="!beyond && 'btn-ghost bg-surface/95'"
+          icon="stop"
+          :icon-size="24"
+          aria-label="Terminer"
+          :action="tracker.stop"
+        />
+        <span class="text-[11.5px] text-text-dim">Terminer</span>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-ghost absolute bottom-[calc(42px+env(safe-area-inset-bottom))] left-1/2 z-map size-13 -translate-x-1/2 rounded-full p-0"
+        :class="adrift ? 'border-accent bg-accent-track/95 text-accent' : 'bg-surface/95'"
+        aria-label="Recentrer sur ma position"
+        @click="recenter"
+      >
+        <UiAppIcon name="nav" :size="22" />
+      </button>
+
+      <div
+        class="absolute right-6 bottom-[calc(28px+env(safe-area-inset-bottom))] z-map flex flex-col items-center gap-2"
+      >
+        <button
+          type="button"
+          class="btn size-[76px] rounded-full p-0"
+          :class="beyond && 'btn-ghost bg-surface/95'"
+          aria-label="Pause"
+          @click="tracker.pauseRun"
+        >
+          <UiAppIcon name="pause" :size="26" />
         </button>
-        <UiActionButton class="btn btn-ghost" :action="tracker.stop">Terminer</UiActionButton>
+        <span class="text-[11.5px] text-text-dim">Pause</span>
       </div>
     </template>
   </div>
