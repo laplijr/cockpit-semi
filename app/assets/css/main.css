@@ -106,6 +106,25 @@
   [role='button'][aria-disabled='true'] {
     cursor: not-allowed;
   }
+
+  /*
+   * Safari iOS taille le champ date sur son contenu et refuse de le réduire :
+   * `width: 100%` ne suffit pas, le champ déborde de sa carte sur le
+   * téléphone. `appearance: none` lui retire cette largeur intrinsèque,
+   * `min-width: 0` l'autorise à rétrécir, et le pseudo-élément qui porte la
+   * valeur la remet dans l'axe du champ une fois l'habillage natif retiré.
+   */
+  input[type='date'] {
+    appearance: none;
+    min-width: 0;
+  }
+
+  input[type='date']::-webkit-date-and-time-value {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin: 0;
+  }
 }
 
 @layer components {
