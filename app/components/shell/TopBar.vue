@@ -25,9 +25,11 @@ const weekLine = computed(() => {
   }
 })
 
-function go(path: string) {
+/** Le menu ne se ferme qu'une fois la page arrivée : fermer d'abord laissait
+    l'ancienne page seule à l'écran, sans trace du clic. */
+async function go(path: string) {
+  await navigateTo(path)
   menuOpen.value = false
-  navigateTo(path)
 }
 </script>
 

@@ -12,12 +12,17 @@ const period = ref<(typeof PERIODS)[number]['value']>('tout')
 
 const ui = useUiStore()
 
-const { data } = await useFetch('/api/progression', {
+/* `lazy` : la navigation n'attend plus la réponse. Sans lui, Vue suspendait
+   le changement de route et l'écran restait sur la page précédente, sans
+   rien qui dise qu'un chargement était parti. Un changement de période ne
+   vide pas `data` : le filtre ne clignote qu'à la toute première ouverture. */
+const { data } = useFetch('/api/progression', {
   query: { period },
+  lazy: true,
 })
 
 /** Le bilan ne dépend pas du filtre de période : il porte sur une semaine. */
-const { data: bilan } = await useFetch('/api/bilan')
+const { data: bilan } = useFetch('/api/bilan', { lazy: true })
 
 /** L'échelle du cadran de forme : la même tendance, à la taille d'un instrument. */
 const vdotSpark = computed(() => {
@@ -106,7 +111,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div v-if="data" class="flex flex-col gap-4">
     <!-- Le filtre commande toute la page : il se pose avant ce qu'il filtre. -->
     <div class="flex flex-wrap items-center gap-2">
       <span class="label">Période</span>
@@ -575,4 +580,6 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       />
     </div>
   </div>
+
+  <UiPageSkeleton v-else :columns="3" :tiles="3" :lines="4" />
 </template>

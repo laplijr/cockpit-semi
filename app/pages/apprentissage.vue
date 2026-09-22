@@ -1,5 +1,8 @@
 <script setup lang="ts">
-const { data, refresh } = await useFetch('/api/learning')
+/* `lazy` : la navigation n'attend plus la réponse. Sans lui, Vue suspendait
+   le changement de route et l'écran restait sur la page précédente, sans
+   rien qui dise qu'un chargement était parti. */
+const { data, refresh } = useFetch('/api/learning', { lazy: true })
 
 /** Verrou de rangée : l'habitude qu'on décide, pas le bouton qui la décide. */
 const busy = ref(0)
@@ -207,4 +210,6 @@ async function decide(id: number, status: string) {
       <UiPager v-model="refusedPage.page" :total="refusedPage.total" :per-page="PER_PAGE" />
     </section>
   </div>
+
+  <UiPageSkeleton v-else :columns="2" :tiles="3" :lines="2" />
 </template>

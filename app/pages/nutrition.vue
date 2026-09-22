@@ -1,5 +1,8 @@
 <script setup lang="ts">
-const { data } = await useFetch('/api/nutrition')
+/* `lazy` : la navigation n'attend plus la réponse. Sans lui, Vue suspendait
+   le changement de route et l'écran restait sur la page précédente, sans
+   rien qui dise qu'un chargement était parti. */
+const { data } = useFetch('/api/nutrition', { lazy: true })
 
 const ui = useUiStore()
 
@@ -191,4 +194,6 @@ const raceWeek = computed(() => data.value?.raceWeek ?? null)
       </UiAxisScroller>
     </section>
   </div>
+
+  <UiPageSkeleton v-else :columns="2" :tiles="2" :lines="3" />
 </template>

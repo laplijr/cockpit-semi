@@ -8,11 +8,20 @@
 import { weekOf } from '~~/server/domain/circle/post'
 
 const circle = useCircleStore()
-await circle.load()
 
 /** Ouvrir la page, c'est avoir vu : le point s'éteint ici et nulle part ailleurs. */
 const { markSeen } = useCircleUnread()
-onMounted(markSeen)
+
+/**
+ * La semaine se charge après la page, jamais avant. Un `await` dans `setup`
+ * suspendait le changement de route : l'écran gardait la page précédente le
+ * temps de la requête, et le geste n'avait aucune trace. Souvent le menu a
+ * déjà lancé la requête, et il n'y a plus rien à attendre.
+ */
+onMounted(() => {
+  circle.ensureLoaded()
+  markSeen()
+})
 
 const view = computed(() => circle.view)
 
@@ -50,7 +59,7 @@ const postsOfDay = (date: string) => circle.posts.filter((post) => post.date ===
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div v-if="circle.view" class="flex flex-col gap-4">
     <!-- L'axe des semaines défile, il ne se replie pas (§ 8). -->
     <div class="tile flex-row flex-wrap items-center gap-x-4 gap-y-3 py-3">
       <span class="label shrink-0">Semaine</span>
@@ -124,4 +133,6 @@ const postsOfDay = (date: string) => circle.posts.filter((post) => post.date ===
       <span class="text-[14px] text-text-dim">Personne n’a publié cette semaine.</span>
     </div>
   </div>
+
+  <UiPageSkeleton v-else :columns="2" :tiles="2" :lines="2" />
 </template>

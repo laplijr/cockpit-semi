@@ -43,12 +43,25 @@ export const useCircleStore = defineStore('circle', () => {
   const from = ref<string>()
   const request = useRequestFetch()
 
+  const pending = ref(false)
+
   async function load(weekFrom?: string) {
     from.value = weekFrom ?? from.value
-    view.value = await request<CircleWeekView>('/api/circle', {
-      query: from.value ? { semaine: from.value } : undefined,
-    })
+    pending.value = true
+    try {
+      view.value = await request<CircleWeekView>('/api/circle', {
+        query: from.value ? { semaine: from.value } : undefined,
+      })
+    } finally {
+      pending.value = false
+    }
     from.value = view.value.week.from
+  }
+
+  /** La semaine peut être chargée d'avance, depuis le menu, pendant que le
+      doigt est encore posé : la page n'a plus rien à attendre. */
+  async function ensureLoaded() {
+    if (!view.value && !pending.value) await load()
   }
 
   async function go(weekFrom: string) {
@@ -82,5 +95,5 @@ export const useCircleStore = defineStore('circle', () => {
   /** Les jours de la semaine qui portent quelque chose, du plus récent au plus ancien. */
   const days = computed(() => [...new Set(posts.value.map((post) => post.date))])
 
-  return { view, posts, members, authorsById, days, load, go, toggleBravo }
+  return { view, pending, posts, members, authorsById, days, load, ensureLoaded, go, toggleBravo }
 })
