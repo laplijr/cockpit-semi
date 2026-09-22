@@ -135,11 +135,23 @@ export interface RoutingService {
   legTo(start: GeoPoint, destination: GeoPoint): Promise<GeoPoint[]>
 }
 
+/** Le tirage en place pour une séance : d'où il part, et où ses graines sont allées. */
+export interface LastDraw {
+  address: string
+  origin: GeoPoint
+  lastSeed: number
+}
+
 export interface RouteGateway {
   /** La séance visée, telle qu'elle se lit dans le plan actif. */
   loadTarget(sessionId: number): Promise<RouteTarget | undefined>
   /** Adresse de départ des sorties, saisie dans Profil ; nulle tant qu'elle manque. */
   loadHomeAddress(): Promise<string | null>
+  /**
+   * Le tirage déjà en place, pour en demander un de plus sans redemander
+   * l'origine — ni la géocoder deux fois (§ 9, P15). Nul tant qu'il n'y en a pas.
+   */
+  loadLastDraw(sessionId: number): Promise<LastDraw | null>
   /** Une génération remplace la précédente : on ne cumule pas les variantes. */
   replaceRoutes(sessionId: number, variants: RouteVariant[]): Promise<void>
 }

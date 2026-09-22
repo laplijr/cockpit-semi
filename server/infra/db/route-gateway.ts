@@ -1,5 +1,5 @@
 import { and, eq, inArray } from 'drizzle-orm'
-import type { RouteGateway, RouteVariant } from '../../application/ports'
+import type { LastDraw, RouteGateway, RouteVariant } from '../../application/ports'
 import type { RouteTarget } from '../../domain/routes/route'
 import type { Prescription } from '../../domain/shared/prescription'
 import type { Database } from './client'
@@ -34,6 +34,22 @@ export function createRouteGateway(db: Database, athleteId: number): RouteGatewa
         .where(eq(athlete.id, athleteId))
         .limit(1)
       return row?.address ?? null
+    },
+
+    async loadLastDraw(sessionId): Promise<LastDraw | null> {
+      const rows = await db
+        .select({ address: route.address, lat: route.lat, lon: route.lon, seed: route.seed })
+        .from(route)
+        .innerJoin(session, eq(session.id, route.sessionId))
+        .where(and(eq(route.sessionId, sessionId), inArray(session.weekId, mine())))
+      const [first] = rows
+      if (!first) return null
+
+      return {
+        address: first.address,
+        origin: { lat: first.lat, lon: first.lon },
+        lastSeed: Math.max(...rows.map((row) => row.seed)),
+      }
     },
 
     async replaceRoutes(sessionId, variants: RouteVariant[]): Promise<void> {

@@ -22,13 +22,14 @@ const { data, refresh } = await useFetch(() => `/api/sessions/${props.sessionId}
 const address = ref('')
 const error = ref('')
 const locating = ref(false)
+const changing = ref(false)
 const routing = useRoutingAvailable()
 
 /**
  * Le champ suit l'origine de la boucle affichée et ne garde pas celle d'avant :
  * « Partir d'ici » remplace l'adresse pré-écrite au lieu de la laisser mentir
  * sur le point de départ. Une boucle partie d'une position n'a pas d'adresse à
- * reproposer — le champ redevient vide, et la ligne de tête dit d'où l'on part.
+ * reproposer — le champ redevient vide, et la ligne Départ dit d'où l'on part.
  */
 watch(
   data,
@@ -44,6 +45,9 @@ const variant = computed(() => routes.value[shown.value % Math.max(1, routes.val
 
 /** D'où part la boucle affichée : une adresse, ou la position du jour. */
 const origin = computed(() => variant.value?.address ?? '')
+
+/** Sans boucle tracée, le départ est déjà ouvert : il n'y a rien à proposer. */
+const asking = computed(() => changing.value || routes.value.length === 0)
 
 /** Écart à la distance de la séance, en toutes lettres plutôt qu'en pourcent. */
 const gapLabel = computed(() => {
@@ -68,6 +72,7 @@ async function suggest(body: Record<string, unknown>) {
   try {
     await $fetch(`/api/sessions/${props.sessionId}/routes`, { method: 'POST', body })
     shown.value = 0
+    changing.value = false
     await refresh()
     emit('changed')
   } catch (cause) {
@@ -95,6 +100,20 @@ async function fromHere() {
     locating.value = false
   }
 }
+
+/**
+ * Le seul geste sur la boucle (§ 8, P15). On ne propose pas un catalogue : il
+ * passe au tracé suivant tant qu'il en reste un d'avance, puis en demande
+ * d'autres au même départ — l'écran ne dit jamais combien il en garde.
+ */
+async function anotherLoop() {
+  const position = shown.value % routes.value.length
+  if (position < routes.value.length - 1) {
+    shown.value += 1
+    return
+  }
+  await suggest({ again: true })
+}
 </script>
 
 <template>
@@ -102,38 +121,55 @@ async function fromHere() {
   <div v-if="routing || variant" class="tile bg-surface-inset">
     <div class="flex flex-wrap items-baseline gap-x-3">
       <span class="label text-[10.5px]">Itinéraire</span>
-      <span class="mono min-w-0 text-[11.5px] text-text-dim">
+      <span class="mono text-[11.5px] text-text-dim">
         boucle de {{ formatDistance(distanceM) }}
-        <template v-if="origin">· départ {{ origin }}</template>
       </span>
     </div>
 
-    <!-- Une action principale par ligne : le bouton sert le champ d'à côté.
-         « Partir d'ici » est la même action depuis une autre origine (P10.3). -->
-    <div v-if="routing" class="flex flex-col gap-2 lean:flex-row lean:items-end">
-      <input
-        v-model="address"
-        class="input"
-        placeholder="Adresse de départ"
-        aria-label="Adresse de départ"
-      />
-      <UiActionButton
-        class="btn shrink-0 self-stretch lean:self-auto"
-        :disabled="address.length < 3"
-        :action="fromAddress"
+    <template v-if="routing">
+      <!-- Le départ se saisit, puis se lit : le champ et « Partir d'ici » ne
+           sortent que le temps de le changer (§ 8, P15). -->
+      <div v-if="asking" class="flex flex-col gap-2 lean:flex-row lean:items-end">
+        <input
+          v-model="address"
+          class="input"
+          placeholder="Adresse de départ"
+          aria-label="Adresse de départ"
+        />
+        <UiActionButton
+          class="btn shrink-0 self-stretch lean:self-auto"
+          :disabled="address.length < 3"
+          :action="fromAddress"
+        >
+          Tracer la boucle
+        </UiActionButton>
+        <UiActionButton
+          class="btn btn-ghost shrink-0 self-stretch lean:self-auto"
+          icon="target"
+          :icon-size="15"
+          :pending="locating"
+          :action="fromHere"
+        >
+          Partir d'ici
+        </UiActionButton>
+      </div>
+
+      <div
+        v-else
+        class="flex min-h-11 items-center gap-[10px] rounded-md border border-line-soft bg-surface px-3 lean:min-h-8"
       >
-        {{ routes.length > 0 ? 'Autre boucle' : 'Proposer' }}
-      </UiActionButton>
-      <UiActionButton
-        class="btn btn-ghost shrink-0 self-stretch lean:self-auto"
-        icon="target"
-        :icon-size="15"
-        :pending="locating"
-        :action="fromHere"
-      >
-        Partir d'ici
-      </UiActionButton>
-    </div>
+        <span class="label shrink-0 text-[10px]">Départ</span>
+        <span class="mono min-w-0 flex-1 truncate text-[12.5px]">{{ origin }}</span>
+        <button
+          type="button"
+          class="tap -mr-1 inline-flex shrink-0 items-center gap-[6px] text-[12.5px] font-medium text-text-dim hover:text-text"
+          @click="changing = true"
+        >
+          <UiAppIcon name="pen" :size="14" />
+          Changer
+        </button>
+      </div>
+    </template>
 
     <p v-if="error" class="text-[12px] text-warn">{{ error }}</p>
 
@@ -150,7 +186,7 @@ async function fromHere() {
         </template>
       </ClientOnly>
 
-      <div class="flex items-center gap-3">
+      <div class="flex flex-col gap-2 lean:flex-row lean:items-center lean:gap-4">
         <div class="flex min-w-0 flex-1 flex-col gap-px">
           <span class="mono flex items-baseline gap-2 text-[13px]">
             {{ formatDistance(variant.distanceM) }} · D+ {{ variant.elevationGainM }} m
@@ -158,18 +194,17 @@ async function fromHere() {
           </span>
           <!-- Le service vise la distance sans la tenir : l'écart se dit. -->
           <span class="mono text-[11.5px]" :class="offTarget ? 'text-warn' : 'text-text-dim'">
-            {{ gapLabel }} · {{ variant.turns }} virages · variante
-            {{ (shown % routes.length) + 1 }} / {{ routes.length }}
+            {{ gapLabel }} · {{ variant.turns }} virages
           </span>
-          <button
-            v-if="routes.length > 1"
-            type="button"
-            class="tap mono inline-flex items-center self-start text-[11.5px] text-text-dim hover:text-text"
-            @click="shown = shown + 1"
-          >
-            Voir la variante suivante
-          </button>
         </div>
+
+        <UiActionButton
+          v-if="routing"
+          class="btn btn-ghost self-stretch lean:shrink-0 lean:self-auto"
+          :action="anotherLoop"
+        >
+          Autre boucle
+        </UiActionButton>
       </div>
 
       <!-- Avant de partir, le GPX n'a personne à servir : la trace est déjà

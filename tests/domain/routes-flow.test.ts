@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { SEEDS, generateRoutes } from '~~/server/application/generate-routes'
+import { VARIANTS_PER_DRAW, generateRoutes } from '~~/server/application/generate-routes'
 import type { RouteGateway, RouteVariant, RoutingService } from '~~/server/application/ports'
 import { parseGpx } from '~~/server/domain/routes/gpx'
+import { CURRENT_POSITION_LABEL } from '~~/server/domain/routes/route'
 import type { GeoPoint, RouteTarget } from '~~/server/domain/routes/route'
 
 /** Traces réelles enregistrées : aucun appel réseau en CI (§ 10). */
@@ -48,6 +49,15 @@ function fakeGateway(homeAddress: string | null = '3 rue des Lilas, Vannes') {
     async loadHomeAddress() {
       return homeAddress
     },
+    async loadLastDraw() {
+      const [first] = saved
+      if (!first) return null
+      return {
+        address: first.address,
+        origin: { lat: first.lat, lon: first.lon },
+        lastSeed: Math.max(...saved.map((variant) => variant.seed)),
+      }
+    },
     async replaceRoutes(_sessionId, variants) {
       saved.splice(0, saved.length, ...variants)
     },
@@ -65,8 +75,10 @@ describe('itinéraire proposé pour une séance (§ 9, P5.5)', () => {
     })
 
     expect(routing.calls).toContain('geocode:3 rue des Lilas, Vannes')
-    expect(routing.calls.filter((call) => call.startsWith('roundTrip'))).toHaveLength(SEEDS.length)
-    expect(variants).toHaveLength(SEEDS.length)
+    expect(routing.calls.filter((call) => call.startsWith('roundTrip'))).toHaveLength(
+      VARIANTS_PER_DRAW,
+    )
+    expect(variants).toHaveLength(VARIANTS_PER_DRAW)
   })
 
   it('classe la variante plate devant la vallonnée', async () => {
@@ -86,11 +98,44 @@ describe('itinéraire proposé pour une séance (§ 9, P5.5)', () => {
       address: '3 rue des Lilas, Vannes',
     })
 
-    expect(gateway.saved).toHaveLength(SEEDS.length)
+    expect(gateway.saved).toHaveLength(VARIANTS_PER_DRAW)
     for (const variant of gateway.saved) {
       expect(variant.sessionId).toBe(TARGET.sessionId)
       expect(variant.code).toBe('SL')
       expect(parseGpx(variant.gpx).length).toBeGreaterThan(1)
     }
+  })
+
+  /**
+   * « Autre boucle » ne peut pas reproposer ce qu'on vient de voir : depuis la
+   * même origine, une graine déjà tirée redonne exactement la même trace (P15).
+   */
+  it('reprend les graines après le tirage précédent', async () => {
+    const routing = fakeRouting()
+
+    await generateRoutes(fakeGateway(), routing, {
+      target: TARGET,
+      address: '3 rue des Lilas, Vannes',
+      seedBase: 4,
+    })
+
+    const seeds = routing.calls
+      .filter((call) => call.startsWith('roundTrip'))
+      .map((call) => Number(call.split(':').at(-1)))
+
+    expect(seeds).toEqual([4, 5, 6])
+  })
+
+  /** Une origine donnée se suffit : rien ne part au géocodage (P10.3, P15). */
+  it('ne géocode pas quand le départ est déjà connu', async () => {
+    const routing = fakeRouting()
+
+    await generateRoutes(fakeGateway(), routing, {
+      target: TARGET,
+      address: CURRENT_POSITION_LABEL,
+      origin: { lat: 40.4155, lon: -3.7074 },
+    })
+
+    expect(routing.calls.some((call) => call.startsWith('geocode'))).toBe(false)
   })
 })

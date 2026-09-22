@@ -9,8 +9,17 @@ import {
 import { RouteRejection, rankVariants, rejectionsOf } from '../domain/routes/validate'
 import type { RouteGateway, RouteVariant, RoutingService } from './ports'
 
-/** Trois tracés par séance, de trois graines : le § 9 en demande trois. */
-export const SEEDS = [1, 2, 3]
+/** Trois tracés par tirage, de trois graines : le § 9 en demande trois. */
+export const VARIANTS_PER_DRAW = 3
+
+/**
+ * Les graines d'un tirage ne repartent pas de 1 à chaque fois : depuis la même
+ * origine, la même graine redonne la même boucle, et « Autre boucle »
+ * proposerait ce qu'on vient de voir (§ 9, P15).
+ */
+function seedsFrom(base: number): number[] {
+  return Array.from({ length: VARIANTS_PER_DRAW }, (_, index) => base + index)
+}
 
 export interface GenerateRoutesInput {
   target: RouteTarget
@@ -21,6 +30,8 @@ export interface GenerateRoutesInput {
    * on part d'où l'on est, et l'adresse n'est plus qu'une étiquette (P10.3).
    */
   origin?: GeoPoint
+  /** Première graine du tirage : un tirage de plus repart après le précédent. */
+  seedBase?: number
 }
 
 /**
@@ -34,7 +45,7 @@ export async function generateRoutes(
   input: GenerateRoutesInput,
 ): Promise<RouteVariant[]> {
   const origin = input.origin ?? (await routing.geocode(input.address))
-  const traces = await loopTraces(routing, origin, input.target)
+  const traces = await loopTraces(routing, origin, input.target, input.seedBase ?? 1)
   const variants = toVariants(rankVariants(traces, input.target), input.target, input, origin)
 
   await gateway.replaceRoutes(input.target.sessionId, variants)
@@ -52,13 +63,14 @@ async function loopTraces(
   routing: RoutingService,
   origin: GeoPoint,
   target: RouteTarget,
+  seedBase: number,
 ): Promise<SeededTrace[]> {
   const draw = async (seed: number, lengthM: number): Promise<SeededTrace> => ({
     ...traceFrom(await routing.roundTrip(origin, lengthM, seed)),
     seed,
   })
 
-  const first = await Promise.all(SEEDS.map((seed) => draw(seed, target.distanceM)))
+  const first = await Promise.all(seedsFrom(seedBase).map((seed) => draw(seed, target.distanceM)))
 
   const corrected = await Promise.all(
     first.map(async (trace) => {

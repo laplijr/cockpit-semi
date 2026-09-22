@@ -13,6 +13,11 @@ const bodySchema = z.object({
   /** Position de l'appareil : elle remplace l'adresse et le géocodage (P10.3). */
   lat: z.number().min(-90).max(90).optional(),
   lon: z.number().min(-180).max(180).optional(),
+  /**
+   * Un tirage de plus depuis le départ déjà utilisé, avec d'autres graines :
+   * c'est « Autre boucle » une fois les tracés en place épuisés (P15).
+   */
+  again: z.boolean().default(false),
 })
 
 export default defineEventHandler(async (event) => {
@@ -32,12 +37,20 @@ export default defineEventHandler(async (event) => {
   }
 
   /** Une position d'appareil se suffit : il n'y a rien à géocoder (P10.3). */
-  const origin =
+  const device =
     body.lat !== undefined && body.lon !== undefined ? { lat: body.lat, lon: body.lon } : undefined
 
-  const address = origin
-    ? CURRENT_POSITION_LABEL
-    : body.address?.trim() || (await gateway.loadHomeAddress())
+  /** Un tirage de plus repart du départ en place, sans le redemander (P15). */
+  const previous = body.again ? await gateway.loadLastDraw(id) : null
+  if (body.again && !previous) {
+    throw createError({ statusCode: 409, statusMessage: 'Aucune boucle à renouveler.' })
+  }
+
+  const origin = previous?.origin ?? device
+
+  const address =
+    previous?.address ??
+    (device ? CURRENT_POSITION_LABEL : body.address?.trim() || (await gateway.loadHomeAddress()))
 
   if (!address) {
     throw createError({
@@ -47,7 +60,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const variants = await withExternalCall(athleteId, ExternalCall.Route, () =>
-    generateRoutes(gateway, routingService(), { target, address, origin }),
+    generateRoutes(gateway, routingService(), {
+      target,
+      address,
+      origin,
+      seedBase: previous ? previous.lastSeed + 1 : 1,
+    }),
   )
   return { generated: variants.length }
 })
