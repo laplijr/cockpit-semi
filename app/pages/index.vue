@@ -18,16 +18,19 @@ onMounted(() => {
   proposals.load()
 })
 
+/** Une course passée ne tient pas le cap : son J− serait à l'envers (P7.5). */
 const raceA = computed(() =>
   (races.value ?? [])
-    .filter((race) => race.priority === 'A' && race.status === 'planifiee')
+    .filter(
+      (race) => race.priority === 'A' && race.status === 'planifiee' && race.date >= plan.today,
+    )
     .sort((a, b) => a.date.localeCompare(b.date))
     .at(0),
 )
 
 const upcoming = computed(() =>
   (races.value ?? [])
-    .filter((race) => race.status === 'planifiee')
+    .filter((race) => race.status === 'planifiee' && race.date >= plan.today)
     .sort((a, b) => a.date.localeCompare(b.date)),
 )
 

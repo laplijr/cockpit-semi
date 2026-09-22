@@ -93,7 +93,8 @@ export interface PlanGateway {
   loadRaces(): Promise<PlannedRace[]>
   /** Dernière pause, ouverte ou fermée : sa fin déclenche la reprise surveillée. */
   loadLatestPause(): Promise<PauseSnapshot | undefined>
-  loadCurrentFitness(): Promise<FitnessSnapshot | undefined>
+  /** La forme du jour donné : la règle de fraîcheur en dépend (§ 5, P7.5). */
+  loadCurrentFitness(today: IsoDate): Promise<FitnessSnapshot | undefined>
   /** Date du dernier test 20′, qui borne la replanification du suivant. */
   loadLastTestDate(): Promise<IsoDate | null>
   savePlan(plan: GeneratedPlan, trigger: PlanTrigger, parameters: PlanParameters): Promise<number>

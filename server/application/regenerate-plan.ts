@@ -54,7 +54,7 @@ async function regenerate(
     gateway.loadAthlete(),
     gateway.loadRaces(),
     gateway.loadLatestPause(),
-    gateway.loadCurrentFitness(),
+    gateway.loadCurrentFitness(clock.today()),
     gateway.loadLastTestDate(),
   ])
 

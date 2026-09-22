@@ -33,7 +33,7 @@ export async function loadProjectionContext(
 ): Promise<ProjectionContext> {
   const [fitness, tests, latestPause, gainPerBlock] = await Promise.all([
     /** La base vient en paramètre : le seed n'a pas de `useRuntimeConfig`. */
-    createPlanGateway(db, athleteId).loadCurrentFitness(),
+    createPlanGateway(db, athleteId).loadCurrentFitness(systemClock.today()),
     db
       .select({ vdot: fitnessPoint.vdot })
       .from(fitnessPoint)

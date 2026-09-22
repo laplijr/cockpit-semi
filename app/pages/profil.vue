@@ -220,7 +220,7 @@ async function logout() {
           </span>
           <span class="pill">{{ fitness.point.isFloor ? 'plancher' : 'mesure' }}</span>
           <span class="mono text-[11.5px] text-text-dim">
-            {{ FITNESS_ORIGIN_LABELS[fitness.point.origin] ?? fitness.point.origin }} ·
+            {{ FITNESS_ORIGIN_LABELS[fitness.point.origin ?? ''] ?? fitness.point.origin }} ·
             {{ formatDateWithYear(fitness.point.date) }}
           </span>
         </template>

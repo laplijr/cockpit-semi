@@ -23,6 +23,8 @@ import { FitnessOrigin } from '../../domain/fitness/fitness-point'
 import { VDOT_GAIN_PER_BLOCK } from '../../domain/fitness/projection'
 import { ObjectiveMode, RaceStatus } from '../../domain/races/race'
 import { personalRecords, recordFor } from '../../domain/races/records'
+import { currentFitnessOf } from '../../domain/fitness/current'
+import type { IsoDate } from '../../domain/plan/calendar'
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
 import {
@@ -96,15 +98,15 @@ export function createPlanGateway(db: Database, athleteId: number): PlanGateway 
       }
     },
 
-    async loadCurrentFitness(): Promise<FitnessSnapshot | undefined> {
-      const [row] = await db
-        .select()
+    /** La règle est au domaine : ce n'est pas le plus récent qui gagne (P7.5). */
+    async loadCurrentFitness(today: IsoDate): Promise<FitnessSnapshot | undefined> {
+      const rows = await db
+        .select({ date: fitnessPoint.date, vdot: fitnessPoint.vdot, isFloor: fitnessPoint.isFloor })
         .from(fitnessPoint)
         .where(eq(fitnessPoint.athleteId, athleteId))
         .orderBy(desc(fitnessPoint.date), desc(fitnessPoint.id))
-        .limit(1)
-      if (!row) return undefined
-      return { vdot: row.vdot, isFloor: row.isFloor, date: row.date }
+
+      return currentFitnessOf(rows, today)
     },
 
     async loadLastTestDate(): Promise<string | null> {

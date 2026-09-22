@@ -44,10 +44,12 @@ await plan.ensureLoaded()
       avec quoi (arbitré avec Ronan, § 9, P6.37 — P5.16 l'avait écrit, le code
       disait l'inverse).
     -->
+    <!-- Le ruban ne montre que ce qui est devant : une course A datée d'hier
+         tenait le cap avec un J− à l'envers (§ 9, P7.5). -->
     <RacesSeasonBoard
       :phases="plan.plan?.phases ?? []"
       :weeks="plan.plan?.weeks ?? []"
-      :races="planned"
+      :races="upcoming"
       :today="plan.today"
       :dated="!plan.awaitingResumption"
       :loading="!plan.loaded"

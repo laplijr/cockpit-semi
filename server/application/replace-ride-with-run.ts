@@ -60,7 +60,7 @@ export async function planRideSwap(
     gateway.loadWeek(ride.weekId),
     gateway.loadWeekSessions(ride.weekId),
     gateway.loadSessionsOn(addDays(ride.date, -1)),
-    plans.loadCurrentFitness(),
+    plans.loadCurrentFitness(clock.today()),
   ])
   if (!week) return { ok: false, refusal: NO_VOLUME }
 

@@ -1,7 +1,8 @@
 import { desc, eq } from 'drizzle-orm'
+import { currentFitnessOf } from '../domain/fitness/current'
 import { useDatabase } from '../infra/db/client'
 import { fitnessPoint } from '../infra/db/schema'
-import { currentAthleteId } from '../utils/context'
+import { currentAthleteId, systemClock } from '../utils/context'
 
 /**
  * Le point de forme courant, tel que Profil l'affiche : sa valeur, sa nature
@@ -11,21 +12,24 @@ import { currentAthleteId } from '../utils/context'
 export default defineEventHandler(async (event) => {
   const athleteId = await currentAthleteId(event)
 
-  const [row] = await useDatabase()
+  const rows = await useDatabase()
     .select()
     .from(fitnessPoint)
     .where(eq(fitnessPoint.athleteId, athleteId))
     .orderBy(desc(fitnessPoint.date), desc(fitnessPoint.id))
-    .limit(1)
 
-  if (!row) return { point: null }
+  /** Le même point que celui sur lequel le moteur travaille, règle comprise. */
+  const current = currentFitnessOf(rows, systemClock.today())
+  if (!current) return { point: null }
+
+  const row = rows.find((item) => item.date === current.date && item.vdot === current.vdot)
   return {
     point: {
-      vdot: row.vdot,
-      isFloor: row.isFloor,
-      origin: row.origin,
-      date: row.date,
-      note: row.note,
+      vdot: current.vdot,
+      isFloor: current.isFloor,
+      origin: row?.origin ?? null,
+      date: current.date,
+      note: row?.note ?? null,
     },
   }
 })
