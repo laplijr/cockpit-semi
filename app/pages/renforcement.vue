@@ -1,5 +1,8 @@
 <script setup lang="ts">
-const { data } = await useFetch('/api/library/strength')
+/* `lazy` : la navigation n'attend plus la réponse. Sans lui, Vue suspendait
+   le changement de route et l'écran restait sur la page précédente, sans
+   rien qui dise qu'un chargement était parti. */
+const { data } = useFetch('/api/library/strength', { lazy: true })
 const ui = useUiStore()
 
 const planned = computed(() => new Set(data.value?.plannedCodes ?? []))
@@ -36,7 +39,7 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div v-if="data" class="flex flex-col gap-4">
     <div class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">
@@ -135,4 +138,6 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
       </template>
     </div>
   </div>
+
+  <UiPageSkeleton v-else :columns="4" :tiles="4" :lines="2" />
 </template>

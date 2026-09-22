@@ -10,28 +10,48 @@ const { clear: clearSession } = useUserSession()
 const ui = useUiStore()
 const plan = usePlanStore()
 const athleteStore = useAthleteStore()
-const { data: athlete, refresh } = await useFetch('/api/athlete')
+/*
+ * L'attente ne reste que côté serveur. Sur le client la navigation n'attend
+ * plus la réponse ; à l'aller-retour serveur il n'y a aucune navigation à
+ * délivrer, et les champs étant semés dans `setup`, une réponse absente à cet
+ * instant peignait un formulaire vide dans le HTML.
+ */
+const athleteFetch = useFetch('/api/athlete', { lazy: import.meta.client })
+if (import.meta.server) await athleteFetch
+
+const { data: athlete, refresh } = athleteFetch
 
 const DEFAULT_SPORTS = [Sport.Running, Sport.Cycling, Sport.Strength]
 
-const form = reactive({
-  firstName: athlete.value?.firstName ?? '',
-  birthDate: athlete.value?.birthDate ?? '',
-  profile: athlete.value?.profile ?? null,
-  avatar: athlete.value?.avatar ?? null,
-  weightKg: athlete.value?.weightKg ?? null,
-  homeAddress: athlete.value?.homeAddress ?? '',
-  maxHr: athlete.value?.maxHr ?? null,
-  availableDays: [...(athlete.value?.constraints?.availableDays ?? [])],
-  longRunDay: athlete.value?.constraints?.longRunDay ?? 7,
-  easyDays: [...(athlete.value?.constraints?.easyDays ?? [1])],
-  runsPerWeek: athlete.value?.constraints?.runsPerWeek ?? null,
-  sports: [...(athlete.value?.constraints?.sports ?? DEFAULT_SPORTS)],
-  strengthIntent: athlete.value?.constraints?.strengthIntent ?? StrengthIntent.Complete,
-  equipment: athlete.value?.constraints?.equipment ?? StrengthEquipment.Gym,
-  startWeeklyVolumeM: athlete.value?.startWeeklyVolumeM ?? 20000,
-  peakWeeklyVolumeM: athlete.value?.peakWeeklyVolumeM ?? 45000,
-})
+function seedFrom(one: typeof athlete.value) {
+  return {
+    firstName: one?.firstName ?? '',
+    birthDate: one?.birthDate ?? '',
+    profile: one?.profile ?? null,
+    avatar: one?.avatar ?? null,
+    weightKg: one?.weightKg ?? null,
+    homeAddress: one?.homeAddress ?? '',
+    maxHr: one?.maxHr ?? null,
+    availableDays: [...(one?.constraints?.availableDays ?? [])],
+    longRunDay: one?.constraints?.longRunDay ?? 7,
+    easyDays: [...(one?.constraints?.easyDays ?? [1])],
+    runsPerWeek: one?.constraints?.runsPerWeek ?? null,
+    sports: [...(one?.constraints?.sports ?? DEFAULT_SPORTS)],
+    strengthIntent: one?.constraints?.strengthIntent ?? StrengthIntent.Complete,
+    equipment: one?.constraints?.equipment ?? StrengthEquipment.Gym,
+    startWeeklyVolumeM: one?.startWeeklyVolumeM ?? 20000,
+    peakWeeklyVolumeM: one?.peakWeeklyVolumeM ?? 45000,
+  }
+}
+
+const form = reactive(seedFrom(athlete.value))
+
+/**
+ * Les champs ne sont plus remplis une fois pour toutes dans `setup` : la
+ * réponse arrive après la page. Rien n'est écrasé sous les doigts — le
+ * formulaire n'existe à l'écran qu'une fois la réponse là.
+ */
+watch(athlete, (one) => Object.assign(form, seedFrom(one)))
 
 const saved = ref(false)
 const photoError = ref('')
@@ -40,7 +60,7 @@ const photoError = ref('')
  * Le point de départ se déclare aussi après l'onboarding : sans cette tuile,
  * un « je ne sais pas » ne se rattrapait plus (§ 9, P7.5).
  */
-const { data: fitness, refresh: refreshFitness } = await useFetch('/api/fitness')
+const { data: fitness, refresh: refreshFitness } = useFetch('/api/fitness', { lazy: true })
 
 const declaring = ref(false)
 /** Sans « je ne sais pas », le premier choix est le chrono : rien n'est vide. */
@@ -145,7 +165,7 @@ async function logout() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div v-if="athlete" class="flex flex-col gap-4">
     <div class="tile">
       <span class="label">Identité</span>
 
@@ -330,4 +350,6 @@ async function logout() {
       </UiActionButton>
     </div>
   </div>
+
+  <UiPageSkeleton v-else :columns="2" :tiles="4" :lines="3" />
 </template>

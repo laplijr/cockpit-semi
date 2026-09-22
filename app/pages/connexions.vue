@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ImportOutcome, type ImportReport } from '~~/server/application/import-activities'
 
-const { data, refresh } = await useFetch('/api/activities/latest')
+/* La page est presque entièrement du texte fixe : elle s'affiche tout de
+   suite et seule la date du dernier import attend sa réponse. */
+const { data, refresh } = useFetch('/api/activities/latest', { lazy: true })
 
 /** Ce qu'il est advenu de chaque fichier, dit en toutes lettres (§ 9, P6.7). */
 const OUTCOME_LABELS: Record<string, string> = {
@@ -179,8 +181,9 @@ function onPick(event: Event) {
 
       <div class="flex flex-col gap-1 border-t border-line-soft pt-2">
         <span class="label text-[10px]">Dernier import</span>
-        <span class="mono text-[15px]">
-          {{ data?.lastImportedDate ? formatDate(data.lastImportedDate) : 'aucun' }}
+        <UiSkeleton v-if="!data" :height="20" width="120px" />
+        <span v-else class="mono text-[15px]">
+          {{ data.lastImportedDate ? formatDate(data.lastImportedDate) : 'aucun' }}
         </span>
       </div>
     </div>

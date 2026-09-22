@@ -120,9 +120,13 @@ export const usePlanStore = defineStore('plan', () => {
     }
   }
 
-  /** La coque a besoin du plan sur toutes les pages, sans refaire la requête de la page. */
+  /**
+   * La coque a besoin du plan sur toutes les pages, sans refaire la requête de
+   * la page. Le garde porte aussi sur `pending` : la coque et la page appellent
+   * toutes deux au montage, et sans lui elles lançaient deux requêtes.
+   */
   async function ensureLoaded() {
-    if (!payload.value) await load()
+    if (!payload.value && !pending.value) await load()
   }
 
   async function markResumption() {

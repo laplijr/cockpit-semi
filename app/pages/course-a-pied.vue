@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { SESSION_TERMS, ZONE_TERMS, glossaryTermFor } from '~/utils/glossary'
 
-const { data } = await useFetch('/api/library/running')
+/* `lazy` : la navigation n'attend plus la réponse. Sans lui, Vue suspendait
+   le changement de route et l'écran restait sur la page précédente, sans
+   rien qui dise qu'un chargement était parti. */
+const { data } = useFetch('/api/library/running', { lazy: true })
 const ui = useUiStore()
 
 /** La structure tient sur une ligne : ce que contient la séance, pas son détail. */
@@ -11,7 +14,7 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div v-if="data" class="flex flex-col gap-4">
     <div class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">Allures de référence</span>
@@ -102,4 +105,6 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
       </button>
     </div>
   </div>
+
+  <UiPageSkeleton v-else :columns="3" :tiles="3" :lines="1" />
 </template>

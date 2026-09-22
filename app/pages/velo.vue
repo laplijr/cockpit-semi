@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { SESSION_TERMS, glossaryTermFor } from '~/utils/glossary'
 
-const { data } = await useFetch('/api/library/cycling')
+/* `lazy` : la navigation n'attend plus la réponse. Sans lui, Vue suspendait
+   le changement de route et l'écran restait sur la page précédente, sans
+   rien qui dise qu'un chargement était parti. */
+const { data } = useFetch('/api/library/cycling', { lazy: true })
 const ui = useUiStore()
 
 /**
@@ -22,7 +25,7 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div v-if="data" class="flex flex-col gap-4">
     <div class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">Les séances vélo du plan</span>
@@ -95,4 +98,6 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
       </div>
     </div>
   </div>
+
+  <UiPageSkeleton v-else :columns="3" :tiles="3" :lines="2" />
 </template>

@@ -2,24 +2,41 @@
 import { CALL_LABELS } from '~~/server/domain/shared/external-call'
 
 const { clear: clearSession } = useUserSession()
-const { data: account, error: accountError, refresh } = await useFetch('/api/account')
+/* `lazy` : la navigation n'attend plus la réponse. Sans lui, Vue suspendait
+   le changement de route et l'écran restait sur la page précédente, sans
+   rien qui dise qu'un chargement était parti. */
+const { data: account, error: accountError, refresh } = useFetch('/api/account', { lazy: true })
 
-/**
- * `useFetch` ne lève pas : sans ce garde, une session refusée peignait la
- * page entière à vide — tuiles sans contenu, section Invitations absente —
- * au lieu de dire qu'il faut se reconnecter (§ 8).
- */
-if (accountError.value) {
-  await clearSession()
-  await navigateTo('/login')
-}
-const { data: invitations, refresh: refreshInvitations } = await useFetch('/api/invitations', {
+const { data: invitations, refresh: refreshInvitations } = useFetch('/api/invitations', {
   /** Réservée au compte principal : les autres n'ont rien à y lire. */
   immediate: false,
   default: () => [],
 })
 
-if (account.value?.owner) await refreshInvitations()
+/**
+ * `useFetch` ne lève pas : sans ce garde, une session refusée peignait la
+ * page entière à vide — tuiles sans contenu, section Invitations absente —
+ * au lieu de dire qu'il faut se reconnecter (§ 8). La réponse arrivant
+ * maintenant après la page, le garde se pose sur l'erreur plutôt que dans le
+ * fil de `setup`.
+ */
+watch(
+  accountError,
+  async (failure) => {
+    if (!failure) return
+    await clearSession()
+    await navigateTo('/login')
+  },
+  { immediate: true },
+)
+
+watch(
+  () => account.value?.owner,
+  (owner) => {
+    if (owner) refreshInvitations()
+  },
+  { immediate: true },
+)
 
 const label = ref('')
 const confirmation = ref('')
@@ -71,7 +88,7 @@ async function removeAccount() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div v-if="account" class="flex flex-col gap-4">
     <div class="tile">
       <span class="label">Compte</span>
       <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -220,4 +237,6 @@ async function removeAccount() {
 
     <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
   </div>
+
+  <UiPageSkeleton v-else :columns="2" :tiles="3" :lines="2" />
 </template>

@@ -22,7 +22,10 @@ const PRIORITY_TONES: Record<string, string> = {
   C: 'bg-line-strong',
 }
 
-const { data: races } = await useFetch('/api/races')
+/* `lazy` : la navigation n'attend plus la réponse. Le ruban de saison porte
+   déjà son propre état de chargement ; les deux listes disent qu'elles
+   arrivent plutôt que d'annoncer un vide qu'elles ne connaissent pas. */
+const { data: races } = useFetch('/api/races', { lazy: true })
 
 /**
  * Trois états et non deux : une course dont le jour est passé n'est plus « à
@@ -34,7 +37,7 @@ const upcoming = computed(() => planned.value.filter((race) => !race.awaitingRes
 const toRecord = computed(() => (races.value ?? []).filter((race) => race.awaitingResult))
 const past = computed(() => (races.value ?? []).filter((race) => race.status !== 'planifiee'))
 
-await plan.ensureLoaded()
+onMounted(plan.ensureLoaded)
 </script>
 
 <template>
@@ -142,7 +145,10 @@ await plan.ensureLoaded()
               {{ race.confidencePct === null ? '—' : `${race.confidencePct} %` }}
             </td>
           </tr>
-          <tr v-if="upcoming.length === 0">
+          <tr v-if="!races">
+            <td colspan="5" class="py-3"><UiSkeleton :height="18" /></td>
+          </tr>
+          <tr v-else-if="upcoming.length === 0">
             <td colspan="5" class="py-3 text-text-dim">Aucune course planifiée.</td>
           </tr>
         </tbody>
@@ -182,7 +188,8 @@ await plan.ensureLoaded()
           </span>
         </button>
 
-        <p v-if="upcoming.length === 0" class="py-3 text-[13px] text-text-dim">
+        <UiSkeleton v-if="!races" :height="18" class="my-3" />
+        <p v-else-if="upcoming.length === 0" class="py-3 text-[13px] text-text-dim">
           Aucune course planifiée.
         </p>
       </div>
@@ -202,7 +209,10 @@ await plan.ensureLoaded()
           Ajouter
         </button>
       </div>
-      <p v-if="past.length === 0" class="text-[13px] text-text-dim">Aucune course enregistrée.</p>
+      <UiSkeleton v-if="!races" :height="18" />
+      <p v-else-if="past.length === 0" class="text-[13px] text-text-dim">
+        Aucune course enregistrée.
+      </p>
       <div
         v-for="race in past"
         :key="race.id"
