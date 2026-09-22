@@ -67,6 +67,7 @@ const ICONS = {
   ],
   bravo: [path('M12 3.5l1.9 5.3 5.6.2-4.4 3.5 1.5 5.4L12 14.8l-4.6 3.1 1.5-5.4L4.5 9l5.6-.2z')],
   chat: [path('M4 6h16v10H9l-5 4z')],
+  send: [path('M21 3 3 10.5l7 3 3 7z'), path('M21 3 10 13.5')],
   /** Partir d'où l'on est : la mire d'une position (§ 9, P10.3). */
   target: [circle(12, 12, 7), circle(12, 12, 1.5), path('M12 2v3M12 19v3M2 12h3M19 12h3')],
 } satisfies Record<string, Shape[]>

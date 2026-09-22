@@ -57,6 +57,8 @@ async function toggleBravo() {
 }
 
 async function comment() {
+  if (!text.value.trim()) return
+
   error.value = ''
   try {
     await $fetch(`/api/circle/posts/${props.postId}/comments`, {
@@ -162,36 +164,47 @@ async function withdraw() {
             <span class="mono text-[11.5px] text-text-dim">
               {{ formatDate(String(item.createdAt).slice(0, 10)) }}
             </span>
-            <!-- Une micro-action ne prend pas le cadre d'une action
-                 principale : au pouce elle est une icône de 44 px sans
-                 bordure, et reprend son mot au clavier (§ 8, P13). -->
-            <UiActionButton
-              v-if="item.removable"
-              class="btn btn-ghost ml-auto shrink-0 self-center border-transparent px-0 text-[12px] lean:h-[26px] lean:border-line lean:px-[9px]"
-              icon="trash"
-              :icon-size="15"
-              aria-label="Retirer le commentaire"
-              :action="() => removeComment(item.id)"
-            >
-              <span class="hidden lean:inline">Retirer</span>
-            </UiActionButton>
           </span>
           <p class="text-[13.5px]">{{ item.text }}</p>
         </div>
+        <!-- Une micro-action ne prend pas le cadre d'une action principale :
+             au pouce elle est une icône de 44 px sans bordure, et reprend son
+             mot au clavier (§ 8, P13). Elle est posée à côté du commentaire et
+             non dans sa première ligne : ses 44 px y écartaient le nom de son
+             texte de trois lignes de vide (§ 8, P16). -->
+        <UiActionButton
+          v-if="item.removable"
+          class="btn btn-ghost ml-auto shrink-0 self-start border-transparent px-0 text-[12px] lean:h-[26px] lean:border-line lean:px-[9px]"
+          icon="trash"
+          :icon-size="15"
+          aria-label="Retirer le commentaire"
+          :action="() => removeComment(item.id)"
+        >
+          <span class="hidden lean:inline">Retirer</span>
+        </UiActionButton>
       </div>
 
-      <div class="flex flex-col gap-2 lean:flex-row lean:items-center">
+      <!-- L'envoi vit dans le champ, comme partout où l'on écrit une ligne à
+           quelqu'un : un bouton pleine largeur sous le champ prenait au pouce
+           la place d'un commentaire entier (§ 8, P16). Entrée envoie aussi. -->
+      <div class="relative">
         <input
           v-model="text"
-          class="input lean:flex-1"
+          class="input pr-[46px]"
           type="text"
           :maxlength="MAX_COMMENT_LENGTH"
           placeholder="Écrire un commentaire"
           aria-label="Votre commentaire"
+          @keydown.enter="comment"
         />
-        <UiActionButton class="btn self-stretch lean:self-auto" :action="comment">
-          Commenter
-        </UiActionButton>
+        <UiActionButton
+          class="tap absolute top-1/2 right-0 inline-flex -translate-y-1/2 items-center justify-center px-3 py-2 text-accent disabled:text-text-dim"
+          icon="send"
+          :icon-size="18"
+          aria-label="Envoyer le commentaire"
+          :disabled="!text.trim()"
+          :action="comment"
+        />
       </div>
 
       <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>

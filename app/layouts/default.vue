@@ -22,13 +22,42 @@ useShellShortcuts()
 
 const layerOpen = computed(() => Boolean(ui.panel || ui.modal))
 
+/*
+ * `overflow: hidden` empêche le doigt de faire défiler la page sous une
+ * feuille, pas le navigateur. Au téléphone, le clavier qui s'ouvre sur un champ
+ * de la feuille fait défiler le document pour dégager le champ ; en se
+ * refermant il laisse la page où il l'a emmenée, et la barre du bas — fixée au
+ * bas du document, pas de l'écran — remonte au milieu avec du vide noir sous
+ * elle (§ 8, P16). Le corps passe donc en `position: fixed` à la position du
+ * moment : il n'a plus de course de défilement, donc plus rien à emmener, et on
+ * le rend à sa place en fermant.
+ */
+let lockedAt = 0
+
+function unlock() {
+  const { style } = document.body
+  style.position = ''
+  style.top = ''
+  style.insetInline = ''
+  style.overflow = ''
+}
+
 watch(layerOpen, (open) => {
-  document.body.style.overflow = open ? 'hidden' : ''
+  if (open) {
+    lockedAt = window.scrollY
+    const { style } = document.body
+    style.position = 'fixed'
+    style.top = `-${lockedAt}px`
+    style.insetInline = '0'
+    style.overflow = 'hidden'
+    return
+  }
+
+  unlock()
+  window.scrollTo(0, lockedAt)
 })
 
-onBeforeUnmount(() => {
-  document.body.style.overflow = ''
-})
+onBeforeUnmount(unlock)
 </script>
 
 <template>
