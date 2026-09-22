@@ -16,6 +16,11 @@ export interface GenerateRoutesInput {
   target: RouteTarget
   /** Adresse d'où l'on part : celle du profil, ou celle du jour. */
   address: string
+  /**
+   * Position donnée par l'appareil. Quand elle est là, rien n'est géocodé :
+   * on part d'où l'on est, et l'adresse n'est plus qu'une étiquette (P10.3).
+   */
+  origin?: GeoPoint
 }
 
 /**
@@ -28,7 +33,7 @@ export async function generateRoutes(
   routing: RoutingService,
   input: GenerateRoutesInput,
 ): Promise<RouteVariant[]> {
-  const origin = await routing.geocode(input.address)
+  const origin = input.origin ?? (await routing.geocode(input.address))
   const traces = await loopTraces(routing, origin, input.target)
   const variants = toVariants(rankVariants(traces, input.target), input.target, input, origin)
 

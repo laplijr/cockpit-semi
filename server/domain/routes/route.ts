@@ -32,6 +32,13 @@ export interface RouteTrace {
  * proportionnellement recadre la trace. Le facteur est borné : au-delà, ce
  * n'est plus une correction, c'est un autre trajet.
  */
+/**
+ * Étiquette d'une boucle partie de la position de l'appareil (§ 9, P10.3) :
+ * il n'y a pas d'adresse à garder, et ce mot ne se géocode pas — l'écran le
+ * reconnaît pour ne pas le reproposer comme adresse.
+ */
+export const CURRENT_POSITION_LABEL = 'Position du jour'
+
 export const LENGTH_CORRECTION_BOUNDS = { min: 0.6, max: 1.6 } as const
 
 export function correctedLength(requestedM: number, obtainedM: number, targetM: number): number {

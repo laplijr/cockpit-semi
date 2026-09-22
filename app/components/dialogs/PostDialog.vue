@@ -106,7 +106,9 @@ async function withdraw() {
         {{ data.post.label }}
       </span>
 
-      <div class="fold-3 grid gap-3">
+      <!-- Trois chiffres courts tiennent sur une ligne au pouce : les empiler
+           donnait une tête de fenêtre haute de trois écrans (§ 8, P13). -->
+      <div class="flex flex-wrap gap-x-8 gap-y-2 lean:grid lean:grid-cols-3 lean:gap-3">
         <span v-if="data.post.distanceM" class="flex flex-col gap-[3px]">
           <span class="label text-[10.5px]">Distance</span>
           <span class="mono text-[20px]">{{ formatDistance(data.post.distanceM) }}</span>
@@ -160,12 +162,18 @@ async function withdraw() {
             <span class="mono text-[11.5px] text-text-dim">
               {{ formatDate(String(item.createdAt).slice(0, 10)) }}
             </span>
+            <!-- Une micro-action ne prend pas le cadre d'une action
+                 principale : au pouce elle est une icône de 44 px sans
+                 bordure, et reprend son mot au clavier (§ 8, P13). -->
             <UiActionButton
               v-if="item.removable"
-              class="btn btn-ghost ml-auto px-[9px] text-[12px] lean:h-[26px]"
+              class="btn btn-ghost ml-auto shrink-0 self-center border-transparent px-0 text-[12px] lean:h-[26px] lean:border-line lean:px-[9px]"
+              icon="trash"
+              :icon-size="15"
+              aria-label="Retirer le commentaire"
               :action="() => removeComment(item.id)"
             >
-              Retirer
+              <span class="hidden lean:inline">Retirer</span>
             </UiActionButton>
           </span>
           <p class="text-[13.5px]">{{ item.text }}</p>
@@ -190,7 +198,7 @@ async function withdraw() {
     </div>
 
     <div v-if="mine" class="flex items-center gap-3">
-      <UiActionButton class="btn btn-ghost ml-auto" :action="withdraw">
+      <UiActionButton class="btn btn-ghost w-full lean:ml-auto lean:w-auto" :action="withdraw">
         Retirer la publication
       </UiActionButton>
     </div>

@@ -1,18 +1,33 @@
 <script setup lang="ts">
+import { CURRENT_POSITION_LABEL } from '~~/server/domain/routes/route'
 import { RouteRejection } from '~~/server/domain/routes/validate'
 
-const props = defineProps<{ sessionId: number; distanceM: number }>()
+const props = withDefaults(
+  defineProps<{
+    sessionId: number
+    distanceM: number
+    /** Écran de départ : carte plus basse, et pas de GPX à télécharger là. */
+    compact?: boolean
+  }>(),
+  { compact: false },
+)
+
+const emit = defineEmits<{ changed: [] }>()
+
+/** Variante montrée : l'écran de départ la suit pour dessiner sa trace. */
+const shown = defineModel<number>('shown', { default: 0 })
 
 const { data, refresh } = await useFetch(() => `/api/sessions/${props.sessionId}/routes`)
 
 const address = ref('')
 const error = ref('')
+const locating = ref(false)
 const routing = useRoutingAvailable()
-/** Variante montrée : la mieux classée, jusqu'à ce qu'on en demande une autre. */
-const shown = ref(0)
 
 watchEffect(() => {
-  address.value ||= data.value?.routes[0]?.address ?? data.value?.homeAddress ?? ''
+  const last = data.value?.routes[0]?.address
+  /** Une boucle partie d'une position n'a pas d'adresse à reproposer. */
+  address.value ||= (last === CURRENT_POSITION_LABEL ? '' : last) ?? data.value?.homeAddress ?? ''
 })
 
 const routes = computed(() => data.value?.routes ?? [])
@@ -36,17 +51,36 @@ const offTarget = computed(
 /** Le relief se dit à côté du D+, pas dans la ligne de la distance. */
 const hilly = computed(() => rejections.value.includes(RouteRejection.TooHilly))
 
-async function suggest() {
+async function suggest(body: Record<string, unknown>) {
   error.value = ''
   try {
-    await $fetch(`/api/sessions/${props.sessionId}/routes`, {
-      method: 'POST',
-      body: { address: address.value || null },
-    })
+    await $fetch(`/api/sessions/${props.sessionId}/routes`, { method: 'POST', body })
     shown.value = 0
     await refresh()
+    emit('changed')
   } catch (cause) {
     error.value = apiMessage(cause, 'Suggestion impossible.')
+  }
+}
+
+const fromAddress = () => suggest({ address: address.value || null })
+
+/**
+ * Partir d'où l'on est (§ 9, P10.3) : la position de l'appareil remplace
+ * l'adresse, et rien d'autre ne quitte le navigateur que ces coordonnées.
+ */
+async function fromHere() {
+  error.value = ''
+  locating.value = true
+  try {
+    const position = await new Promise<GeolocationPosition>((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true }),
+    )
+    await suggest({ lat: position.coords.latitude, lon: position.coords.longitude })
+  } catch {
+    error.value = 'Position indisponible : autorise la localisation, ou tape une adresse.'
+  } finally {
+    locating.value = false
   }
 }
 </script>
@@ -61,7 +95,8 @@ async function suggest() {
       </span>
     </div>
 
-    <!-- Une action principale par ligne : le bouton sert le champ d'à côté. -->
+    <!-- Une action principale par ligne : le bouton sert le champ d'à côté.
+         « Partir d'ici » est la même action depuis une autre origine (P10.3). -->
     <div v-if="routing" class="flex flex-col gap-2 lean:flex-row lean:items-end">
       <input
         v-model="address"
@@ -72,9 +107,18 @@ async function suggest() {
       <UiActionButton
         class="btn shrink-0 self-stretch lean:self-auto"
         :disabled="address.length < 3"
-        :action="suggest"
+        :action="fromAddress"
       >
         {{ routes.length > 0 ? 'Autre boucle' : 'Proposer' }}
+      </UiActionButton>
+      <UiActionButton
+        class="btn btn-ghost shrink-0 self-stretch lean:self-auto"
+        icon="target"
+        :icon-size="15"
+        :pending="locating"
+        :action="fromHere"
+      >
+        Partir d'ici
       </UiActionButton>
     </div>
 
@@ -87,9 +131,9 @@ async function suggest() {
     <template v-else>
       <!-- La carte se charge côté navigateur : Leaflet a besoin d'un DOM. -->
       <ClientOnly>
-        <UiRouteMap :points="variant.points" :height="240" />
+        <UiRouteMap :points="variant.points" :height="compact ? 190 : 240" />
         <template #fallback>
-          <UiSkeleton variant="block" :height="240" class="rounded-md" />
+          <UiSkeleton variant="block" :height="compact ? 190 : 240" class="rounded-md" />
         </template>
       </ClientOnly>
 
@@ -115,7 +159,10 @@ async function suggest() {
         </div>
       </div>
 
+      <!-- Avant de partir, le GPX n'a personne à servir : la trace est déjà
+           dans le téléphone qui la suit (§ 8, P10.3). -->
       <a
+        v-if="!compact"
         :href="`/api/routes/${variant.id}`"
         class="btn btn-ghost self-stretch lean:self-start"
         download

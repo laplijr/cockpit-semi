@@ -40,29 +40,14 @@ const { data: routes, refresh: refreshRoutes } = useFetch(`/api/sessions/${sessi
 
 onMounted(() => plan.ensureLoaded())
 
-const ors = useRoutingAvailable()
-
 /** Une boucle se trace à une distance : une séance en durée n'en a pas. */
-const loopable = computed(
-  () => (brief.value?.totalDistanceM ?? session.value?.prescription.totalDistanceM ?? 0) > 0,
+const targetDistanceM = computed(
+  () => brief.value?.totalDistanceM ?? session.value?.prescription.totalDistanceM ?? 0,
 )
 
-const loopError = ref('')
-const tilesReady = ref(false)
+const loopable = computed(() => targetDistanceM.value > 0)
 
-/**
- * Tracer la boucle depuis l'écran de préparation (§ 9, P10.3) : sans
- * itinéraire, l'écart à la trace n'est jamais calculé pendant la sortie.
- */
-async function traceLoop() {
-  loopError.value = ''
-  try {
-    await $fetch(`/api/sessions/${sessionId}/routes`, { method: 'POST', body: { address: null } })
-    await refreshRoutes()
-  } catch (cause) {
-    loopError.value = apiMessage(cause, 'Boucle impossible à tracer.')
-  }
-}
+const tilesReady = ref(false)
 
 /**
  * Garder la carte avant de partir (§ 9, P10.3) : sans réseau, les tuiles ne
@@ -136,7 +121,13 @@ watch(cycling, (riding) => {
 
 const targets = computed<StepTarget[]>(() => brief.value?.targets ?? [])
 const target = computed<StepTarget | undefined>(() => targets.value[stepIndex.value])
-const guide = computed(() => routes.value?.routes[0]?.points ?? [])
+/** La boucle suivie est celle que l'écran de préparation montre (§ 9, P10.3). */
+const shownRoute = ref(0)
+
+const guide = computed(() => {
+  const all = routes.value?.routes ?? []
+  return all.length === 0 ? [] : (all[shownRoute.value % all.length]?.points ?? [])
+})
 
 /** La boucle connue, les tuiles partent avec : c'est le seul moment tranquille. */
 watch(
@@ -328,35 +319,26 @@ async function record(payload: {
         </div>
       </div>
 
-      <!-- L'écart à la trace ne se calcule que si une boucle existe : elle se
-           trace donc ici, avant de partir (§ 9, P10.3). -->
-      <div v-if="!free && (guide.length > 1 || (ors && loopable))" class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Itinéraire</span>
-
-        <template v-if="guide.length > 1">
-          <ClientOnly>
-            <UiRouteMap :points="guide" :height="190" />
-            <template #fallback>
-              <UiSkeleton variant="block" :height="190" class="rounded-md" />
-            </template>
-          </ClientOnly>
-          <span class="mono text-[11.5px]" :class="tilesReady ? 'text-text-dim' : 'text-warn'">
-            <template v-if="tilesReady">Carte gardée pour le hors-réseau</template>
-            <template v-else>Carte à garder avant de partir</template>
-          </span>
-        </template>
-
-        <template v-else>
-          <p class="text-[12.5px] text-text-dim">
-            Aucune boucle pour cette séance : sans elle, l'écart à la trace ne se calcule pas.
-          </p>
-          <UiActionButton class="btn btn-ghost" :action="traceLoop">
-            <UiAppIcon name="route" :size="15" />
-            Tracer une boucle
-          </UiActionButton>
-          <p v-if="loopError" class="text-[12px] text-warn">{{ loopError }}</p>
-        </template>
-      </div>
+      <!-- L'itinéraire est le même objet que dans la fenêtre de séance : même
+           composant, mêmes gestes — adresse, autre boucle, partir d'ici. Deux
+           tuiles pour un même objet, c'était l'erreur (§ 8, P10.3). -->
+      <template v-if="!free && loopable">
+        <SessionsRouteSuggestion
+          v-model:shown="shownRoute"
+          compact
+          :session-id="sessionId!"
+          :distance-m="targetDistanceM"
+          @changed="refreshRoutes"
+        />
+        <span
+          v-if="guide.length > 1"
+          class="mono -mt-1 text-[11.5px]"
+          :class="tilesReady ? 'text-text-dim' : 'text-warn'"
+        >
+          <template v-if="tilesReady">Carte gardée pour le hors-réseau</template>
+          <template v-else>Carte à garder avant de partir</template>
+        </span>
+      </template>
 
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Avant de partir</span>
