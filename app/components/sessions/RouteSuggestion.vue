@@ -24,14 +24,26 @@ const error = ref('')
 const locating = ref(false)
 const routing = useRoutingAvailable()
 
-watchEffect(() => {
-  const last = data.value?.routes[0]?.address
-  /** Une boucle partie d'une position n'a pas d'adresse à reproposer. */
-  address.value ||= (last === CURRENT_POSITION_LABEL ? '' : last) ?? data.value?.homeAddress ?? ''
-})
+/**
+ * Le champ suit l'origine de la boucle affichée et ne garde pas celle d'avant :
+ * « Partir d'ici » remplace l'adresse pré-écrite au lieu de la laisser mentir
+ * sur le point de départ. Une boucle partie d'une position n'a pas d'adresse à
+ * reproposer — le champ redevient vide, et la ligne de tête dit d'où l'on part.
+ */
+watch(
+  data,
+  (loaded) => {
+    const last = loaded?.routes[0]?.address
+    address.value = last === CURRENT_POSITION_LABEL ? '' : (last ?? loaded?.homeAddress ?? '')
+  },
+  { immediate: true },
+)
 
 const routes = computed(() => data.value?.routes ?? [])
 const variant = computed(() => routes.value[shown.value % Math.max(1, routes.value.length)])
+
+/** D'où part la boucle affichée : une adresse, ou la position du jour. */
+const origin = computed(() => variant.value?.address ?? '')
 
 /** Écart à la distance de la séance, en toutes lettres plutôt qu'en pourcent. */
 const gapLabel = computed(() => {
@@ -88,10 +100,11 @@ async function fromHere() {
 <template>
   <!-- Sans clé et sans boucle déjà tracée, la tuile n'a rien à montrer (§ 9). -->
   <div v-if="routing || variant" class="tile bg-surface-inset">
-    <div class="flex items-baseline gap-3">
+    <div class="flex flex-wrap items-baseline gap-x-3">
       <span class="label text-[10.5px]">Itinéraire</span>
-      <span class="mono text-[11.5px] text-text-dim">
-        boucle de {{ formatDistance(distanceM) }} au départ de l'adresse
+      <span class="mono min-w-0 text-[11.5px] text-text-dim">
+        boucle de {{ formatDistance(distanceM) }}
+        <template v-if="origin">· départ {{ origin }}</template>
       </span>
     </div>
 
