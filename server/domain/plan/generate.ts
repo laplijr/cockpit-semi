@@ -105,10 +105,16 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     vdotKnown,
   })
 
-  // Jour de course : aucune séance. Lendemain d'une course A : repos (§ 5).
-  const blockedDates = upcoming.flatMap((race) =>
-    race.priority === RacePriority.A ? [race.date, addDays(race.date, 1)] : [race.date],
-  )
+  /**
+   * Jour de course : aucune séance. Veille d'une course qui structure le plan :
+   * repos. Lendemain d'une course A : repos (§ 5).
+   */
+  const structuring = upcoming.filter((race) => race.priority !== RacePriority.C)
+  const blockedDates = upcoming.flatMap((race) => {
+    if (race.priority === RacePriority.C) return [race.date]
+    const eveAndDay = [addDays(race.date, -1), race.date]
+    return race.priority === RacePriority.A ? [...eveAndDay, addDays(race.date, 1)] : eveAndDay
+  })
   const shortCycleRaces = new Set(
     upcoming.filter((race) => race.distanceM <= SHORT_RACE_MAX_M).map((race) => race.id),
   )
@@ -126,6 +132,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
         constraints,
         vdot,
         blockedDates,
+        raceDates: structuring.map((race) => race.date),
         shortCycle: week.raceId !== null && shortCycleRaces.has(week.raceId),
       })
 

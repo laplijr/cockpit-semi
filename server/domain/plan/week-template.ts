@@ -23,6 +23,13 @@ export const SHORT_CYCLE_LONG_RUN_MAX_MIN = 75
 export const EASY_MIN_MIN = 35
 export const EASY_MAX_MIN = 75
 
+/**
+ * Durée de l'endurance d'avant-veille de course, à l'allure E. Plus courte que
+ * le plancher d'une endurance ordinaire : elle ne prépare rien, elle entretient
+ * la foulée le dernier jour où courir ne coûte plus rien (§ 5).
+ */
+export const ACTIVATION_MIN = 30
+
 /** Séances clés candidates par phase, hors sortie longue, par ordre de priorité. */
 const KEY_CANDIDATES: Record<PhaseType, RunSessionCode[]> = {
   [PhaseType.Base]: [RunSessionCode.Progressive, RunSessionCode.Hills],
@@ -62,8 +69,10 @@ export interface WeekTemplateInput {
   week: PlanWeek
   constraints: AthleteConstraints
   vdot: number
-  /** Jours sans séance : jour de course, lendemain d'une course A (§ 5). */
+  /** Jours sans séance : veille et jour de course, lendemain d'une course A (§ 5). */
   blockedDates?: IsoDate[]
+  /** Courses qui structurent le plan : la semaine se pose depuis leur jour (§ 5). */
+  raceDates?: IsoDate[]
   /** Vrai dans un cycle 5 km : la sortie longue passe alors en durée. */
   shortCycle?: boolean
 }
@@ -108,21 +117,26 @@ export function dayGap(from: number, to: number): number {
   return Math.min(straight, DAYS_PER_WEEK - straight)
 }
 
-/** Choisit des jours espacés d'au moins un jour de repos. */
-function spread(candidates: number[], count: number): number[] {
-  const chosen: number[] = []
+/**
+ * Choisit des jours espacés d'au moins un jour de repos. `busy` porte les jours
+ * déjà pris : ils écartent les candidats sans être rendus.
+ */
+function spread(candidates: number[], count: number, busy: number[] = []): number[] {
+  const chosen = [...busy]
+  const target = count + busy.length
+
   for (const day of candidates) {
-    if (chosen.length >= count) break
+    if (chosen.length >= target) break
     if (chosen.some((taken) => dayGap(taken, day) < 2)) continue
     chosen.push(day)
   }
 
   for (const day of candidates) {
-    if (chosen.length >= count) break
+    if (chosen.length >= target) break
     if (!chosen.includes(day)) chosen.push(day)
   }
 
-  return chosen.sort((a, b) => a - b)
+  return chosen.filter((day) => !busy.includes(day)).sort((a, b) => a - b)
 }
 
 /** Veille d'un jour de la semaine, en bouclant : la veille du lundi est le dimanche. */
@@ -167,6 +181,7 @@ export function buildWeekTemplate({
   constraints,
   vdot,
   blockedDates = [],
+  raceDates = [],
   shortCycle = false,
 }: WeekTemplateInput): WeekTemplate {
   const blocked = new Set(blockedDates)
@@ -178,6 +193,13 @@ export function buildWeekTemplate({
 
   const runs = runsFor(week, constraints, available.length)
   if (runs === 0) return { sessions: [], volumeCapped: false }
+
+  /**
+   * La semaine d'une course se pose depuis le jour J et non depuis le lundi :
+   * la veille est un repos — `blockedDates` la porte —, l'avant-veille garde
+   * une endurance courte, et les autres courses se répartissent devant (§ 5).
+   */
+  const activationDay = activationDayIn(week, raceDates, available)
 
   const easyPreferred = new Set(constraints.easyDays ?? [MONDAY])
   const longRunDay = constraints.longRunDay ?? available.at(-1)!
@@ -196,7 +218,8 @@ export function buildWeekTemplate({
   const wantsLongRun =
     KEY_COUNT[week.phaseType] > 0 &&
     allowed(RunSessionCode.LongRun) &&
-    available.includes(longRunDay)
+    available.includes(longRunDay) &&
+    longRunDay !== activationDay
   const keyBudget = Math.max(0, Math.min(KEY_COUNT[week.phaseType], runs) - (wantsLongRun ? 1 : 0))
 
   const otherKeys = KEY_CANDIDATES[week.phaseType].filter(allowed).slice(0, keyBudget)
@@ -206,6 +229,7 @@ export function buildWeekTemplate({
   }
 
   const assignments = new Map<number, RunSessionCode>()
+  if (activationDay !== undefined) assignments.set(activationDay, RunSessionCode.Endurance)
   if (wantsLongRun) assignments.set(longRunDay, RunSessionCode.LongRun)
 
   const hardCandidates = available.filter((day) => !easyPreferred.has(day) && !assignments.has(day))
@@ -217,16 +241,54 @@ export function buildWeekTemplate({
   const free = available.filter((day) => !assignments.has(day))
   const easySlots = Math.max(0, runs - assignments.size)
   const placedLongRun = wantsLongRun ? longRunDay : undefined
-  for (const day of easyDaysFor(free, hardDays, easySlots, placedLongRun)) {
+  /**
+   * Semaine de course : les endurances se répartissent depuis le jour J au lieu
+   * de se coller aux premiers jours libres. Sans séance clé pour les écarter,
+   * `easyDaysFor` les posait lundi et mardi, puis plus rien pendant quatre
+   * jours (§ 5).
+   */
+  const easyDays =
+    activationDay === undefined
+      ? easyDaysFor(free, hardDays, easySlots, placedLongRun)
+      : spread(free, easySlots, hardDays)
+
+  for (const day of easyDays) {
     assignments.set(day, RunSessionCode.Endurance)
   }
 
-  return buildPrescriptions({ week, assignments, context, vdot, shortCycle, allowed })
+  return buildPrescriptions({
+    week,
+    assignments,
+    activationDay,
+    context,
+    vdot,
+    shortCycle,
+    allowed,
+  })
+}
+
+/**
+ * Avant-veille d'une course de la semaine, quand elle y tombe et qu'elle est
+ * praticable. Le calcul se fait en dates : une course du lundi a son
+ * avant-veille dans la semaine d'avant, et c'est cette semaine-là qui la pose.
+ */
+function activationDayIn(
+  week: PlanWeek,
+  raceDates: IsoDate[],
+  available: number[],
+): number | undefined {
+  for (const date of raceDates) {
+    const day = available.find((weekday) => dayOfWeek(week, weekday) === addDays(date, -2))
+    if (day !== undefined) return day
+  }
+  return undefined
 }
 
 interface PrescriptionInput {
   week: PlanWeek
   assignments: Map<number, RunSessionCode>
+  /** Jour de l'endurance d'avant-veille de course ; nul hors semaine de course. */
+  activationDay: number | undefined
   context: PrescriptionContext
   vdot: number
   shortCycle: boolean
@@ -236,6 +298,7 @@ interface PrescriptionInput {
 function buildPrescriptions({
   week,
   assignments,
+  activationDay,
   context,
   vdot,
   shortCycle,
@@ -247,7 +310,9 @@ function buildPrescriptions({
   const maxEasyM = Math.round((EASY_MAX_MIN * 60 * 1000) / easyPace)
 
   const keyDays = days.filter((day) => assignments.get(day) !== RunSessionCode.Endurance)
-  const easyDays = days.filter((day) => assignments.get(day) === RunSessionCode.Endurance)
+  const easyDays = days.filter(
+    (day) => assignments.get(day) === RunSessionCode.Endurance && day !== activationDay,
+  )
 
   const prescriptions = new Map<number, Prescription>()
   for (const day of keyDays) {
@@ -262,6 +327,20 @@ function buildPrescriptions({
 
   // Les lignes droites s'intègrent à une endurance, jamais en séance à part (§ 5).
   let stridesLeft = allowed(RunSessionCode.Strides) ? MAX_STRIDES_PER_WEEK : 0
+
+  if (activationDay !== undefined) {
+    const distanceM = Math.round((ACTIVATION_MIN * 60 * 1000) / easyPace)
+    prescriptions.set(
+      activationDay,
+      prescription(RunSessionCode.Endurance, {
+        ...context,
+        targetDistanceM: distanceM,
+        withStrides: stridesLeft > 0,
+      }),
+    )
+    if (stridesLeft > 0) stridesLeft -= 1
+    remaining = Math.max(0, remaining - distanceM)
+  }
 
   const easyShare = easyDays.length === 0 ? 0 : remaining / easyDays.length
   const floored = Math.min(maxEasyM, Math.max(minEasyM, Math.round(easyShare)))

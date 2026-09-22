@@ -4,6 +4,7 @@ import { PhaseType } from '~~/server/domain/plan/phases'
 import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
 import { TrainingZone, paceFor } from '~~/server/domain/fitness/vdot'
 import { RunSessionCode } from '~~/server/domain/running/session-types'
+import { EASY_MIN_MIN } from '~~/server/domain/plan/week-template'
 
 const CONSTRAINTS = { availableDays: [1, 2, 3, 5, 6, 7], longRunDay: 7, easyDays: [1] }
 
@@ -121,6 +122,7 @@ describe('règles de placement (§ 5)', () => {
     ...BASE,
     openPause: { startDate: '2026-09-16', estimatedEndDate: '2026-10-05' },
   })
+  const allSessions = plan.weeks.flatMap((week) => week.sessions)
   /** Vélo et muscu compris : un jour bloqué l'est pour les trois sports (§ 5). */
   const everything = plan.weeks.flatMap((week) => [...week.sessions, ...week.support])
 
@@ -133,6 +135,23 @@ describe('règles de placement (§ 5)', () => {
   it('laisse le lendemain d’une course A en repos', () => {
     for (const date of ['2027-03-08', '2027-08-09']) {
       expect(everything.filter((session) => session.date === date)).toEqual([])
+    }
+  })
+
+  it('laisse la veille d’une course qui structure le plan en repos', () => {
+    for (const date of ['2027-03-06', '2027-04-03', '2027-08-07']) {
+      expect(everything.filter((session) => session.date === date)).toEqual([])
+    }
+  })
+
+  it('pose une endurance courte l’avant-veille d’une course', () => {
+    const cap = (EASY_MIN_MIN * 60 * 1000) / paceFor(BASE.vdot, TrainingZone.Easy)
+
+    for (const date of ['2027-03-05', '2027-04-02', '2027-08-06']) {
+      const onThatDay = allSessions.filter((session) => session.date === date)
+      expect(onThatDay).toHaveLength(1)
+      expect(onThatDay[0]!.code).toBe(RunSessionCode.Endurance)
+      expect(onThatDay[0]!.prescription.totalDistanceM).toBeLessThan(cap)
     }
   })
 
