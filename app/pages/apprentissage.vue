@@ -58,7 +58,7 @@ async function decide(id: number, status: string) {
       <div
         v-for="item in pendingPage.items"
         :key="item.id"
-        class="flex items-center gap-4 border-t border-line-soft py-3 first:border-t-0"
+        class="flex flex-col gap-2 border-t border-line-soft py-3 first:border-t-0 lean:flex-row lean:items-center lean:gap-4"
       >
         <div class="flex min-w-0 flex-1 flex-col gap-px">
           <span class="text-[13.5px]">{{ item.statement }}</span>

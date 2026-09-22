@@ -84,7 +84,7 @@ const figures = computed(() => {
       <span v-else-if="rideType?.onPainOnly" class="pill pill-warn ml-auto">sur douleur</span>
     </div>
 
-    <div class="grid grid-cols-4 gap-4">
+    <div class="fold-4 grid gap-4">
       <div v-for="figure in figures" :key="figure.key" class="tile bg-surface-inset">
         <span class="label text-[10.5px]">{{ figure.label }}</span>
         <span class="mono text-[17px]">{{ figure.value }}</span>

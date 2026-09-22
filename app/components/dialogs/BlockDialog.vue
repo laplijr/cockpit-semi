@@ -105,7 +105,7 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
       </UiAxisScroller>
     </div>
 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="fold-3 grid gap-4">
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]"
           ><UiInfoHint term="seanceCle">Séances clés</UiInfoHint></span
@@ -138,7 +138,7 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
       <span class="label text-[10.5px]">La course qui termine le bloc</span>
       <button
         type="button"
-        class="tile-action -mx-2 flex items-baseline gap-3 rounded-sm px-2 py-1 text-left"
+        class="tap tile-action -mx-2 flex items-baseline gap-3 rounded-sm px-2 py-1 text-left"
         @click="ui.openModal('course', closingRace.id)"
       >
         <span class="display text-[17px] font-semibold">{{ closingRace.name }}</span>

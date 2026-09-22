@@ -37,7 +37,7 @@ const bravoText = computed(() => {
 
 <template>
   <div
-    class="tile tile-action h-[156px] justify-start gap-[9px]"
+    class="tile tile-action min-h-[156px] justify-start gap-[9px] wide:h-[156px]"
     role="button"
     tabindex="0"
     @click="ui.openModal('publication', post.id)"
@@ -67,7 +67,7 @@ const bravoText = computed(() => {
 
     <div class="mt-auto flex items-center gap-[10px]">
       <UiActionButton
-        class="btn btn-ghost h-[26px] px-[9px] text-[12.5px] lean:h-[26px]"
+        class="btn btn-ghost px-[9px] text-[12.5px] wide:h-[26px]"
         :class="post.mine ? 'border-accent-deep bg-accent-track text-accent' : ''"
         icon="bravo"
         :icon-size="14"

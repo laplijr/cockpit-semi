@@ -91,7 +91,7 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
         <div
           v-for="exercise in preventionBlock"
           :key="exercise.id"
-          class="tile-action -mx-1 flex flex-col gap-px rounded-sm border border-transparent border-t-line-soft px-1 pt-2"
+          class="tap tile-action -mx-1 flex flex-col justify-center gap-px rounded-sm border border-transparent border-t-line-soft px-1 pt-2"
           role="button"
           :tabindex="0"
           @click="ui.openExercise(exercise.id)"

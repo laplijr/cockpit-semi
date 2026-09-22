@@ -108,7 +108,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
 <template>
   <div class="flex flex-col gap-4">
     <!-- Le filtre commande toute la page : il se pose avant ce qu'il filtre. -->
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       <span class="label">Période</span>
       <button
         v-for="option in PERIODS"
@@ -223,7 +223,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         <button
           v-if="(data?.vdot.length ?? 0) > recentVdot.length"
           type="button"
-          class="mono ml-auto text-[11.5px] text-accent"
+          class="tap mono ml-auto inline-flex items-center justify-end text-[11.5px] text-accent"
           @click="ui.openDial('vdot')"
         >
           voir les {{ data?.vdot.length }} points

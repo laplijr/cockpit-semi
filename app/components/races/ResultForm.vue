@@ -179,7 +179,7 @@ async function save() {
           <span class="label text-[10.5px]">Segments</span>
           <button
             type="button"
-            class="btn btn-ghost ml-auto h-7 px-[10px] text-[12px]"
+            class="btn btn-ghost ml-auto px-[10px] text-[12px] wide:h-7"
             @click="addSegment"
           >
             <UiAppIcon name="plus" :size="14" />

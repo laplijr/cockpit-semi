@@ -113,14 +113,14 @@ async function apply() {
     >
       <input
         type="checkbox"
-        class="h-5 w-5 shrink-0 accent-accent lean:h-auto lean:w-auto"
+        class="tap h-5 w-5 shrink-0 accent-accent lean:h-auto lean:w-auto lean:min-h-0 lean:min-w-0"
         :checked="proposals.selected.includes(group.key)"
         :aria-label="titleOf(group)"
         @change="proposals.toggle(group.key)"
       />
       <button
         type="button"
-        class="explicable-zone grid min-w-0 flex-1 grid-cols-1 gap-1 text-left wide:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] wide:items-baseline wide:gap-3"
+        class="tap explicable-zone grid min-w-0 flex-1 grid-cols-1 content-center gap-1 text-left wide:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] wide:items-baseline wide:gap-3"
         @click="ui.openModal('proposition', group.ids[0]!)"
       >
         <span class="flex min-w-0 items-baseline gap-2">
@@ -160,7 +160,7 @@ async function apply() {
     <NuxtLink
       v-if="hidden > 0"
       to="/propositions"
-      class="mono text-[12px] text-text-dim hover:text-text"
+      class="tap mono inline-flex items-center text-[12px] text-text-dim hover:text-text"
     >
       {{ hidden === 1 ? '+ 1 autre' : `+ ${hidden} autres` }}
     </NuxtLink>

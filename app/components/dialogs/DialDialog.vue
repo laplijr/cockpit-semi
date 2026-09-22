@@ -90,7 +90,7 @@ const title = computed(
     <span class="display text-[22px] font-semibold">{{ title }}</span>
 
     <template v-if="dial === 'charge'">
-      <div class="grid grid-cols-3 gap-4">
+      <div class="fold-3 grid gap-4">
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Ratio 7 j / 21 j</span>
           <span class="display text-[32px] font-bold">
@@ -112,7 +112,7 @@ const title = computed(
 
       <div class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Répartition de la semaine</span>
-        <div class="grid grid-cols-4 gap-4">
+        <div class="fold-4 grid gap-4">
           <div v-for="sport in SPORTS" :key="sport.key" class="flex flex-col">
             <span class="label text-[10px]">{{ sport.label }}</span>
             <span class="mono text-[17px]">{{ load?.weekBySport[sport.key] ?? 0 }} UA</span>
@@ -129,7 +129,7 @@ const title = computed(
     </template>
 
     <template v-else-if="dial === 'forme'">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="fold-2 grid gap-4">
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Score</span>
           <span class="display text-[32px] font-bold">{{ readiness?.score ?? '—' }}</span>
@@ -162,7 +162,7 @@ const title = computed(
     </template>
 
     <template v-else-if="dial === 'vdot'">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="fold-2 grid gap-4">
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Valeur courante</span>
           <span class="display text-[32px] font-bold">
@@ -253,7 +253,7 @@ const title = computed(
       « 93 % des séances prévues » sans jamais dire lesquelles (§ 9, P6.5).
     -->
     <template v-else-if="dial === 'adherence'">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="fold-2 grid gap-4">
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Séances prévues réalisées</span>
           <span class="display text-[32px] font-bold">
@@ -322,7 +322,7 @@ const title = computed(
     </template>
 
     <template v-else-if="dial === 'course-a' && raceA">
-      <div class="grid grid-cols-3 gap-4">
+      <div class="fold-3 grid gap-4">
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">{{ raceA.name }}</span>
           <span class="display text-[32px] font-bold text-accent">
@@ -353,7 +353,7 @@ const title = computed(
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-4">
+      <div class="fold-3 grid gap-4">
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Confiance</span>
           <span class="mono text-[20px]">
@@ -391,7 +391,7 @@ const title = computed(
         class="tile bg-surface-inset"
       >
         <span class="label text-[10.5px]">Les trois niveaux</span>
-        <div class="grid grid-cols-3 gap-4">
+        <div class="fold-3 grid gap-4">
           <div v-for="level in OBJECTIVE_LEVELS" :key="level.label" class="flex flex-col">
             <span class="label text-[10px]">{{ level.label }}</span>
             <span class="mono text-[17px]">{{ formatDuration(raceA[level.field]) }}</span>

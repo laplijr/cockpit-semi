@@ -39,7 +39,7 @@ const planned = computed(() => (data.value?.plannedCodes ?? []).some((code) => c
         v-for="step in session.prescription.steps"
         :key="step.label"
         type="button"
-        class="tile-action -mx-1 flex items-baseline gap-2 rounded-sm border border-transparent border-t-line-soft px-1 py-[7px] text-left"
+        class="tap tile-action -mx-1 flex items-baseline gap-2 rounded-sm border border-transparent border-t-line-soft px-1 py-[7px] text-left"
         :disabled="!step.exerciseId"
         @click="step.exerciseId && ui.openExercise(step.exerciseId)"
       >

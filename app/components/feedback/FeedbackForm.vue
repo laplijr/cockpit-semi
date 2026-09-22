@@ -137,7 +137,7 @@ async function save() {
       </p>
     </div>
 
-    <div class="grid gap-3" :class="isRunning ? 'grid-cols-2' : 'grid-cols-1'">
+    <div class="grid gap-3" :class="isRunning ? 'fold-2' : 'grid-cols-1'">
       <label class="flex flex-col gap-[6px]">
         <span class="label text-[10.5px]">Durée réelle (min)</span>
         <input

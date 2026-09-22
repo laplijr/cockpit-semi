@@ -150,15 +150,16 @@ async function logout() {
       <span class="label">Identité</span>
 
       <div class="flex items-start gap-4">
-        <!-- La corbeille se découvre au survol comme au clavier : jamais une
-             commande réservée à la souris. -->
+        <!-- La corbeille se découvre au survol comme au clavier au-dessus de
+             la rupture ; au pouce il n'y a pas de survol, donc elle est
+             visible et à 44 px (§ 8, P13). -->
         <div class="group relative size-16">
           <img :src="avatarSrc" alt="" class="size-16 rounded-full" />
           <button
             v-if="form.avatar"
             type="button"
             aria-label="Supprimer la photo"
-            class="absolute right-0 bottom-0 grid size-6 place-items-center rounded-full border border-line bg-surface text-text-dim opacity-0 group-hover:opacity-100 hover:text-text focus-visible:opacity-100"
+            class="tap absolute -right-3 -bottom-3 grid size-11 place-items-center rounded-full border border-line bg-surface text-text-dim hover:text-text lean:-right-0 lean:-bottom-0 lean:size-6 lean:min-h-0 lean:min-w-0 lean:opacity-0 lean:group-hover:opacity-100 lean:focus-visible:opacity-100"
             @click="form.avatar = null"
           >
             <UiAppIcon name="trash" :size="13" />

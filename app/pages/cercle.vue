@@ -61,7 +61,7 @@ const postsOfDay = (date: string) => circle.posts.filter((post) => post.date ===
             v-for="from in axis"
             :key="from"
             type="button"
-            class="mono h-[26px] shrink-0 rounded-[4px] px-[10px] text-[12px] whitespace-nowrap"
+            class="pill-tap mono shrink-0 rounded-[4px] px-[10px] text-[12px] whitespace-nowrap wide:h-[26px]"
             :class="
               from === view?.week.from
                 ? 'bg-accent font-semibold text-on-accent'

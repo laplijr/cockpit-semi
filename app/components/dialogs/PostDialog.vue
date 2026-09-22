@@ -106,7 +106,7 @@ async function withdraw() {
         {{ data.post.label }}
       </span>
 
-      <div class="grid grid-cols-3 gap-3">
+      <div class="fold-3 grid gap-3">
         <span v-if="data.post.distanceM" class="flex flex-col gap-[3px]">
           <span class="label text-[10.5px]">Distance</span>
           <span class="mono text-[20px]">{{ formatDistance(data.post.distanceM) }}</span>
@@ -162,7 +162,7 @@ async function withdraw() {
             </span>
             <UiActionButton
               v-if="item.removable"
-              class="btn btn-ghost ml-auto h-[26px] px-[9px] text-[12px]"
+              class="btn btn-ghost ml-auto px-[9px] text-[12px] wide:h-[26px]"
               :action="() => removeComment(item.id)"
             >
               Retirer

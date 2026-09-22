@@ -74,6 +74,27 @@ const pending = computed(() => {
   return items
 })
 
+/**
+ * La tuile des premiers jours s'étale sur les cadrans qu'elle remplace, sans
+ * jamais dépasser le nombre de colonnes du régime courant : un `span 3` sur
+ * deux colonnes en crée une troisième, et toute la page défile (§ 8, P13).
+ */
+const dialColumns = ref(4)
+
+onMounted(() => {
+  const wide = window.matchMedia('(min-width: 1280px)')
+  const lean = window.matchMedia('(min-width: 768px)')
+  const measure = () => (dialColumns.value = wide.matches ? 4 : lean.matches ? 2 : 1)
+
+  measure()
+  wide.addEventListener('change', measure)
+  lean.addEventListener('change', measure)
+  onBeforeUnmount(() => {
+    wide.removeEventListener('change', measure)
+    lean.removeEventListener('change', measure)
+  })
+})
+
 const currentWeekSessions = computed(() =>
   plan.currentWeek ? (plan.sessionsByWeek.get(plan.currentWeek.id) ?? []) : [],
 )
@@ -176,7 +197,7 @@ async function onResume() {
     </section>
 
     <!-- Course A est le seul cadran qui est un but, pas une mesure (§ 9, P5.19). -->
-    <section class="grid grid-cols-2 gap-4 wide:grid-cols-[1.15fr_1fr_1fr_1fr]">
+    <section class="fold-4 grid gap-4 wide:grid-cols-[1.15fr_1fr_1fr_1fr]">
       <!-- Le décompte se compte depuis aujourd'hui : sans le plan, pas de J−. -->
       <CockpitRaceDial
         :race="raceA"
@@ -195,7 +216,7 @@ async function onResume() {
       <CockpitFirstDaysTile
         v-if="pending.length > 0"
         :pending="pending"
-        :style="{ gridColumn: `span ${pending.length}` }"
+        :style="{ gridColumn: `span ${Math.min(pending.length, dialColumns)}` }"
       />
     </section>
 

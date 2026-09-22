@@ -31,10 +31,9 @@ const shape = computed(() => SHAPES[props.modal])
       <UiSkeleton width="160px" />
     </div>
 
-    <div
-      class="grid gap-4"
-      :style="{ gridTemplateColumns: `repeat(${shape.columns}, minmax(0, 1fr))` }"
-    >
+    <!-- Le squelette se replie comme la fenêtre qu'il annonce : des colonnes
+         en dur dessineraient une mise en page que le contenu n'aura pas. -->
+    <div class="grid gap-4" :class="`fold-${shape.columns}`">
       <div v-for="tile in shape.tiles" :key="tile" class="tile bg-surface-inset">
         <UiSkeleton :height="15" width="60%" />
         <UiSkeleton :height="20" width="80%" />

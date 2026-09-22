@@ -180,7 +180,7 @@ async function remove() {
       />
       <button
         type="button"
-        class="text-[13px] text-text-dim hover:text-text"
+        class="tap inline-flex items-center text-[13px] text-text-dim hover:text-text"
         @click="mode = 'edit'"
       >
         Modifier la course
@@ -188,7 +188,7 @@ async function remove() {
     </template>
 
     <template v-else>
-      <div class="grid grid-cols-3 gap-4">
+      <div class="fold-3 grid gap-4">
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Projection</span>
           <span class="mono text-[20px]">{{ formatDuration(race.projectionS) }}</span>
@@ -207,7 +207,7 @@ async function remove() {
       </div>
 
       <!-- Sous-grille : un libellé sur deux lignes ne décale plus son champ. -->
-      <div class="grid grid-cols-3 grid-rows-[auto_auto_auto_auto] gap-x-3 gap-y-[6px]">
+      <div class="fold-3 grid grid-rows-[auto_auto_auto_auto] gap-x-3 gap-y-[6px]">
         <label class="row-span-2 grid grid-rows-subgrid gap-y-[6px]">
           <span class="label text-[10.5px]">
             Nom
@@ -287,7 +287,7 @@ async function remove() {
         <span class="label text-[10.5px]">
           <UiInfoHint term="confiance">Confiance par niveau</UiInfoHint>
         </span>
-        <div class="grid grid-cols-3 gap-4">
+        <div class="fold-3 grid gap-4">
           <div v-for="level in OBJECTIVE_LEVELS" :key="level.key" class="flex flex-col">
             <span class="label text-[10px]">{{ level.label }}</span>
             <span class="mono text-[17px]">{{ formatDuration(race[level.field]) }}</span>
@@ -323,13 +323,15 @@ async function remove() {
       </p>
       <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
 
-      <div class="flex items-center gap-3">
+      <!-- Quatre éléments sur une ligne demandent 490 px pour 339 : la rangée
+           se replie au lieu d'écraser son dernier bouton (§ 8, P13). -->
+      <div class="flex flex-col gap-3 lean:flex-row lean:items-center">
         <UiActionButton class="btn btn-lg" :pending="saving" :action="save">
           Enregistrer
         </UiActionButton>
 
         <template v-if="confirmingDelete">
-          <span class="ml-auto text-[13px] text-warn">Supprimer cette course ?</span>
+          <span class="text-[13px] text-warn lean:ml-auto">Supprimer cette course ?</span>
           <UiActionButton class="btn btn-ghost" :pending="saving" :action="remove">
             Oui, supprimer
           </UiActionButton>
@@ -340,7 +342,7 @@ async function remove() {
         <button
           v-else
           type="button"
-          class="ml-auto text-[13px] text-text-dim hover:text-text"
+          class="tap inline-flex items-center text-[13px] text-text-dim hover:text-text lean:ml-auto"
           @click="confirmingDelete = true"
         >
           Supprimer la course
@@ -350,7 +352,7 @@ async function remove() {
       <button
         v-if="race.awaitingResult"
         type="button"
-        class="text-[13px] text-text-dim hover:text-text"
+        class="tap inline-flex items-center text-[13px] text-text-dim hover:text-text"
         @click="mode = 'result'"
       >
         Revenir au résultat

@@ -107,7 +107,7 @@ async function suggest() {
           <button
             v-if="routes.length > 1"
             type="button"
-            class="mono self-start text-[11.5px] text-text-dim hover:text-text"
+            class="tap mono inline-flex items-center self-start text-[11.5px] text-text-dim hover:text-text"
             @click="shown = shown + 1"
           >
             Voir la variante suivante

@@ -171,7 +171,9 @@ async function removeAccount() {
           <span class="label text-[10.5px]">Pour qui (facultatif)</span>
           <input v-model="label" type="text" class="input" placeholder="Camille" />
         </label>
-        <UiActionButton class="btn" :action="createInvitation"> Générer un lien </UiActionButton>
+        <UiActionButton class="btn w-full lean:w-auto" :action="createInvitation">
+          Générer un lien
+        </UiActionButton>
       </div>
 
       <div
@@ -219,7 +221,7 @@ async function removeAccount() {
           />
         </label>
         <UiActionButton
-          class="btn"
+          class="btn w-full lean:w-auto"
           :disabled="confirmation.trim().toLowerCase() !== account?.login"
           :action="removeAccount"
         >

@@ -79,7 +79,7 @@ function rootOf(exercise: Exercise, all: Exercise[]): Exercise {
       <p class="text-[13px] text-text-dim">{{ exercise.why }}</p>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="fold-2 grid gap-4">
       <div v-if="exercise.progression" class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Progression</span>
         <span class="mono text-[15px]">

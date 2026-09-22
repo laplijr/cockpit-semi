@@ -64,13 +64,13 @@ await plan.ensureLoaded()
         v-for="race in toRecord"
         :key="race.id"
         type="button"
-        class="tile-action -mx-2 flex items-baseline gap-3 rounded-md border border-transparent border-t-line-soft px-2 py-3 text-left first:border-t-transparent"
+        class="tap tile-action -mx-2 flex flex-col gap-1 rounded-md border border-transparent border-t-line-soft px-2 py-3 text-left first:border-t-transparent lean:flex-row lean:items-baseline lean:gap-3"
         @click="ui.openModal('course', race.id)"
       >
         <span class="display text-[15px] font-semibold">{{ race.name }}</span>
         <span class="mono text-[11.5px] text-text-dim">{{ formatDate(race.date) }}</span>
         <span class="mono text-[11.5px] text-text-dim">{{ formatDistance(race.distanceM) }}</span>
-        <span class="ml-auto text-[12.5px] text-accent">Renseigner le résultat</span>
+        <span class="text-[12.5px] text-accent lean:ml-auto">Renseigner le résultat</span>
       </button>
     </div>
 
@@ -79,7 +79,7 @@ await plan.ensureLoaded()
         <span class="label">Courses à venir</span>
         <button
           type="button"
-          class="btn btn-ghost ml-auto h-7 px-[10px] text-[12px]"
+          class="btn btn-ghost ml-auto px-[10px] text-[12px] wide:h-7"
           @click="ui.openModal('nouvelle-course')"
         >
           <UiAppIcon name="plus" :size="14" />
@@ -198,7 +198,7 @@ await plan.ensureLoaded()
         <span class="label">Courses passées</span>
         <button
           type="button"
-          class="btn btn-ghost ml-auto h-7 px-[10px] text-[12px]"
+          class="btn btn-ghost ml-auto px-[10px] text-[12px] wide:h-7"
           @click="ui.openModal('course-passee')"
         >
           <UiAppIcon name="plus" :size="14" />

@@ -53,7 +53,7 @@ function figureOf(session: PlanSession): string {
     <div
       v-for="(session, index) in sessions"
       :key="session.id"
-      class="tile-action -mx-1 flex flex-col gap-px rounded-sm border border-transparent px-1"
+      class="tap tile-action -mx-1 flex flex-col justify-center gap-px rounded-sm border border-transparent px-1"
       :class="index > 0 && 'mt-1 border-t-line-soft pt-2'"
       role="button"
       :tabindex="0"
