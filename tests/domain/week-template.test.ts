@@ -88,6 +88,19 @@ describe('nombre de courses par semaine (§ 5)', () => {
     }).sessions
     expect(sessions).toHaveLength(6)
   })
+
+  it('ne laisse pas le nombre du profil défaire l’affûtage ni la reprise', () => {
+    const reducing = [weekIn(PhaseType.Taper), weeks.find((week) => week.comebackRatio === 0.6)!]
+
+    for (const week of reducing) {
+      const sessions = buildWeekTemplate({
+        week,
+        constraints: { ...CONSTRAINTS, runsPerWeek: 6 },
+        vdot: VDOT,
+      }).sessions
+      expect(sessions).toHaveLength(week.runs)
+    }
+  })
 })
 
 describe('placement', () => {

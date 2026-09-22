@@ -78,9 +78,20 @@ function dayOfWeek(week: PlanWeek, weekday: number): IsoDate {
   return addDays(week.startDate, weekday - 1)
 }
 
+/**
+ * Phases dont le nombre de courses est une réduction et non un défaut : y
+ * laisser passer une fréquence déclarée, c'est défaire l'affûtage (§ 5).
+ */
+const REDUCING_PHASES: PhaseType[] = [PhaseType.Taper, PhaseType.Recovery, PhaseType.Transition]
+
+function reducesRuns(week: PlanWeek): boolean {
+  return week.comebackRatio !== undefined || REDUCING_PHASES.includes(week.phaseType)
+}
+
 /** Nombre de courses de la semaine : jamais plus que de jours praticables. */
 export function runsFor(week: PlanWeek, constraints: AthleteConstraints, days: number): number {
-  const wanted = constraints.runsPerWeek ?? week.runs
+  const declared = constraints.runsPerWeek ?? week.runs
+  const wanted = reducesRuns(week) ? Math.min(declared, week.runs) : declared
   const bounded = Math.min(MAX_RUNS_PER_WEEK, Math.max(MIN_RUNS_PER_WEEK, wanted))
   return Math.min(bounded, days)
 }
