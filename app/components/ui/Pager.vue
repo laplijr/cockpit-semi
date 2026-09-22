@@ -20,7 +20,7 @@ const to = computed(() => Math.min(page.value * props.perPage, props.total))
     <div class="ml-auto flex items-center gap-2">
       <button
         type="button"
-        class="btn btn-ghost px-0 wide:h-7 wide:w-7"
+        class="btn btn-ghost px-0 lean:h-7 lean:w-7"
         :disabled="page === 1"
         aria-label="Page précédente"
         @click="page -= 1"
@@ -32,7 +32,7 @@ const to = computed(() => Math.min(page.value * props.perPage, props.total))
 
       <button
         type="button"
-        class="btn btn-ghost px-0 wide:h-7 wide:w-7"
+        class="btn btn-ghost px-0 lean:h-7 lean:w-7"
         :disabled="page === pageCount"
         aria-label="Page suivante"
         @click="page += 1"

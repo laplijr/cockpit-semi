@@ -76,7 +76,7 @@ await plan.ensureLoaded()
         <span class="label">Courses à venir</span>
         <button
           type="button"
-          class="btn btn-ghost ml-auto px-[10px] text-[12px] wide:h-7"
+          class="btn btn-ghost ml-auto px-[10px] text-[12px] lean:h-7"
           @click="ui.openModal('nouvelle-course')"
         >
           <UiAppIcon name="plus" :size="14" />
@@ -195,7 +195,7 @@ await plan.ensureLoaded()
         <span class="label">Courses passées</span>
         <button
           type="button"
-          class="btn btn-ghost ml-auto px-[10px] text-[12px] wide:h-7"
+          class="btn btn-ghost ml-auto px-[10px] text-[12px] lean:h-7"
           @click="ui.openModal('course-passee')"
         >
           <UiAppIcon name="plus" :size="14" />

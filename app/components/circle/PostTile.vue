@@ -37,7 +37,7 @@ const bravoText = computed(() => {
 
 <template>
   <div
-    class="tile tile-action min-h-[156px] justify-start gap-[9px] wide:h-[156px]"
+    class="tile tile-action min-h-[156px] justify-start gap-[9px] lean:h-[156px]"
     role="button"
     tabindex="0"
     @click="ui.openModal('publication', post.id)"
@@ -67,7 +67,7 @@ const bravoText = computed(() => {
 
     <div class="mt-auto flex items-center gap-[10px]">
       <UiActionButton
-        class="btn btn-ghost px-[9px] text-[12.5px] wide:h-[26px]"
+        class="btn btn-ghost px-[9px] text-[12.5px] lean:h-[26px]"
         :class="post.mine ? 'border-accent-deep bg-accent-track text-accent' : ''"
         icon="bravo"
         :icon-size="14"
@@ -78,7 +78,6 @@ const bravoText = computed(() => {
       </UiActionButton>
 
       <span v-if="bravoText" class="truncate text-[12.5px] text-text-dim">{{ bravoText }}</span>
-      <span v-else class="text-[12.5px] text-text-dim">Personne pour l’instant</span>
 
       <span v-if="post.comments" class="ml-auto flex items-center gap-[6px] text-[12.5px]">
         <UiAppIcon name="chat" :size="14" />

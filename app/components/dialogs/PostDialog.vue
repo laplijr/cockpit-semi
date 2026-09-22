@@ -162,7 +162,7 @@ async function withdraw() {
             </span>
             <UiActionButton
               v-if="item.removable"
-              class="btn btn-ghost ml-auto px-[9px] text-[12px] wide:h-[26px]"
+              class="btn btn-ghost ml-auto px-[9px] text-[12px] lean:h-[26px]"
               :action="() => removeComment(item.id)"
             >
               Retirer
@@ -189,11 +189,8 @@ async function withdraw() {
       <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
     </div>
 
-    <div class="flex items-center gap-3">
-      <p class="text-[12px] text-text-dim">
-        Visible par les membres du cercle. Chacun retire ses propres mots.
-      </p>
-      <UiActionButton v-if="mine" class="btn btn-ghost ml-auto" :action="withdraw">
+    <div v-if="mine" class="flex items-center gap-3">
+      <UiActionButton class="btn btn-ghost ml-auto" :action="withdraw">
         Retirer la publication
       </UiActionButton>
     </div>

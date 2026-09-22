@@ -61,7 +61,7 @@ const postsOfDay = (date: string) => circle.posts.filter((post) => post.date ===
             v-for="from in axis"
             :key="from"
             type="button"
-            class="pill-tap mono shrink-0 rounded-[4px] px-[10px] text-[12px] whitespace-nowrap wide:h-[26px]"
+            class="pill-tap mono shrink-0 rounded-[4px] px-[10px] text-[12px] whitespace-nowrap lean:h-[26px]"
             :class="
               from === view?.week.from
                 ? 'bg-accent font-semibold text-on-accent'
@@ -121,13 +121,7 @@ const postsOfDay = (date: string) => circle.posts.filter((post) => post.date ===
       <span class="mono text-[12px] text-text-dim">
         {{ view ? rangeLabel(view.week.from) : '' }}
       </span>
-      <span class="text-[14px] text-text-dim">
-        {{
-          circle.members.length > 1
-            ? 'Personne n’a publié cette semaine.'
-            : 'Vous êtes le seul membre pour l’instant.'
-        }}
-      </span>
+      <span class="text-[14px] text-text-dim">Personne n’a publié cette semaine.</span>
     </div>
   </div>
 </template>
