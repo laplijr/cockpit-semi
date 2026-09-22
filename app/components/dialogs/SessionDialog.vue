@@ -238,6 +238,20 @@ const plannedMinutes = computed(() => {
       <span v-if="manualDay" class="pill ml-auto">posé à la main</span>
     </div>
 
+    <!-- Une sortie qui n'était pas prévue se lance d'ici, et d'ici seulement :
+         l'écran principal ne gagne pas une action de plus (§ 8, P10.3). -->
+    <div v-if="day === plan.today" class="tile bg-surface-inset">
+      <span class="label text-[10.5px]">Sortir quand même</span>
+      <NuxtLink to="/en-course" class="btn btn-ghost self-stretch lean:self-start">
+        <UiAppIcon name="run" :size="15" />
+        Courir sans séance prévue
+      </NuxtLink>
+      <span class="text-[12px] text-text-dim">
+        La sortie se rattache à une séance du jour si elle lui ressemble, sinon elle compte hors
+        plan.
+      </span>
+    </div>
+
     <!-- Une journée vide n'avait aucun moyen de recevoir une séance (§ 9, P6.43). -->
     <div v-if="day >= plan.today" class="tile bg-surface-inset">
       <span class="label text-[10.5px]">Ajouter une séance</span>

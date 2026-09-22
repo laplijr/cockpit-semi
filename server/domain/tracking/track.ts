@@ -30,7 +30,10 @@ const EMPTY: Track = { points: [], distanceM: 0, elapsedS: 0, elevationGainM: 0,
  * La distance s'accumule depuis une ancre qui ne bouge qu'au-delà du seuil de
  * déplacement — c'est ce qui empêche la dérive à l'arrêt de compter (§ 9, P10).
  */
-export function measureTrack(fixes: GeoFix[]): Track {
+export function measureTrack(
+  fixes: GeoFix[],
+  maxSpeedMS: number = FIX_TOLERANCE.maxSpeedMS,
+): Track {
   const points: TrackPoint[] = []
   let previous: GeoFix | undefined
   let anchor: GeoFix | undefined
@@ -39,7 +42,7 @@ export function measureTrack(fixes: GeoFix[]): Track {
   let rejected = 0
 
   for (const fix of fixes) {
-    if (!acceptFix(fix, previous)) {
+    if (!acceptFix(fix, previous, maxSpeedMS)) {
       rejected += 1
       continue
     }

@@ -15,33 +15,137 @@ const route = useRoute()
 const plan = usePlanStore()
 const tracker = useRunTracker()
 
-const sessionId = Number(route.query.seance)
+const asked = Number(route.query.seance)
+/**
+ * Sans séance, c'est une sortie libre (§ 9, P10.3) : on court sans rien à
+ * suivre, et l'écriture la rattache ou la classe hors plan, comme avant.
+ */
+const sessionId = Number.isInteger(asked) && asked > 0 ? asked : null
+const free = computed(() => sessionId === null)
+
 /** Sortie déjà ouverte qu'on rejoint, et bilan à rouvrir après un échec réseau. */
 const resuming = route.query.reprise === '1'
 const toBilan = route.query.bilan === '1'
 
-/** Sans séance, il n'y a rien à courir : la sortie libre n'est pas livrée. */
-if (!Number.isInteger(sessionId) || sessionId <= 0) await navigateTo('/')
-
-const { data: brief, error: briefError } = await useFetch(`/api/sessions/${sessionId}/steps`)
+const { data: brief, error: briefError } = await useFetch(`/api/sessions/${sessionId}/steps`, {
+  immediate: sessionId !== null,
+})
 
 /** Boucle déjà tracée pour la séance : elle sert de repère sous la trace. */
-const { data: routes } = useFetch(`/api/sessions/${sessionId}/routes`, {
+const { data: routes, refresh: refreshRoutes } = useFetch(`/api/sessions/${sessionId}/routes`, {
   lazy: true,
   server: false,
+  immediate: sessionId !== null,
 })
 
 onMounted(() => plan.ensureLoaded())
+
+const ors = useRoutingAvailable()
+
+/** Une boucle se trace à une distance : une séance en durée n'en a pas. */
+const loopable = computed(
+  () => (brief.value?.totalDistanceM ?? session.value?.prescription.totalDistanceM ?? 0) > 0,
+)
+
+const loopError = ref('')
+const tilesReady = ref(false)
+
+/**
+ * Tracer la boucle depuis l'écran de préparation (§ 9, P10.3) : sans
+ * itinéraire, l'écart à la trace n'est jamais calculé pendant la sortie.
+ */
+async function traceLoop() {
+  loopError.value = ''
+  try {
+    await $fetch(`/api/sessions/${sessionId}/routes`, { method: 'POST', body: { address: null } })
+    await refreshRoutes()
+  } catch (cause) {
+    loopError.value = apiMessage(cause, 'Boucle impossible à tracer.')
+  }
+}
+
+/**
+ * Garder la carte avant de partir (§ 9, P10.3) : sans réseau, les tuiles ne
+ * se chargent plus et la carte est grise. Quelques dizaines de tuiles au zoom
+ * utile, demandées une fois — le navigateur les garde dans son cache HTTP —
+ * et bornées pour rester dans les limites d'usage d'OpenStreetMap.
+ */
+const TILE_ZOOM = 15
+const MAX_TILES = 64
+
+function tileX(lon: number, zoom: number): number {
+  return Math.floor(((lon + 180) / 360) * 2 ** zoom)
+}
+
+function tileY(lat: number, zoom: number): number {
+  const radians = (lat * Math.PI) / 180
+  const merc = Math.log(Math.tan(radians) + 1 / Math.cos(radians))
+  return Math.floor(((1 - merc / Math.PI) / 2) * 2 ** zoom)
+}
+
+async function keepTiles(points: { lat: number; lon: number }[]) {
+  if (points.length === 0 || tilesReady.value) return
+
+  const xs = points.map((point) => tileX(point.lon, TILE_ZOOM))
+  const ys = points.map((point) => tileY(point.lat, TILE_ZOOM))
+  const urls: string[] = []
+
+  /** Une tuile de marge autour de la boîte : la trace passe rarement au centre. */
+  for (let x = Math.min(...xs) - 1; x <= Math.max(...xs) + 1; x += 1) {
+    for (let y = Math.min(...ys) - 1; y <= Math.max(...ys) + 1; y += 1) {
+      urls.push(`https://tile.openstreetmap.org/${TILE_ZOOM}/${x}/${y}.png`)
+    }
+  }
+
+  await Promise.all(
+    urls.slice(0, MAX_TILES).map(
+      (url) =>
+        new Promise<void>((resolve) => {
+          const image = new Image()
+          image.onload = () => resolve()
+          image.onerror = () => resolve()
+          image.src = url
+        }),
+    ),
+  )
+
+  tilesReady.value = true
+}
 
 const started = ref(false)
 const stepIndex = ref(0)
 const stepSince = ref({ distanceM: 0, elapsedS: 0 })
 const finishError = ref('')
 
-const session = computed(() => (plan.plan?.sessions ?? []).find((item) => item.id === sessionId))
+const session = computed(() =>
+  sessionId === null
+    ? undefined
+    : (plan.plan?.sessions ?? []).find((item) => item.id === sessionId),
+)
+/**
+ * Le vélo prend le même écran, avec une vitesse au lieu d'une allure (§ 9,
+ * P10.3). Sa séance n'a pas d'étapes structurées : il n'y a rien à décompter,
+ * on roule et on enregistre.
+ */
+const cycling = computed(() => session.value?.sport === 'velo')
+
+/** Le filtre des relevés suit le sport : sinon une descente est jetée (P10.3). */
+watch(cycling, (riding) => {
+  tracker.speedLimitMS.value = riding ? FIX_TOLERANCE.cyclingMaxSpeedMS : FIX_TOLERANCE.maxSpeedMS
+})
+
 const targets = computed<StepTarget[]>(() => brief.value?.targets ?? [])
 const target = computed<StepTarget | undefined>(() => targets.value[stepIndex.value])
 const guide = computed(() => routes.value?.routes[0]?.points ?? [])
+
+/** La boucle connue, les tuiles partent avec : c'est le seul moment tranquille. */
+watch(
+  () => guide.value,
+  (points) => {
+    if (points.length > 1) void keepTiles(points)
+  },
+  { immediate: true },
+)
 
 const distanceM = computed(() => tracker.track.value.distanceM)
 const elapsedS = computed(() => tracker.track.value.elapsedS)
@@ -172,7 +276,7 @@ async function record(payload: {
 
 <template>
   <div class="flex min-h-screen flex-col gap-3 bg-ink px-4 pt-3 pb-4">
-    <p v-if="briefError" class="tile text-[13px] text-warn">
+    <p v-if="briefError && !cycling && !free" class="tile text-[13px] text-warn">
       Cette séance ne se court pas depuis le cockpit.
       <NuxtLink to="/" class="text-accent">Retour au cockpit</NuxtLink>
     </p>
@@ -189,16 +293,30 @@ async function record(payload: {
       </NuxtLink>
 
       <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <UiAppIcon name="run" :size="20" class="self-center text-accent" />
-        <h1 class="display text-[28px] font-semibold">{{ brief?.label ?? 'Sortie' }}</h1>
+        <UiAppIcon
+          :name="cycling ? 'velo' : 'run'"
+          :size="20"
+          class="self-center"
+          :class="cycling ? 'text-cycling' : 'text-accent'"
+        />
+        <h1 class="display text-[28px] font-semibold">
+          {{ free ? 'Sortie libre' : (brief?.label ?? session?.prescription.label ?? 'Sortie') }}
+        </h1>
         <span v-if="brief?.key" class="pill bg-accent/15 text-accent">clé</span>
         <span v-if="brief" class="mono w-full text-[11.5px] text-text-dim">
           {{ formatLongDate(brief.date) }} · {{ formatDistance(brief.totalDistanceM) }} ·
           {{ formatMinutes(brief.totalDurationS / 60) }}
         </span>
+        <span v-else-if="free" class="mono w-full text-[11.5px] text-text-dim">
+          Hors plan · ni étape ni allure à tenir
+        </span>
+        <span v-else-if="cycling" class="mono w-full text-[11.5px] text-text-dim">
+          {{ formatLongDate(session!.date) }} ·
+          {{ formatMinutes(session!.prescription.durationMin) }}
+        </span>
       </div>
 
-      <div class="tile bg-surface-inset">
+      <div v-if="targets.length > 0" class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Étapes</span>
         <div
           v-for="(step, index) in targets"
@@ -210,14 +328,34 @@ async function record(payload: {
         </div>
       </div>
 
-      <div v-if="guide.length > 1" class="tile bg-surface-inset">
+      <!-- L'écart à la trace ne se calcule que si une boucle existe : elle se
+           trace donc ici, avant de partir (§ 9, P10.3). -->
+      <div v-if="!free && (guide.length > 1 || (ors && loopable))" class="tile bg-surface-inset">
         <span class="label text-[10.5px]">Itinéraire</span>
-        <ClientOnly>
-          <UiRouteMap :points="guide" :height="190" />
-          <template #fallback>
-            <UiSkeleton variant="block" :height="190" class="rounded-md" />
-          </template>
-        </ClientOnly>
+
+        <template v-if="guide.length > 1">
+          <ClientOnly>
+            <UiRouteMap :points="guide" :height="190" />
+            <template #fallback>
+              <UiSkeleton variant="block" :height="190" class="rounded-md" />
+            </template>
+          </ClientOnly>
+          <span class="mono text-[11.5px]" :class="tilesReady ? 'text-text-dim' : 'text-warn'">
+            <template v-if="tilesReady">Carte gardée pour le hors-réseau</template>
+            <template v-else>Carte à garder avant de partir</template>
+          </span>
+        </template>
+
+        <template v-else>
+          <p class="text-[12.5px] text-text-dim">
+            Aucune boucle pour cette séance : sans elle, l'écart à la trace ne se calcule pas.
+          </p>
+          <UiActionButton class="btn btn-ghost" :action="traceLoop">
+            <UiAppIcon name="route" :size="15" />
+            Tracer une boucle
+          </UiActionButton>
+          <p v-if="loopError" class="text-[12px] text-warn">{{ loopError }}</p>
+        </template>
       </div>
 
       <div class="tile bg-surface-inset">
@@ -276,7 +414,10 @@ async function record(payload: {
         </span>
         <span class="mono text-[14px] text-text-dim">
           {{ formatDistance(distanceM) }}
-          <template v-if="average"> · {{ formatPace(average) }}/km</template>
+          <template v-if="average">
+            · <template v-if="cycling">{{ formatSpeed(average) }}</template>
+            <template v-else>{{ formatPace(average) }}/km</template>
+          </template>
         </span>
         <p class="mt-3 max-w-[280px] text-center text-[12.5px] text-text-dim">
           Le GPS est coupé : la pause ne fabrique ni distance ni dérive.
@@ -297,7 +438,9 @@ async function record(payload: {
       <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 class="display text-[28px] font-semibold">Sortie terminée</h1>
         <span class="mono w-full text-[11.5px] text-text-dim">
-          {{ brief?.label }} · {{ formatDistance(distanceM) }} · {{ formatDuration(elapsedS) }}
+          <template v-if="brief?.label">{{ brief.label }} · </template>
+          <template v-else-if="free">Hors plan · </template>
+          {{ formatDistance(distanceM) }} · {{ formatDuration(elapsedS) }}
         </span>
       </div>
 
@@ -344,8 +487,10 @@ async function record(payload: {
           </span>
         </div>
 
+        <!-- Une sortie libre n'a pas de séance : le formulaire s'en passe et
+             l'enregistrement, lui, ne change pas (§ 9, P10.3). -->
         <FeedbackForm
-          v-if="session"
+          v-if="session || free"
           :session="session"
           :watch-zones="plan.lastWatchZones"
           :measured="{ durationMin: Math.round(elapsedS / 60), distanceM }"
@@ -365,13 +510,18 @@ async function record(payload: {
       <div class="flex items-center gap-3">
         <div class="flex min-w-0 flex-1 flex-col gap-px">
           <span class="text-[13.5px]">
-            {{ brief?.label }} · étape {{ stepIndex + 1 }} / {{ targets.length }}
+            <template v-if="targets.length > 0">
+              {{ brief?.label }} · étape {{ stepIndex + 1 }} / {{ targets.length }}
+            </template>
+            <template v-else-if="cycling">{{ session?.prescription.label }}</template>
+            <template v-else>Sortie libre</template>
           </span>
           <span class="mono truncate text-[11.5px] text-text-dim">
             <template v-if="target">{{ target.label }} · {{ targetLine(target) }}</template>
           </span>
         </div>
         <button
+          v-if="targets.length > 0"
           type="button"
           class="btn btn-ghost size-11 shrink-0 p-0"
           aria-label="Passer à l'étape suivante"
@@ -397,8 +547,14 @@ async function record(payload: {
       </div>
 
       <div class="flex flex-col items-center gap-1 pt-3 pb-1">
-        <span class="label text-[10.5px]">Reste sur l'étape</span>
-        <span class="display text-[80px] leading-[0.95] font-bold">{{ stepLeft }}</span>
+        <!-- Sans étape à décompter — sortie libre ou vélo — le grand chiffre
+             est le temps de la sortie : c'est ce qu'on regarde (§ 8, P10.3). -->
+        <span class="label text-[10.5px]">
+          {{ targets.length > 0 ? 'Reste sur l’étape' : 'Temps de la sortie' }}
+        </span>
+        <span class="display text-[80px] leading-[0.95] font-bold">
+          {{ targets.length > 0 ? stepLeft : formatDuration(elapsedS) }}
+        </span>
         <span v-if="target" class="mono text-[14px] text-text-dim">
           cible {{ targetLine(target) }}
         </span>
@@ -406,9 +562,10 @@ async function record(payload: {
 
       <div class="flex flex-wrap items-center justify-center gap-3 border-y border-line-soft py-3">
         <span class="mono text-[30px]" :class="offBand ? 'text-warn' : 'text-text'">
-          {{ formatPace(tracker.pace.value) }}
+          <template v-if="cycling">{{ formatSpeed(tracker.pace.value) }}</template>
+          <template v-else>{{ formatPace(tracker.pace.value) }}</template>
         </span>
-        <span class="mono text-[13px] text-text-dim">/km</span>
+        <span v-if="!cycling" class="mono text-[13px] text-text-dim">/km</span>
         <span v-if="gap !== null && offBand" class="pill pill-warn">
           {{ gap > 0 ? '+' : '−' }} {{ Math.abs(gap) }} s sur la cible
         </span>
@@ -427,10 +584,11 @@ async function record(payload: {
         </span>
         <span class="flex flex-col">
           <span class="mono text-[20px]">
-            <template v-if="average">{{ formatPace(average) }}/km</template>
-            <template v-else>—</template>
+            <template v-if="!average">—</template>
+            <template v-else-if="cycling">{{ formatSpeed(average) }}</template>
+            <template v-else>{{ formatPace(average) }}/km</template>
           </span>
-          <span class="label text-[9.5px]">allure moy.</span>
+          <span class="label text-[9.5px]">{{ cycling ? 'vitesse moy.' : 'allure moy.' }}</span>
         </span>
       </div>
 

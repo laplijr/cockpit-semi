@@ -27,11 +27,14 @@ const done = computed(() => props.session.status === 'faite')
  */
 const runnable = computed(
   () =>
-    props.session.sport === 'course' &&
+    ['course', 'velo'].includes(props.session.sport) &&
     props.session.date === plan.today &&
     !done.value &&
     props.session.status !== 'annulee',
 )
+
+/** Le vélo prend le même écran, et le verbe qui lui va (§ 9, P10.3). */
+const riding = computed(() => props.session.sport === 'velo')
 
 /** Sortie en cours côté serveur : elle se reprend au lieu d'en ouvrir une autre. */
 const { data: liveRun } = useFetch<{
@@ -105,10 +108,10 @@ const runHref = computed(() => {
     <!-- Une seule action principale par ligne : quand il y a une sortie à
          courir, c'est elle, et le ressenti passe en fantôme (§ 8). -->
     <NuxtLink v-if="runnable" :to="runHref" class="btn w-full shrink-0 lean:w-auto">
-      <UiAppIcon name="run" :size="15" />
+      <UiAppIcon :name="riding ? 'velo' : 'run'" :size="15" />
       <template v-if="pending">Terminer l'enregistrement</template>
       <template v-else-if="live">Reprendre · {{ formatDistance(live.distanceM) }}</template>
-      <template v-else>Courir</template>
+      <template v-else>{{ riding ? 'Rouler' : 'Courir' }}</template>
     </NuxtLink>
 
     <button

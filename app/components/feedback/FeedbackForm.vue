@@ -14,7 +14,8 @@ interface FeedbackPayload {
 
 const props = withDefaults(
   defineProps<{
-    session: PlanSession
+    /** Nulle pour une sortie libre : elle n'a pas de séance prévue (§ 9, P10.3). */
+    session?: PlanSession
     watchZones: string[]
     /**
      * Enregistrement de remplacement. Une sortie courue dans l'app poste le
@@ -26,7 +27,7 @@ const props = withDefaults(
     measured?: { durationMin: number; distanceM: number | null }
     action?: string
   }>(),
-  { submit: undefined, measured: undefined, action: 'Enregistrer le ressenti' },
+  { session: undefined, submit: undefined, measured: undefined, action: 'Enregistrer le ressenti' },
 )
 const emit = defineEmits<{ saved: [] }>()
 
@@ -39,25 +40,30 @@ const SENSATIONS = [
   { value: 'nausee', label: 'Nausée' },
 ]
 
-const isStrength = computed(() => props.session.sport === 'muscu')
-const isRunning = computed(() => props.session.sport === 'course')
+const isStrength = computed(() => props.session?.sport === 'muscu')
+/** Sans séance, c'est une sortie à pied : c'est le seul sport qu'on y court. */
+const isRunning = computed(() => (props.session?.sport ?? 'course') === 'course')
 const strengthSets = ref<{ save: () => Promise<void> } | null>(null)
 
 /** Durée prévue, déduite de la distance et de l'allure de la prescription. */
-const plannedMinutes = computed(() => prescribedMinutes(props.session.prescription))
+const plannedMinutes = computed(() =>
+  props.session
+    ? prescribedMinutes(props.session.prescription)
+    : (props.measured?.durationMin ?? 0),
+)
 
 const form = reactive({
-  rpe: props.session.prescription.expectedRpe,
+  rpe: props.session?.prescription.expectedRpe ?? 5,
   sensations: [] as string[],
   sleepHours: null as number | null,
   painZone: '',
   painIntensity: 0,
   durationMin: props.measured?.durationMin ?? plannedMinutes.value,
-  distanceM: props.measured?.distanceM ?? props.session.prescription.totalDistanceM ?? null,
+  distanceM: props.measured?.distanceM ?? props.session?.prescription.totalDistanceM ?? null,
   notes: '',
 })
 
-const isTest = computed(() => props.session.code === 'test')
+const isTest = computed(() => props.session?.code === 'test')
 const testDistanceM = ref<number | null>(null)
 
 const error = ref('')
@@ -76,7 +82,7 @@ async function save() {
     if (isTest.value && testDistanceM.value) {
       await $fetch('/api/tests', {
         method: 'POST',
-        body: { date: props.session.date, distanceM: testDistanceM.value },
+        body: { date: props.session!.date, distanceM: testDistanceM.value },
       })
     }
 
@@ -92,7 +98,7 @@ async function save() {
 
     if (props.submit) await props.submit(payload)
     else
-      await $fetch(`/api/sessions/${props.session.id}/feedback`, { method: 'PUT', body: payload })
+      await $fetch(`/api/sessions/${props.session!.id}/feedback`, { method: 'PUT', body: payload })
 
     emit('saved')
   } catch (cause) {
@@ -103,7 +109,8 @@ async function save() {
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="tile bg-surface-inset">
+    <!-- Une sortie libre n'a rien de prévu : la tuile ne se rend pas. -->
+    <div v-if="session" class="tile bg-surface-inset">
       <span class="label text-[10.5px]">Prévu</span>
       <span class="mono text-[13px] text-text-dim">
         <template v-if="isRunning">
@@ -151,7 +158,12 @@ async function save() {
       </label>
     </div>
 
-    <FeedbackStrengthSets v-if="isStrength" ref="strengthSets" :session="session" :rpe="form.rpe" />
+    <FeedbackStrengthSets
+      v-if="isStrength && session"
+      ref="strengthSets"
+      :session="session"
+      :rpe="form.rpe"
+    />
 
     <div class="flex flex-col gap-[6px]">
       <span class="label text-[10.5px]">

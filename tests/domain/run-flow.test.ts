@@ -91,6 +91,7 @@ function bench(sessions: CandidateSession[] = [], sessionId: number | null = nul
         return saved.length * 100
       },
       sessionCode: async () => 'seuil',
+      sessionSport: async () => Sport.Running,
       recomputeLoad: async (date) => void recomputed.push(date),
     },
     feedback: {

@@ -56,6 +56,28 @@ describe('relevés retenus (§ 9, P10)', () => {
     expect(acceptFix(jump, previous)).toBe(false)
   })
 
+  /**
+   * Le vélo prend le même écran que la course (§ 9, P10.3) : sans une borne
+   * de vitesse à lui, une descente à 50 km/h passerait pour un saut et la
+   * moitié de la sortie serait jetée.
+   */
+  it('accepte à vélo ce qu’il écarte à la course', () => {
+    const previous = { ...START, accuracyM: 5, at: T0 }
+    const fast = {
+      lat: START.lat + 15 * METRE_IN_LAT,
+      lon: START.lon,
+      accuracyM: 5,
+      at: T0 + 1000,
+    }
+
+    expect(acceptFix(fast, previous)).toBe(false)
+    expect(acceptFix(fast, previous, FIX_TOLERANCE.cyclingMaxSpeedMS)).toBe(true)
+
+    const track = measureTrack([previous, fast], FIX_TOLERANCE.cyclingMaxSpeedMS)
+    expect(track.distanceM).toBeGreaterThan(14)
+    expect(track.rejected).toBe(0)
+  })
+
   it('écarte un relevé qui remonte dans le temps', () => {
     const previous = { ...START, accuracyM: 5, at: T0 }
     expect(acceptFix({ ...START, accuracyM: 5, at: T0 - 1000 }, previous)).toBe(false)

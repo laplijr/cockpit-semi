@@ -31,6 +31,12 @@ export const FIX_TOLERANCE = {
   /** Vitesse au-delà de laquelle le relevé est un saut, pas une course. */
   maxSpeedMS: 10,
   /**
+   * La même borne à vélo : une descente à 60 km/h n'est pas un saut de
+   * position, et le seuil de la course jetterait la moitié de la sortie
+   * (§ 9, P10.3).
+   */
+  cyclingMaxSpeedMS: 25,
+  /**
    * Trou entre deux relevés à partir duquel le temps ne compte plus : pause
    * déclarée ou signal perdu, dans les deux cas on n'était pas en train de
    * courir un temps qu'on ne sait pas mesurer.
@@ -56,7 +62,11 @@ const secondsBetween = (from: GeoFix, to: GeoFix) => (to.at - from.at) / 1000
  * vitesse impossible. Le troisième critère est le seul qui demande le
  * précédent : c'est lui qui écarte les sauts de position en ville.
  */
-export function acceptFix(fix: GeoFix, previous?: GeoFix): boolean {
+export function acceptFix(
+  fix: GeoFix,
+  previous?: GeoFix,
+  maxSpeedMS: number = FIX_TOLERANCE.maxSpeedMS,
+): boolean {
   if (!Number.isFinite(fix.lat) || !Number.isFinite(fix.lon)) return false
   if (fix.accuracyM > FIX_TOLERANCE.accuracyM) return false
   if (previous === undefined) return true
@@ -64,5 +74,5 @@ export function acceptFix(fix: GeoFix, previous?: GeoFix): boolean {
   const seconds = secondsBetween(previous, fix)
   if (seconds <= 0) return false
 
-  return distanceBetween(previous, fix) / seconds <= FIX_TOLERANCE.maxSpeedMS
+  return distanceBetween(previous, fix) / seconds <= maxSpeedMS
 }

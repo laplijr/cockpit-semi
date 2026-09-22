@@ -1232,12 +1232,12 @@ P10.2 — L'écran de course
 - [x] Fini : lint, typecheck, tests (68 fichiers, 733 tests) et build verts.
 
 P10.3 — L'itinéraire pendant la course, et la sortie libre
-- [ ] La boucle suggérée sous la position pendant la course : elle est déjà dessinée, mais l'écart à la trace n'est calculé que quand un itinéraire existe pour la séance — générer la boucle depuis l'écran de préparation, avant de partir.
-- [ ] Pré-charger les tuiles de la boîte englobante avant de partir : sans réseau, la carte est grise. Quelques dizaines de tuiles au zoom utile, dans les limites d'usage d'OSM.
-- [ ] Sortie libre, hors séance prévue : l'écriture la porte déjà (`finishRun` rattache ou classe hors plan), il manque l'entrée — dans le dialog d'un jour de repos, pas sur l'écran principal.
-- [ ] Le vélo : le même écran avec une vitesse au lieu d'une allure.
-- [ ] Kilométrage des chaussures (P7) : le choix des chaussures au départ est sa place naturelle.
-- [ ] Batterie à mesurer sur une vraie sortie avant d'annoncer quoi que ce soit.
+- [x] La boucle suggérée sous la position pendant la course : elle est déjà dessinée, mais l'écart à la trace n'est calculé que quand un itinéraire existe pour la séance — générer la boucle depuis l'écran de préparation, avant de partir. Le bloc « Itinéraire » porte le geste quand la séance n'a pas de boucle, et il ne s'affiche que si la séance a une distance : une séance en durée n'a pas de boucle à tracer.
+- [x] Pré-charger les tuiles de la boîte englobante avant de partir : sans réseau, la carte est grise. Quelques dizaines de tuiles au zoom utile, dans les limites d'usage d'OSM. Zoom 15, une tuile de marge autour de la boîte, **au plus 64 tuiles** — la boucle de 3 km du scénario en demande seize —, demandées une fois, et la ligne sous la carte dit quand c'est fait. Vérifié : après le chargement, une tuile du coin de la boîte revient en 3 ms, donc du cache.
+- [x] Sortie libre, hors séance prévue : l'écriture la porte déjà (`finishRun` rattache ou classe hors plan), il manque l'entrée — dans le dialog d'un jour de repos, pas sur l'écran principal. Le formulaire de ressenti accepte désormais une sortie sans séance ; le grand chiffre devient le temps de la sortie, faute d'étape à décompter. Vérifié avec un GPS simulé : 3,3 km enregistrés, classés hors plan puisque aucune séance du jour ne leur ressemblait.
+- [x] Le vélo : le même écran avec une vitesse au lieu d'une allure. **Un défaut de fond est sorti de là** : le filtre des relevés refusait tout ce qui dépassait 36 km/h — calibré pour la course — et jetait donc la moitié d'une sortie à vélo. La borne devient celle du sport (25 m/s à vélo), côté écran comme côté serveur, et c'est le sport de la séance rattachée qui décide aussi du sport de l'activité écrite. La séance de vélo n'a pas d'étapes structurées : l'écran prend la forme de la sortie libre, avec le nom de la séance. Vérifié : 36,6 km en 1 h 01 à 36 km/h de moyenne, séance passée « faite ».
+- [ ] Kilométrage des chaussures (P7) : le choix des chaussures au départ est sa place naturelle. **Laissée ouverte, et c'est délibéré** : il n'y a pas de chaussures dans le cockpit — ni table, ni écran, ni saisie. Cette case est une place à réserver dans l'écran de départ, pas une fonctionnalité : elle se cochera avec le kilométrage des chaussures, au reste de P7.
+- [ ] Batterie à mesurer sur une vraie sortie avant d'annoncer quoi que ce soit. **Ouverte exprès** : un navigateur de bureau, même avec un GPS simulé, ne dit rien de ce que consomme une heure d'écran allumé et de GPS sur un téléphone.
 
 P11 — Le renforcement, personnel
 

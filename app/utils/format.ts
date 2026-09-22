@@ -17,6 +17,12 @@ export function formatDuration(seconds: number | null | undefined): string {
   return `${hours}:${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`
 }
 
+/** Vitesse en km/h, déduite d'une allure en secondes par kilomètre (§ 9, P10.3). */
+export function formatSpeed(secPerKm: number | null | undefined): string {
+  if (secPerKm === null || secPerKm === undefined || secPerKm <= 0) return '—'
+  return `${(3600 / secPerKm).toFixed(1).replace('.', ',')} km/h`
+}
+
 export function formatDistance(meters: number | null | undefined): string {
   if (meters === null || meters === undefined) return '—'
   if (meters < 1000) return `${Math.round(meters)} m`

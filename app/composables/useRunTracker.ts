@@ -51,7 +51,13 @@ export function useRunTracker() {
   const announcing = ref(true)
   const error = ref('')
 
-  const track = computed<Track>(() => measureTrack(fixes.value))
+  /**
+   * Vitesse plausible : la course par défaut, le vélo quand l'écran le dit
+   * (§ 9, P10.3). Sans ça, une descente à vélo passerait pour un saut.
+   */
+  const speedLimitMS = ref<number>(FIX_TOLERANCE.maxSpeedMS)
+
+  const track = computed<Track>(() => measureTrack(fixes.value, speedLimitMS.value))
   const pace = computed(() => smoothedPace(track.value))
   const kilometres = computed(() => splits(track.value))
   const position = computed(() => track.value.points.at(-1) ?? null)
@@ -242,6 +248,7 @@ export function useRunTracker() {
   })
 
   return {
+    speedLimitMS,
     phase,
     runId,
     fixes,

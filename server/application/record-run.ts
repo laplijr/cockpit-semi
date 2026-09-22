@@ -6,6 +6,7 @@ import { Sport } from '../domain/shared/sport'
 import { FIX_TOLERANCE, type GeoFix } from '../domain/tracking/fix'
 import { RunStatus } from '../domain/tracking/run'
 import { measureTrack, type Track } from '../domain/tracking/track'
+
 import type { ActivityImportGateway } from './import-activities'
 import { recordFeedback, type FeedbackGateway } from './record-feedback'
 
@@ -14,6 +15,11 @@ import { recordFeedback, type FeedbackGateway } from './record-feedback'
  * aucun chemin nouveau : l'activité passe par le rattachement de P2 puis par
  * `recordFeedback`, comme un fichier de montre et comme la saisie manuelle.
  */
+
+/** Vitesse plausible selon le sport : c'est elle qui filtre les relevés (§ 9, P10.3). */
+export function speedLimitFor(sport: Sport): number {
+  return sport === Sport.Cycling ? FIX_TOLERANCE.cyclingMaxSpeedMS : FIX_TOLERANCE.maxSpeedMS
+}
 
 /** Préfixe des identifiants d'activité venus d'une capture dans l'app. */
 export const RUN_EXTERNAL_PREFIX = 'cockpit:'
@@ -123,8 +129,14 @@ export async function finishRun(
   input: FinishRunInput,
 ): Promise<FinishRunResult> {
   const run = await liveOrFail(gateways.runs, input.runId)
+  /** Le sport borne la vitesse plausible : une descente à vélo n'est pas un saut. */
+  const sport =
+    run.sessionId === null
+      ? Sport.Running
+      : ((await gateways.activities.sessionSport(run.sessionId)) ?? Sport.Running)
+
   const fixes = mergeFixes(run.fixes, input.fixes)
-  const track = measureTrack(fixes)
+  const track = measureTrack(fixes, speedLimitFor(sport))
 
   if (track.distanceM < FIX_TOLERANCE.minRunM) {
     throw new Error('Sortie trop courte pour être enregistrée')
@@ -140,7 +152,7 @@ export async function finishRun(
   const sessionId = await linkedSession(gateways.activities, run, durationS)
   const activityId = await gateways.activities.saveActivity({
     externalId: `${RUN_EXTERNAL_PREFIX}${run.id}`,
-    sport: Sport.Running,
+    sport,
     date: run.date,
     startedAt: run.startedAt,
     durationS,

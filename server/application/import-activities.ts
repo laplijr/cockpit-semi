@@ -61,6 +61,8 @@ export interface ActivityImportGateway {
   saveActivity(row: ActivityRow): Promise<number>
   /** Code de la séance rattachée : l'écran le traduit, le serveur ne le fait pas. */
   sessionCode(sessionId: number): Promise<string | undefined>
+  /** Sport de la séance rattachée, quand l'appelant en a besoin (§ 9, P10.3). */
+  sessionSport(sessionId: number): Promise<Sport | undefined>
   recomputeLoad(date: IsoDate): Promise<void>
 }
 

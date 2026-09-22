@@ -8,6 +8,7 @@ import { RUN_EXTERNAL_PREFIX } from '../../application/record-run'
 import type { CandidateSession } from '../../domain/matching/match-activity'
 import type { IsoDate } from '../../domain/plan/calendar'
 import { SessionStatus } from '../../domain/plan/session'
+import type { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
 import { recomputeLoadFor } from './load-repository'
 import { athleteWeekIds } from './plan-gateway'
@@ -105,6 +106,18 @@ export function createActivityImportGateway(
         .returning({ id: activity.id })
 
       return row_!.id
+    },
+
+    /** Le sport de la séance rattachée : une sortie vélo n'est pas une course (P10.3). */
+    async sessionSport(sessionId: number): Promise<Sport | undefined> {
+      const [row] = await db
+        .select({ sport: session.sport })
+        .from(session)
+        .where(
+          and(eq(session.id, sessionId), inArray(session.weekId, athleteWeekIds(db, athleteId))),
+        )
+        .limit(1)
+      return row?.sport as Sport | undefined
     },
 
     async sessionCode(sessionId: number): Promise<string | undefined> {
