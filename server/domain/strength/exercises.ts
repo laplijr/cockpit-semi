@@ -1,3 +1,5 @@
+import { StrengthEquipment, equipmentCovers } from './equipment'
+
 /** Ce qu'un exercice apporte, affiché tel quel sur la page Muscu. */
 export enum StrengthBenefit {
   Running = 'course',
@@ -94,6 +96,13 @@ export interface StrengthExercise {
   /** Vrai quand l'exercice charge les jambes : gelé sur blessure basse (§ 5, G5). */
   lowerBody: boolean
   progression?: StrengthProgression
+  /**
+   * Matériel exigé. Sans valeur, aucun : un mur, une marche, une chaise
+   * suffisent, et l'exercice passe tel quel aux trois niveaux (§ 5, P11.3).
+   */
+  equipment?: StrengthEquipment
+  /** Remplaçant au niveau du dessous : un exercice complet, jamais un libellé. */
+  fallbackId?: string
   why: string
 }
 
@@ -101,6 +110,8 @@ export interface StrengthExercise {
 export const STRENGTH_EXERCISES: StrengthExercise[] = [
   {
     id: 'squat',
+    equipment: StrengthEquipment.Gym,
+    fallbackId: 'goblet-squat',
     label: 'Squat arrière',
     group: StrengthGroup.Legs,
     effort: StrengthEffort.MaxStrength,
@@ -115,6 +126,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'goblet-squat',
+    equipment: StrengthEquipment.Home,
+    fallbackId: 'fente-bulgare',
     label: 'Goblet squat',
     group: StrengthGroup.Legs,
     effort: StrengthEffort.Hypertrophy,
@@ -128,6 +141,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'sdt-roumain',
+    equipment: StrengthEquipment.Gym,
+    fallbackId: 'sdt-halteres',
     label: 'Soulevé de terre roumain',
     group: StrengthGroup.Legs,
     effort: StrengthEffort.MaxStrength,
@@ -229,6 +244,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'hip-thrust',
+    equipment: StrengthEquipment.Gym,
+    fallbackId: 'pont-fessier-leste',
     label: 'Hip thrust',
     group: StrengthGroup.Legs,
     effort: StrengthEffort.Hypertrophy,
@@ -266,6 +283,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'developpe-couche',
+    equipment: StrengthEquipment.Gym,
+    fallbackId: 'developpe-halteres',
     label: 'Développé couché',
     group: StrengthGroup.Push,
     effort: StrengthEffort.MaxStrength,
@@ -279,6 +298,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'developpe-militaire',
+    equipment: StrengthEquipment.Home,
+    fallbackId: 'pompes',
     label: 'Développé militaire haltères',
     group: StrengthGroup.Push,
     effort: StrengthEffort.Hypertrophy,
@@ -292,6 +313,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'dips',
+    equipment: StrengthEquipment.Gym,
+    fallbackId: 'developpe-halteres',
     label: 'Dips',
     group: StrengthGroup.Push,
     effort: StrengthEffort.Hypertrophy,
@@ -305,6 +328,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'tractions',
+    equipment: StrengthEquipment.Gym,
+    fallbackId: 'rowing-elastique',
     label: 'Tractions',
     group: StrengthGroup.Pull,
     effort: StrengthEffort.MaxStrength,
@@ -317,6 +342,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'rowing',
+    equipment: StrengthEquipment.Home,
+    fallbackId: 'rowing-australien',
     label: 'Rowing haltère unilatéral',
     group: StrengthGroup.Pull,
     effort: StrengthEffort.Hypertrophy,
@@ -331,6 +358,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'face-pull',
+    equipment: StrengthEquipment.Home,
+    fallbackId: 'ytw-sol',
     label: 'Face pull à l’élastique',
     group: StrengthGroup.Pull,
     effort: StrengthEffort.Prevention,
@@ -357,6 +386,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'pallof',
+    equipment: StrengthEquipment.Gym,
+    fallbackId: 'pallof-elastique',
     label: 'Pallof press',
     group: StrengthGroup.Core,
     effort: StrengthEffort.Core,
@@ -399,6 +430,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'monster-walk',
+    equipment: StrengthEquipment.Home,
+    fallbackId: 'fente-laterale',
     label: 'Monster walk élastique',
     group: StrengthGroup.Prevention,
     effort: StrengthEffort.Prevention,
@@ -412,6 +445,8 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
   },
   {
     id: 'squat-espagnol',
+    equipment: StrengthEquipment.Gym,
+    fallbackId: 'squat-espagnol-sangle',
     label: 'Squat espagnol isométrique',
     group: StrengthGroup.Prevention,
     effort: StrengthEffort.AntalgicIsometry,
@@ -517,6 +552,190 @@ export const STRENGTH_EXERCISES: StrengthExercise[] = [
     lowerBody: false,
     why: 'Trois minutes pour refermer la séance et redescendre.',
   },
+  {
+    id: 'sdt-halteres',
+    label: 'Soulevé de terre roumain haltères',
+    group: StrengthGroup.Legs,
+    effort: StrengthEffort.Hypertrophy,
+    sets: 3,
+    reps: 10,
+    tempo: '3-0-1-0',
+    repDurationS: 3,
+    defaultIntensity: 'modérée',
+    eccentricLoad: true,
+    equipment: StrengthEquipment.Home,
+    fallbackId: 'sdt-unipodal',
+    benefits: [StrengthBenefit.Running, StrengthBenefit.Prevention],
+    lowerBody: true,
+    why: 'Même charnière de hanche, charge devant les cuisses : la chaîne postérieure travaille en excentrique sans barre.',
+  },
+  {
+    id: 'sdt-unipodal',
+    label: 'Soulevé de terre unipodal',
+    group: StrengthGroup.Legs,
+    effort: StrengthEffort.Hypertrophy,
+    sets: 3,
+    reps: 8,
+    unilateral: true,
+    tempo: '3-0-1-0',
+    repDurationS: 4,
+    benefits: [StrengthBenefit.Running, StrengthBenefit.Prevention],
+    lowerBody: true,
+    why: 'Ischios et équilibre sur un appui : la foulée est une suite d’appuis sur une jambe, et le déséquilibre remplace la charge.',
+  },
+  {
+    id: 'pont-fessier-leste',
+    label: 'Pont fessier lesté',
+    group: StrengthGroup.Legs,
+    effort: StrengthEffort.Hypertrophy,
+    sets: 4,
+    reps: 10,
+    repDurationS: 3,
+    defaultIntensity: 'modérée',
+    equipment: StrengthEquipment.Home,
+    fallbackId: 'pont-fessier-unipodal',
+    benefits: [StrengthBenefit.Cycling, StrengthBenefit.Running],
+    lowerBody: true,
+    why: 'Grand fessier en extension de hanche, charge posée sur le bassin : le hip thrust sans banc ni barre.',
+  },
+  {
+    id: 'pont-fessier-unipodal',
+    label: 'Pont fessier unipodal',
+    group: StrengthGroup.Legs,
+    effort: StrengthEffort.Hypertrophy,
+    sets: 3,
+    reps: 12,
+    unilateral: true,
+    repDurationS: 3,
+    benefits: [StrengthBenefit.Running, StrengthBenefit.Prevention],
+    lowerBody: true,
+    why: 'Un appui au lieu de deux : c’est le poids du corps qui fait la charge, et le bassin doit rester droit.',
+  },
+  {
+    id: 'rowing-elastique',
+    label: 'Rowing à l’élastique',
+    group: StrengthGroup.Pull,
+    effort: StrengthEffort.Hypertrophy,
+    sets: 3,
+    reps: 12,
+    repDurationS: 3,
+    superset: 'pull',
+    equipment: StrengthEquipment.Home,
+    fallbackId: 'rowing-australien',
+    benefits: [StrengthBenefit.Cycling, StrengthBenefit.Prevention],
+    lowerBody: false,
+    why: 'Tirage horizontal : la résistance monte en fin de mouvement, là où les omoplates se serrent.',
+  },
+  {
+    id: 'rowing-australien',
+    label: 'Rowing australien',
+    group: StrengthGroup.Pull,
+    effort: StrengthEffort.Hypertrophy,
+    sets: 3,
+    reps: 10,
+    repDurationS: 3,
+    benefits: [StrengthBenefit.Prevention],
+    lowerBody: false,
+    why: 'Corps sous une table ou une barre basse : plus les pieds avancent, plus c’est dur. Le dos travaille sans rien à soulever.',
+  },
+  {
+    id: 'developpe-halteres',
+    label: 'Développé haltères',
+    group: StrengthGroup.Push,
+    effort: StrengthEffort.Hypertrophy,
+    sets: 3,
+    reps: 10,
+    repDurationS: 3,
+    superset: 'push',
+    equipment: StrengthEquipment.Home,
+    fallbackId: 'pompes',
+    benefits: [],
+    lowerBody: false,
+    why: 'Poussée horizontale au sol ou sur un banc : l’amplitude est plus courte, l’épaule est plus libre qu’à la barre.',
+  },
+  {
+    id: 'pompes',
+    label: 'Pompes',
+    group: StrengthGroup.Push,
+    effort: StrengthEffort.Hypertrophy,
+    sets: 3,
+    reps: 12,
+    repDurationS: 3,
+    superset: 'push',
+    progression: { fromSets: 3, fromReps: 8, toSets: 4, toReps: 15, weeks: 6 },
+    benefits: [],
+    lowerBody: false,
+    why: 'Poussée et gainage dans le même mouvement. Mains surélevées pour alléger, pieds surélevés pour charger : le format remplace les disques.',
+  },
+  {
+    id: 'ytw-sol',
+    label: 'Y-T-W au sol',
+    group: StrengthGroup.Pull,
+    effort: StrengthEffort.Prevention,
+    sets: 3,
+    reps: 10,
+    repDurationS: 3,
+    dropOrder: 2,
+    benefits: [StrengthBenefit.Cycling, StrengthBenefit.Prevention],
+    lowerBody: false,
+    why: 'Trois positions de bras à plat ventre : trapèzes bas et rotateurs, la zone que les heures de guidon enroulent.',
+  },
+  {
+    id: 'pallof-elastique',
+    label: 'Pallof press à l’élastique',
+    group: StrengthGroup.Core,
+    effort: StrengthEffort.Core,
+    sets: 3,
+    reps: 10,
+    unilateral: true,
+    repDurationS: 3,
+    equipment: StrengthEquipment.Home,
+    fallbackId: 'dead-bug',
+    benefits: [StrengthBenefit.Prevention],
+    lowerBody: false,
+    why: 'Anti-rotation du tronc, élastique ancré à hauteur de poitrine : la poulie n’apporte rien de plus ici.',
+  },
+  {
+    id: 'fente-laterale',
+    label: 'Fente latérale',
+    group: StrengthGroup.Prevention,
+    effort: StrengthEffort.Prevention,
+    sets: 2,
+    reps: 12,
+    unilateral: true,
+    repDurationS: 3,
+    benefits: [StrengthBenefit.Prevention],
+    lowerBody: true,
+    why: 'Moyen fessier et adducteurs dans le plan frontal, sans élastique : le pas de côté chargé par le poids du corps.',
+  },
+  {
+    id: 'squat-espagnol-sangle',
+    label: 'Squat espagnol à la sangle',
+    group: StrengthGroup.Prevention,
+    effort: StrengthEffort.AntalgicIsometry,
+    sets: 4,
+    reps: 45,
+    isometric: true,
+    repDurationS: 1,
+    equipment: StrengthEquipment.Home,
+    fallbackId: 'wall-sit',
+    benefits: [StrengthBenefit.Prevention],
+    lowerBody: true,
+    why: 'Sangle passée derrière les genoux et ancrée bas : même isométrie antalgique du tendon rotulien, sans rack.',
+  },
+  {
+    id: 'wall-sit',
+    label: 'Chaise contre le mur',
+    group: StrengthGroup.Prevention,
+    effort: StrengthEffort.AntalgicIsometry,
+    sets: 4,
+    reps: 45,
+    isometric: true,
+    repDurationS: 1,
+    benefits: [StrengthBenefit.Prevention],
+    lowerBody: true,
+    why: 'Isométrie du quadriceps dos au mur, cuisses à l’horizontale : l’effet antalgique tient à la durée de contraction, pas au matériel.',
+  },
 ]
 
 const BY_ID = new Map(STRENGTH_EXERCISES.map((exercise) => [exercise.id, exercise]))
@@ -527,6 +746,42 @@ export function strengthExercise(id: string): StrengthExercise | undefined {
 
 export function exercisesOf(group: StrengthGroup): StrengthExercise[] {
   return STRENGTH_EXERCISES.filter((exercise) => exercise.group === group)
+}
+
+/** Matériel exigé par un exercice : aucun, tant qu'il n'en déclare pas (§ 5, P11.3). */
+export function requiredEquipment(exercise: StrengthExercise): StrengthEquipment {
+  return exercise.equipment ?? StrengthEquipment.None
+}
+
+/**
+ * L'exercice à faire avec le matériel qu'on a (§ 5, P11.3). La chaîne descend
+ * d'un cran à la fois jusqu'à ce qu'elle tienne ; le remplaçant est un
+ * exercice complet de la bibliothèque, jamais le même exercice relabellé.
+ */
+export function resolveForEquipment(
+  id: string,
+  available: StrengthEquipment,
+): StrengthExercise | undefined {
+  let exercise = strengthExercise(id)
+
+  while (exercise && !equipmentCovers(available, requiredEquipment(exercise))) {
+    exercise = exercise.fallbackId ? strengthExercise(exercise.fallbackId) : undefined
+  }
+
+  return exercise
+}
+
+/** La chaîne entière, du plus fourni au plus nu : la fenêtre d'exercice la montre. */
+export function substitutionChain(id: string): StrengthExercise[] {
+  const chain: StrengthExercise[] = []
+  let exercise = strengthExercise(id)
+
+  while (exercise && !chain.includes(exercise)) {
+    chain.push(exercise)
+    exercise = exercise.fallbackId ? strengthExercise(exercise.fallbackId) : undefined
+  }
+
+  return chain
 }
 
 /** Repos entre séries : la nature de l'effort le fixe, la phase le module (§ 5). */

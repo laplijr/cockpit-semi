@@ -6,13 +6,15 @@ import type { Prescription } from '../shared/prescription'
 import { prescribedUnits } from '../shared/prescription'
 import { Sport } from '../shared/sport'
 import { StrengthEffort, strengthExercise } from '../strength/exercises'
-import { STRENGTH_DOSES, strengthPhaseFor } from '../strength/phases'
+import { strengthPhaseFor } from '../strength/phases'
 import {
   StrengthSessionCode,
+  chargesLegsHeavily,
   strengthPrescription,
   strengthSessionType,
 } from '../strength/session-types'
-import { MONDAY, SUNDAY, practises, strengthIntentOf } from '../athlete/constraints'
+import { MONDAY, SUNDAY, equipmentOf, practises, strengthIntentOf } from '../athlete/constraints'
+import type { StrengthEquipment } from '../strength/equipment'
 import { StrengthIntent } from '../strength/intent'
 import type { IsoDate } from './calendar'
 import { addDays } from './calendar'
@@ -147,6 +149,7 @@ export function buildWeekSupport({
         nextRaceADate,
         allowances,
         intent: strengthIntentOf(constraints),
+        equipment: equipmentOf(constraints),
       })
     : []
 
@@ -187,6 +190,8 @@ interface StrengthPlacementInput {
   allowances: PauseAllowances | undefined
   /** Catalogue de séances : l'intention le choisit, et rien d'autre (§ 5, P11.2). */
   intent: StrengthIntent
+  /** Matériel disponible : il résout les exercices, pas les séances (§ 5, P11.3). */
+  equipment: StrengthEquipment
 }
 
 function placeStrength({
@@ -199,10 +204,10 @@ function placeStrength({
   nextRaceADate,
   allowances,
   intent,
+  equipment,
 }: StrengthPlacementInput): PlannedSupportSession[] {
   const legsAllowed = allowances?.legStrength ?? true
   const phase = strengthPhaseFor(week.phaseType, weekInPhase)
-  const dose = STRENGTH_DOSES[phase]
 
   /**
    * G7 — une pause qui interdit la muscu jambes ne supprime pas la séance :
@@ -239,6 +244,7 @@ function placeStrength({
         /** La rampe de progression se compte depuis le début du plan (§ 5). */
         progressionWeek: week.index,
         excludedIds: excludedFor(day, code),
+        equipment,
       }),
     })
   }
@@ -258,7 +264,8 @@ function placeStrength({
    */
   function allowsLegLoad(weekday: number, code: StrengthSessionCode): boolean {
     if (!strengthSessionType(code).lowerBody) return true
-    if (!dose.plyometrics && !dose.heavyMainLift) return true
+    /** Sans exercice à 85 %, il n'y a rien à protéger : G1 cesse de mordre. */
+    if (!chargesLegsHeavily(code, phase, equipment)) return true
     return !isEveOfHardRun(weekday)
   }
 

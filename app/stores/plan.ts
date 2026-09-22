@@ -34,6 +34,9 @@ export interface PlanSession {
       superset?: string
       intensity?: string
       loadKg?: number
+      /** Exercice remplacé faute du matériel qu'il demande (§ 5, P11.3). */
+      replacesId?: string
+      replacesLabel?: string
       note?: string
     }[]
   }

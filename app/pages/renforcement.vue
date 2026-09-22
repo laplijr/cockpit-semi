@@ -15,11 +15,21 @@ const preventionBlock = computed(() =>
  */
 const PER_PAGE = 10
 const loadRows = computed(() =>
-  Object.entries(data.value?.lastLoadsKg ?? {}).map(([exerciseId, loadKg]) => ({
-    exerciseId,
-    loadKg,
-    label: data.value?.exercises.find((item) => item.id === exerciseId)?.label ?? exerciseId,
-  })),
+  Object.entries(data.value?.lastLoadsKg ?? {}).map(([exerciseId, loadKg]) => {
+    const exercise = data.value?.exercises.find((item) => item.id === exerciseId)
+    const reps = data.value?.lastReps?.[exerciseId] ?? null
+    return {
+      exerciseId,
+      label: exercise?.label ?? exerciseId,
+      /** Des kilos quand il y a une charge, le format sinon (§ 5, P11.3). */
+      held:
+        loadKg > 0
+          ? formatLoad(loadKg)
+          : reps === null
+            ? '—'
+            : `${reps}${exercise?.isometric ? '″' : ' rép.'}`,
+    }
+  }),
 )
 
 const loads = usePagedList(() => loadRows.value, PER_PAGE)
@@ -101,7 +111,7 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
     </div>
 
     <div class="tile">
-      <span class="label"><UiInfoHint term="chargeMuscu">Charges tenues</UiInfoHint></span>
+      <span class="label"><UiInfoHint term="chargeMuscu">Ce qui a été tenu</UiInfoHint></span>
 
       <div v-if="loads.total === 0" class="text-[13px] text-text-dim">Aucune série saisie.</div>
 
@@ -115,7 +125,7 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
                 class="border-t border-line-soft"
               >
                 <td class="py-[6px]">{{ row.label }}</td>
-                <td class="mono py-[6px] text-right">{{ formatLoad(row.loadKg) }}</td>
+                <td class="mono py-[6px] text-right">{{ row.held }}</td>
               </tr>
             </tbody>
           </table>

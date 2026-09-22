@@ -26,6 +26,10 @@ export interface PrescriptionStep {
   tempo?: string
   /** Durée d'une répétition, en secondes : elle donne la durée réelle de la séance. */
   repDurationS?: number
+  /** Exercice que celui-ci remplace, faute du matériel qu'il demande (§ 5, P11.3). */
+  replacesId?: string
+  /** Nom de cet exercice, pour que la fenêtre n'ait pas à relire la bibliothèque. */
+  replacesLabel?: string
   /** Étapes qui partagent une clé s'enchaînent en superset antagoniste. */
   superset?: string
   /** Repère d'intensité en toutes lettres : « 85–90 % », « 56–75 % FTP ». */

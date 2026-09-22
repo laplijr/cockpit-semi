@@ -2,6 +2,7 @@
 import { MIN_AVAILABLE_DAYS } from '~~/server/domain/athlete/onboarding'
 import { defaultsFor, type AthleteProfile } from '~~/server/domain/athlete/profile'
 import { Sport } from '~~/server/domain/shared/sport'
+import { StrengthEquipment } from '~~/server/domain/strength/equipment'
 import { StrengthIntent } from '~~/server/domain/strength/intent'
 
 const { clear: clearSession } = useUserSession()
@@ -26,6 +27,7 @@ const form = reactive({
   runsPerWeek: athlete.value?.constraints?.runsPerWeek ?? null,
   sports: [...(athlete.value?.constraints?.sports ?? DEFAULT_SPORTS)],
   strengthIntent: athlete.value?.constraints?.strengthIntent ?? StrengthIntent.Complete,
+  equipment: athlete.value?.constraints?.equipment ?? StrengthEquipment.Gym,
   startWeeklyVolumeM: athlete.value?.startWeeklyVolumeM ?? 20000,
   peakWeeklyVolumeM: athlete.value?.peakWeeklyVolumeM ?? 45000,
 })
@@ -94,6 +96,7 @@ async function save() {
         easyDays: [...form.easyDays].sort((a, b) => a - b),
         sports: form.sports,
         strengthIntent: form.strengthIntent,
+        equipment: form.equipment,
         ...(form.runsPerWeek ? { runsPerWeek: form.runsPerWeek } : {}),
       },
     },
@@ -208,7 +211,11 @@ async function logout() {
     </div>
 
     <div class="tile">
-      <ProfilSportsField v-model="form.sports" v-model:intent="form.strengthIntent" />
+      <ProfilSportsField
+        v-model="form.sports"
+        v-model:intent="form.strengthIntent"
+        v-model:equipment="form.equipment"
+      />
     </div>
 
     <!-- Un rappel est un réglage d'appareil et non de compte : il vit avec

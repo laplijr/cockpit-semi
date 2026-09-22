@@ -1,15 +1,21 @@
 <script setup lang="ts">
 import { Sport } from '~~/server/domain/shared/sport'
 import { StrengthIntent, STRENGTH_INTENT_LABELS } from '~~/server/domain/strength/intent'
+import { StrengthEquipment, EQUIPMENT_LABELS } from '~~/server/domain/strength/equipment'
 
 const sports = defineModel<Sport[]>({ required: true })
 /** L'intention du renforcement, quand il est pratiqué (§ 5, P11.2). */
 const intent = defineModel<StrengthIntent>('intent', { required: true })
+/** Le matériel disponible : il résout les exercices, pas les séances (§ 5, P11.3). */
+const equipment = defineModel<StrengthEquipment>('equipment', { required: true })
 
 /** La course est le moteur : elle ne se décoche pas (§ 5, P8.1). */
 const SUPPORT_SPORTS = [Sport.Cycling, Sport.Strength] as const
 
 const INTENTS = [StrengthIntent.Complete, StrengthIntent.Running] as const
+
+/** Du plus nu au plus fourni : l'ordre de lecture est celui de la chaîne (§ 5, P11.3). */
+const EQUIPMENTS = [StrengthEquipment.None, StrengthEquipment.Home, StrengthEquipment.Gym] as const
 
 function toggle(sport: Sport) {
   sports.value = sports.value.includes(sport)
@@ -64,6 +70,25 @@ function toggle(sport: Sport) {
       <p class="text-[13px] text-text-dim">
         Pour la course : appuis et tronc, faisables sans haut du corps. Complet : le haut du corps
         en plus, deux séances de plus par semaine.
+      </p>
+
+      <span class="label text-[10.5px]">Matériel disponible</span>
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-for="value in EQUIPMENTS"
+          :key="value"
+          type="button"
+          class="btn btn-ghost"
+          :class="equipment === value && 'border-accent bg-accent/15 text-text'"
+          :aria-pressed="equipment === value"
+          @click="equipment = value"
+        >
+          {{ EQUIPMENT_LABELS[value] }}
+        </button>
+      </div>
+      <p class="text-[13px] text-text-dim">
+        Chaque exercice a son remplaçant au niveau du dessous : la séance ne demande jamais un objet
+        que tu n'as pas.
       </p>
     </div>
   </div>

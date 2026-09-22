@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, lt } from 'drizzle-orm'
 import { z } from 'zod'
-import { nextLoadsFor } from '../../../application/record-strength-sets'
+import { nextFormatsFor, nextLoadsFor } from '../../../application/record-strength-sets'
 import type { Prescription } from '../../../domain/shared/prescription'
 import { useDatabase } from '../../../infra/db/client'
 import { athleteWeekIds } from '../../../infra/db/plan-gateway'
@@ -17,6 +17,9 @@ export interface StrengthExerciseState {
   lastLoadKg: number | null
   /** Charge proposée pour cette séance, déduite de la dernière (§ 9, P4). */
   suggestedLoadKg: number | null
+  /** Répétitions tenues et proposées, quand l'exercice se fait sans charge (P11.3). */
+  lastReps: number | null
+  suggestedReps: number | null
 }
 
 /**
@@ -56,29 +59,37 @@ export default defineEventHandler(async (event) => {
       .map((step) => [step.exerciseId!, step.reps!]),
   )
 
+  const previousRecords = previousSets.map((set) => ({
+    exerciseId: set.exerciseId,
+    index: set.index,
+    reps: set.reps,
+    loadKg: set.loadKg,
+    rpe: set.rpe,
+  }))
+
   const suggested = new Map(
-    nextLoadsFor(
-      previousSets.map((set) => ({
-        exerciseId: set.exerciseId,
-        index: set.index,
-        reps: set.reps,
-        loadKg: set.loadKg,
-        rpe: set.rpe,
-      })),
-      previousTargets,
-    ).map((item) => [item.exerciseId, item.loadKg]),
+    nextLoadsFor(previousRecords, previousTargets).map((item) => [item.exerciseId, item.loadKg]),
+  )
+
+  const formats = new Map(
+    nextFormatsFor(previousRecords, previousTargets).map((item) => [item.exerciseId, item.reps]),
   )
 
   const lastLoads = new Map<string, number>()
+  const lastReps = new Map<string, number>()
   for (const set of previousSets) {
     lastLoads.set(set.exerciseId, Math.max(lastLoads.get(set.exerciseId) ?? 0, set.loadKg))
+    lastReps.set(set.exerciseId, Math.max(lastReps.get(set.exerciseId) ?? 0, set.reps))
   }
 
   const exercises: StrengthExerciseState[] = targets.map((step) => ({
     exerciseId: step.exerciseId!,
     targetReps: step.reps!,
-    lastLoadKg: lastLoads.get(step.exerciseId!) ?? null,
-    suggestedLoadKg: suggested.get(step.exerciseId!) ?? lastLoads.get(step.exerciseId!) ?? null,
+    lastLoadKg: lastLoads.get(step.exerciseId!) || null,
+    suggestedLoadKg:
+      (suggested.get(step.exerciseId!) ?? lastLoads.get(step.exerciseId!) ?? 0) || null,
+    lastReps: lastReps.get(step.exerciseId!) ?? null,
+    suggestedReps: formats.get(step.exerciseId!) ?? null,
   }))
 
   return { exercises }

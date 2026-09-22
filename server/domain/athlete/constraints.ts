@@ -1,4 +1,5 @@
 import { Sport } from '../shared/sport'
+import { StrengthEquipment } from '../strength/equipment'
 import { StrengthIntent } from '../strength/intent'
 
 export const MONDAY = 1
@@ -26,6 +27,11 @@ export interface AthleteConstraints {
    * ne bouge pas, exactement comme pour `sports` (§ 5, P11.2).
    */
   strengthIntent?: StrengthIntent
+  /**
+   * Matériel disponible. Sans valeur, la salle : c'est l'hypothèse tacite de
+   * tout ce qui a été prescrit jusqu'ici (§ 5, P11.3).
+   */
+  equipment?: StrengthEquipment
   notes?: string[]
 }
 
@@ -38,6 +44,11 @@ export function practises(constraints: AthleteConstraints, sport: Sport): boolea
 /** Intention déclarée, ou celle d'aujourd'hui quand rien n'a été dit (§ 5, P11.2). */
 export function strengthIntentOf(constraints: AthleteConstraints): StrengthIntent {
   return constraints.strengthIntent ?? StrengthIntent.Complete
+}
+
+/** Matériel déclaré, ou celui qu'on supposait sans le dire (§ 5, P11.3). */
+export function equipmentOf(constraints: AthleteConstraints): StrengthEquipment {
+  return constraints.equipment ?? StrengthEquipment.Gym
 }
 
 export const DEFAULT_CONSTRAINTS: AthleteConstraints = { availableDays: [] }

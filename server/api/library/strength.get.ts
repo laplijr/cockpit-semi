@@ -15,7 +15,8 @@ import {
   strengthPrescription,
 } from '../../domain/strength/session-types'
 import { strengthPerPhase } from '../../domain/plan/week-support'
-import { strengthIntentOf } from '../../domain/athlete/constraints'
+import { equipmentOf, strengthIntentOf } from '../../domain/athlete/constraints'
+import { EQUIPMENT_LABELS } from '../../domain/strength/equipment'
 import type { AthleteConstraints } from '../../domain/athlete/constraints'
 import { PhaseType } from '../../domain/plan/phases'
 import { useDatabase } from '../../infra/db/client'
@@ -43,9 +44,9 @@ export default defineEventHandler(async (event) => {
   ])
 
   /** Le catalogue de l'athlète, et lui seul : l'autre n'est pas le sien (§ 5, P11.2). */
-  const intent = strengthIntentOf(
-    (profile?.constraints ?? { availableDays: [] }) as AthleteConstraints,
-  )
+  const constraints = (profile?.constraints ?? { availableDays: [] }) as AthleteConstraints
+  const intent = strengthIntentOf(constraints)
+  const equipment = equipmentOf(constraints)
   const perPhase = strengthPerPhase(intent)
   const catalogue = new Set(STRENGTH_CATALOGUE[intent])
 
@@ -65,8 +66,11 @@ export default defineEventHandler(async (event) => {
 
   /** Dernière charge tenue par exercice : la table est triée du plus récent au plus ancien. */
   const lastLoadsKg: Record<string, number> = {}
+  /** Et le format tenu : au poids de corps, c'est lui qui dit ce qui a été fait (§ 5, P11.3). */
+  const lastReps: Record<string, number> = {}
   for (const set of sets) {
     if (lastLoadsKg[set.exerciseId] === undefined) lastLoadsKg[set.exerciseId] = set.loadKg
+    if (lastReps[set.exerciseId] === undefined) lastReps[set.exerciseId] = set.reps
   }
 
   return {
@@ -81,6 +85,9 @@ export default defineEventHandler(async (event) => {
     restFactor: STRENGTH_DOSES[strengthPhase].restFactor,
     exercises: STRENGTH_EXERCISES,
     lastLoadsKg,
+    lastReps,
+    equipment,
+    equipmentLabel: EQUIPMENT_LABELS[equipment],
     sessions: Object.values(STRENGTH_SESSION_TYPES)
       .filter((type) => catalogue.has(type.code))
       .map((type) => ({
@@ -88,6 +95,7 @@ export default defineEventHandler(async (event) => {
         prescription: strengthPrescription(type.code, {
           phase: strengthPhase,
           progressionWeek: current?.index ?? 1,
+          equipment,
         }),
       })),
   }

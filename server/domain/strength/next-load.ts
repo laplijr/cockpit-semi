@@ -34,7 +34,8 @@ export function nextLoadKg(
   if (done.length === 0) return undefined
 
   const load = Math.max(...done.map((set) => set.loadKg))
-  if (load === 0) return 0
+  /** Au poids de corps, il n'y a pas de charge à proposer : le format monte. */
+  if (load === 0) return undefined
 
   const failed = done.some((set) => set.reps < targetReps * FAILED_SET_SHARE)
   if (failed) return round(load * DELOAD_FACTOR)
@@ -44,6 +45,28 @@ export function nextLoadKg(
 
   const lowerBody = strengthExercise(exerciseId)?.lowerBody ?? false
   return round(load + (lowerBody ? LOWER_BODY_STEP_KG : UPPER_BODY_STEP_KG))
+}
+
+/**
+ * Format de la prochaine séance quand l'exercice se fait au poids de corps
+ * (§ 5, P11.3). La charge ne progresse pas — il n'y en a pas —, donc c'est la
+ * répétition qui monte, aux mêmes conditions que la charge : tenue sans
+ * arriver à l'échec, elle monte d'une ; ratée, elle redescend d'une.
+ */
+export function nextRepsTarget(
+  exerciseId: string,
+  targetReps: number,
+  sets: StrengthSetRecord[],
+): number | undefined {
+  const done = sets.filter((set) => set.exerciseId === exerciseId)
+  if (done.length === 0) return undefined
+  if (Math.max(...done.map((set) => set.loadKg)) > 0) return undefined
+
+  const failed = done.some((set) => set.reps < targetReps * FAILED_SET_SHARE)
+  if (failed) return Math.max(1, targetReps - 1)
+
+  const hard = done.some((set) => set.rpe >= HARD_SET_RPE || set.reps < targetReps)
+  return hard ? targetReps : targetReps + 1
 }
 
 /** Charges au demi-kilo : c'est le pas des disques les plus fins. */

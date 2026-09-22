@@ -7,6 +7,7 @@ import {
 } from '~~/server/domain/athlete/onboarding'
 import { defaultsFor, type AthleteProfile } from '~~/server/domain/athlete/profile'
 import { Sport } from '~~/server/domain/shared/sport'
+import { StrengthEquipment } from '~~/server/domain/strength/equipment'
 import { StrengthIntent } from '~~/server/domain/strength/intent'
 
 /** Hors coque : l'arrivant n'a encore rien à piloter (§ 8, P8.2). */
@@ -43,6 +44,7 @@ const form = reactive({
   runsPerWeek: athleteStore.athlete?.constraints?.runsPerWeek ?? null,
   sports: [...(athleteStore.athlete?.constraints?.sports ?? [Sport.Running])],
   strengthIntent: athleteStore.athlete?.constraints?.strengthIntent ?? StrengthIntent.Complete,
+  equipment: athleteStore.athlete?.constraints?.equipment ?? StrengthEquipment.Gym,
 })
 
 const fitness = ref<FitnessStartValue>(emptyFitnessStart(state.value!.today))
@@ -118,6 +120,7 @@ async function persist() {
           longRunDay: form.longRunDay,
           sports: form.sports,
           strengthIntent: form.strengthIntent,
+          equipment: form.equipment,
           ...(form.runsPerWeek ? { runsPerWeek: form.runsPerWeek } : {}),
         },
       },
@@ -266,7 +269,11 @@ async function onRaceCreated() {
           />
         </div>
         <div class="tile">
-          <ProfilSportsField v-model="form.sports" v-model:intent="form.strengthIntent" />
+          <ProfilSportsField
+            v-model="form.sports"
+            v-model:intent="form.strengthIntent"
+            v-model:equipment="form.equipment"
+          />
         </div>
       </template>
 

@@ -1,6 +1,7 @@
 import type { Prescription, PrescriptionStep } from '../shared/prescription'
 import type { StrengthExercise } from './exercises'
-import { StrengthEffort, recoveryFor, strengthExercise } from './exercises'
+import { StrengthEffort, recoveryFor, resolveForEquipment, strengthExercise } from './exercises'
+import { StrengthEquipment } from './equipment'
 import { StrengthIntent } from './intent'
 import type { StrengthPhase } from './phases'
 import { STRENGTH_DOSES } from './phases'
@@ -287,6 +288,17 @@ export interface StrengthPrescriptionContext {
   progressionWeek: number
   /** Exercices retirés : blessure basse, excentrique proscrit, volume de course. */
   excludedIds?: string[]
+  /**
+   * Matériel disponible. Sans valeur, la salle : c'est l'hypothèse de tout ce
+   * qui a été généré avant P11.3, et rien ne doit bouger sans déclaration.
+   */
+  equipment?: StrengthEquipment
+}
+
+/** Un exercice tel qu'il sera fait, et celui qu'il remplace le cas échéant. */
+interface ResolvedExercise {
+  exercise: StrengthExercise
+  replaces?: StrengthExercise
 }
 
 /**
@@ -309,17 +321,37 @@ export function estimatedDurationS(steps: PrescriptionStep[]): number {
 /** Structure concrète d'une séance de muscu : ordre explicite, dose de phase (§ 5). */
 export function strengthPrescription(
   code: StrengthSessionCode,
-  { phase, progressionWeek, excludedIds = [] }: StrengthPrescriptionContext,
+  {
+    phase,
+    progressionWeek,
+    excludedIds = [],
+    equipment = StrengthEquipment.Gym,
+  }: StrengthPrescriptionContext,
 ): Prescription {
   const type = strengthSessionType(code)
   const dose = STRENGTH_DOSES[phase]
   const excluded = new Set(excludedIds)
 
-  const pick = (ids: string[]) =>
+  /**
+   * Le matériel résout l'exercice là où `excludedIds` filtre déjà : une
+   * séance ne prescrit jamais un objet que l'athlète a déclaré ne pas avoir
+   * (§ 5, P11.3).
+   */
+  const seen = new Set<string>()
+
+  const pick = (ids: string[]): ResolvedExercise[] =>
     ids
       .filter((id) => !excluded.has(id))
-      .map(strengthExercise)
-      .filter((exercise): exercise is StrengthExercise => exercise !== undefined)
+      .map((id) => {
+        const origin = strengthExercise(id)
+        const exercise = resolveForEquipment(id, equipment)
+        if (!exercise || !origin) return undefined
+        /** Deux exercices peuvent tomber sur le même remplaçant : il n'est fait qu'une fois. */
+        if (seen.has(exercise.id)) return undefined
+        seen.add(exercise.id)
+        return exercise.id === origin.id ? { exercise } : { exercise, replaces: origin }
+      })
+      .filter((item): item is ResolvedExercise => item !== undefined)
 
   const plyometrics = dose.plyometrics ? pick(type.plyometricIds) : []
   const main = pick(type.exerciseIds)
@@ -331,24 +363,29 @@ export function strengthPrescription(
   }
 
   /** La pliométrie passe en tête, à froid : c'est là qu'elle vaut quelque chose. */
-  for (const exercise of plyometrics) steps.push(stepFor(exercise, false, dose, progressionWeek))
-  for (const [index, exercise] of main.entries()) {
-    steps.push(stepFor(exercise, index === 0 && plyometrics.length === 0, dose, progressionWeek))
+  for (const item of plyometrics) steps.push(stepFor(item, false, dose, progressionWeek))
+  for (const [index, item] of main.entries()) {
+    steps.push(stepFor(item, index === 0 && plyometrics.length === 0, dose, progressionWeek))
   }
 
   /** Le bloc prévention est fait d'étapes réelles, mais il tient en dix minutes. */
   steps.push(
-    ...fitInPreventionBlock(
-      prevention.map((exercise) => stepFor(exercise, false, dose, progressionWeek)),
-    ),
+    ...fitInPreventionBlock(prevention.map((item) => stepFor(item, false, dose, progressionWeek))),
   )
+
+  /**
+   * Conséquence déduite du remplacement (§ 5, P11.3) : sans exercice de force
+   * maximale en tête, la séance ne pèse plus comme une séance de force. Le
+   * repos, lui, suit tout seul — il se lit sur la nature d'effort de l'étape.
+   */
+  const lightened = dose.heavyMainLift && !heavyMainLiftOf(main, plyometrics.length > 0, dose)
 
   return {
     code,
     label: type.label,
     totalDistanceM: 0,
     qualityDistanceM: 0,
-    expectedRpe: Math.min(10, Math.max(1, type.baseRpe + dose.rpeShift)),
+    expectedRpe: Math.min(10, Math.max(1, type.baseRpe + dose.rpeShift - (lightened ? 1 : 0))),
     durationMin: Math.round(estimatedDurationS(steps) / 60),
     steps,
   }
@@ -376,8 +413,39 @@ function fitInPreventionBlock(steps: PrescriptionStep[]): PrescriptionStep[] {
   }))
 }
 
+/**
+ * Vrai quand l'exercice principal est réellement dosé à 85 % ou plus : c'est
+ * la nature de l'effort qui le dit, pas la phase seule (§ 5, P11.3, G1).
+ */
+function heavyMainLiftOf(
+  main: ResolvedExercise[],
+  hasPlyometrics: boolean,
+  dose: (typeof STRENGTH_DOSES)[StrengthPhase],
+): boolean {
+  if (!dose.heavyMainLift || hasPlyometrics) return false
+  return main[0]?.exercise.effort === StrengthEffort.MaxStrength
+}
+
+/** G1 lit la séance telle qu'elle sera faite, matériel compris (§ 5, P11.3). */
+export function chargesLegsHeavily(
+  code: StrengthSessionCode,
+  phase: StrengthPhase,
+  equipment: StrengthEquipment,
+): boolean {
+  const type = strengthSessionType(code)
+  const dose = STRENGTH_DOSES[phase]
+  if (dose.plyometrics && type.plyometricIds.length > 0) return true
+
+  const main = type.exerciseIds
+    .map((id) => resolveForEquipment(id, equipment))
+    .filter((exercise): exercise is StrengthExercise => exercise !== undefined)
+    .map((exercise) => ({ exercise }))
+
+  return heavyMainLiftOf(main, dose.plyometrics && type.plyometricIds.length > 0, dose)
+}
+
 function stepFor(
-  exercise: StrengthExercise,
+  { exercise, replaces }: ResolvedExercise,
   main: boolean,
   dose: (typeof STRENGTH_DOSES)[StrengthPhase],
   progressionWeek: number,
@@ -396,7 +464,13 @@ function stepFor(
     repDurationS: exercise.repDurationS,
     /** Chaque étape porte son repos, l'exercice principal comme les accessoires (§ 5). */
     recoveryS: recoveryFor(exercise, dose.restFactor),
-    intensity: main ? dose.intensity : exercise.defaultIntensity,
+    /** Un remplaçant qui n'est pas de la force maximale garde son repère à lui. */
+    intensity:
+      main && exercise.effort === StrengthEffort.MaxStrength
+        ? dose.intensity
+        : exercise.defaultIntensity,
+    replacesId: replaces?.id,
+    replacesLabel: replaces?.label,
     superset: exercise.superset,
     intense: main || exercise.effort === StrengthEffort.SpeedStrength,
     note: exercise.why,

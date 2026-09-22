@@ -1,5 +1,5 @@
 import type { StrengthSetRecord } from '../domain/strength/next-load'
-import { nextLoadKg } from '../domain/strength/next-load'
+import { nextLoadKg, nextRepsTarget } from '../domain/strength/next-load'
 
 export interface StrengthGateway {
   saveSets(sessionId: number, sets: StrengthSetRecord[]): Promise<void>
@@ -10,6 +10,11 @@ export interface StrengthGateway {
 export interface NextLoad {
   exerciseId: string
   loadKg: number
+}
+
+export interface NextFormat {
+  exerciseId: string
+  reps: number
 }
 
 /**
@@ -39,5 +44,23 @@ export function nextLoadsFor(
     if (target === undefined) return []
     const loadKg = nextLoadKg(exerciseId, target, sets)
     return loadKg === undefined ? [] : [{ exerciseId, loadKg }]
+  })
+}
+
+/**
+ * Format proposé pour la prochaine séance des exercices faits au poids de
+ * corps : sans charge, c'est la répétition qui progresse (§ 5, P11.3).
+ */
+export function nextFormatsFor(
+  sets: StrengthSetRecord[],
+  targetReps: Record<string, number>,
+): NextFormat[] {
+  const exercises = [...new Set(sets.map((set) => set.exerciseId))]
+
+  return exercises.flatMap((exerciseId) => {
+    const target = targetReps[exerciseId]
+    if (target === undefined) return []
+    const reps = nextRepsTarget(exerciseId, target, sets)
+    return reps === undefined ? [] : [{ exerciseId, reps }]
   })
 }

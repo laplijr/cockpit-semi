@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { AthleteProfile } from '../../domain/athlete/profile'
 import { Sport } from '../../domain/shared/sport'
+import { StrengthEquipment } from '../../domain/strength/equipment'
 import { StrengthIntent } from '../../domain/strength/intent'
 import { useDatabase } from '../../infra/db/client'
 import { athlete } from '../../infra/db/schema'
@@ -32,6 +33,7 @@ const bodySchema = z
       runsPerWeek: z.number().int().min(2).max(6).optional(),
       sports: z.array(z.enum(Sport)).optional(),
       strengthIntent: z.enum(StrengthIntent).optional(),
+      equipment: z.enum(StrengthEquipment).optional(),
       notes: z.array(z.string()).optional(),
     }),
   })
