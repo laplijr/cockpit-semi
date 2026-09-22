@@ -35,6 +35,9 @@ const role = computed(() => {
 
 const week = computed(() => plan.plan?.weeks.find((item) => item.id === session.value?.weekId))
 
+/** Les trois chiffres du sport (§ 8, P11.1), partagés avec la tuile du jour. */
+const figures = computed(() => (session.value ? sessionFigures(session.value) : []))
+
 /** Mêmes séances du plan, pour situer celle-ci dans la progression. */
 const history = computed(() => {
   const current = session.value
@@ -239,6 +242,18 @@ const plannedMinutes = computed(() => {
       <span v-else-if="session.status === 'sautee'" class="pill ml-auto">manquée</span>
       <span v-else-if="session.status === 'annulee'" class="pill ml-auto">retirée</span>
       <span v-if="manualDay" class="pill">posé à la main</span>
+    </div>
+
+    <!-- Les trois chiffres du sport, les mêmes que sur la tuile du jour : une
+         seule fonction les rend, la fenêtre n'en recalcule aucun (§ 8, P11.1). -->
+    <div class="flex flex-wrap gap-x-8 gap-y-2">
+      <span v-for="figure in figures" :key="figure.key" class="flex flex-col items-start">
+        <span class="mono text-[17px]">{{ figure.value }}</span>
+        <span class="label text-[9.5px]">{{ figure.label }}</span>
+        <span v-if="figure.planned" class="mono text-[10.5px] text-text-dim">
+          prévu {{ figure.planned }}
+        </span>
+      </span>
     </div>
 
     <!-- La structure d'abord, le retour de séance ensuite : sur téléphone on

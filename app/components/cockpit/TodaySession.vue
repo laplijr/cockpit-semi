@@ -15,88 +15,9 @@ const sport = computed(() => sportStyle(props.session.sport))
 
 const label = computed(() => SESSION_LABELS[props.session.code] ?? props.session.code)
 
-const minutes = computed(() => prescribedMinutes(props.session.prescription))
-
-/** Une séance sans kilométrage se lit en durée seule : vélo et muscu. */
-const distance = computed(() =>
-  props.session.prescription.totalDistanceM > 0
-    ? formatDistance(props.session.prescription.totalDistanceM)
-    : '—',
-)
-
-/** L'allure de l'étape la plus longue : celle qui donne le ton de la séance. */
-const pace = computed(() => {
-  const paced = props.session.prescription.steps
-    .filter((step) => step.paceSecPerKm)
-    .sort((a, b) => (b.distanceM ?? b.durationS ?? 0) - (a.distanceM ?? a.durationS ?? 0))
-
-  return paced[0]?.paceSecPerKm ? `${formatPace(paced[0].paceSecPerKm)}/km` : '—'
-})
+const figures = computed(() => sessionFigures(props.session))
 
 const done = computed(() => props.session.status === 'faite')
-
-/**
- * Une séance faite se lit par ce qui a été couru, pas par ce qui avait été
- * demandé : les trois chiffres passent au réalisé et le prescrit descend
- * dessous, en gris, seulement là où il diffère (§ 8, P7.4). Sans mesure, rien
- * ne change — on ne montre pas ce qu'on n'a pas.
- */
-const measured = computed(
-  () =>
-    done.value &&
-    (props.session.actualDistanceM !== null || props.session.actualDurationMin !== null),
-)
-
-/** L'allure tenue se déduit du réalisé ; il faut les deux mesures. */
-const actualPace = computed(() => {
-  const { actualDistanceM, actualDurationMin } = props.session
-  if (!actualDistanceM || !actualDurationMin) return null
-  return (actualDurationMin * 60) / (actualDistanceM / 1000)
-})
-
-interface Figure {
-  key: string
-  label: string
-  value: string
-  /** Valeur prescrite, quand elle n'est plus celle qu'on affiche. */
-  planned?: string
-}
-
-const figures = computed<Figure[]>(() => {
-  const planned = [
-    { key: 'distance', label: 'distance', value: distance.value },
-    { key: 'duree', label: 'durée', value: formatMinutes(minutes.value) },
-    { key: 'allure', label: 'allure cible', value: pace.value },
-  ]
-
-  if (!measured.value) return planned
-
-  const actual = [
-    {
-      key: 'distance',
-      label: 'distance',
-      value:
-        props.session.actualDistanceM === null
-          ? distance.value
-          : formatDistance(props.session.actualDistanceM),
-    },
-    {
-      key: 'duree',
-      label: 'durée',
-      value: formatMinutes(props.session.actualDurationMin ?? minutes.value),
-    },
-    {
-      key: 'allure',
-      label: 'allure tenue',
-      value: actualPace.value === null ? pace.value : `${formatPace(actualPace.value)}/km`,
-    },
-  ]
-
-  return actual.map((figure, index) => {
-    const before = planned[index]!
-    return figure.value === before.value ? figure : { ...figure, planned: before.value }
-  })
-})
 
 /**
  * Courir la séance depuis l'app (§ 9, P10). L'action principale de la ligne
