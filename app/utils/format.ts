@@ -6,6 +6,48 @@ export function formatPace(secPerKm: number | null | undefined): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }
 
+/**
+ * Une durée dite à voix haute. La synthèse vocale lit « 5:45 » comme cinq
+ * heures quarante-cinq : tout ce qui part à la voix s'écrit en toutes lettres
+ * (§ 9, P18). Les secondes nulles ne se disent pas — « 3 minutes », pas
+ * « 3 minutes 0 ».
+ */
+export function speakDuration(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined) return ''
+  const total = Math.round(seconds)
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const rest = total % 60
+
+  const said = [
+    hours > 0 ? `${hours} heure${hours > 1 ? 's' : ''}` : '',
+    minutes > 0 ? `${minutes} minute${minutes > 1 ? 's' : ''}` : '',
+    rest > 0 ? `${rest} seconde${rest > 1 ? 's' : ''}` : '',
+  ].filter(Boolean)
+
+  return said.length === 0 ? '0 seconde' : said.join(' ')
+}
+
+/** Une allure dite à voix haute : « 5 minutes 45 au kilomètre ». */
+export function speakPace(secPerKm: number | null | undefined): string {
+  if (secPerKm === null || secPerKm === undefined) return ''
+  return `${speakDuration(secPerKm)} au kilomètre`
+}
+
+/** Une distance dite à voix haute : la virgule décimale se dit « virgule ». */
+export function speakDistance(meters: number | null | undefined): string {
+  if (meters === null || meters === undefined) return ''
+  if (meters < 1000) return `${Math.round(meters)} mètres`
+
+  const km = meters / 1000
+  const said = km >= 10 ? Math.round(km) : Math.round(km * 10) / 10
+  const unit = said >= 2 ? 'kilomètres' : 'kilomètre'
+
+  return Number.isInteger(said)
+    ? `${said} ${unit}`
+    : `${Math.floor(said)} virgule ${Math.round((said % 1) * 10)} ${unit}`
+}
+
 export function formatDuration(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined) return '—'
   const total = Math.round(seconds)

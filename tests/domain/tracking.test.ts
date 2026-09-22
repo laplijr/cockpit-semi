@@ -233,7 +233,13 @@ describe('progression dans la séance (§ 9, P10)', () => {
 
     const remaining = stepRemaining(targets[1]!, since, { distanceM: 3000, elapsedS: 1228 })
 
-    expect(remaining).toEqual({ remainingM: null, remainingS: 252, complete: false })
+    expect(remaining).toEqual({
+      remainingM: null,
+      remainingS: 252,
+      overM: null,
+      overS: 0,
+      complete: false,
+    })
   })
 
   it('décompte une étape en distance et la déclare finie', () => {
@@ -243,12 +249,29 @@ describe('progression dans la séance (§ 9, P10)', () => {
     expect(stepRemaining(targets[0]!, since, { distanceM: 1200, elapsedS: 500 })).toEqual({
       remainingM: 800,
       remainingS: null,
+      overM: 0,
+      overS: null,
       complete: false,
     })
     expect(stepRemaining(targets[0]!, since, { distanceM: 2000, elapsedS: 820 })).toMatchObject({
       remainingM: 0,
       complete: true,
     })
+  })
+
+  it('compte le dépassement au lieu de rester à zéro', () => {
+    const targets = flattenWorkout(workout)
+    const since = { distanceM: 0, elapsedS: 0 }
+
+    expect(stepRemaining(targets[0]!, since, { distanceM: 2380, elapsedS: 980 })).toMatchObject({
+      remainingM: 0,
+      overM: 380,
+      complete: true,
+    })
+
+    expect(
+      stepRemaining(targets[1]!, { distanceM: 0, elapsedS: 0 }, { distanceM: 3200, elapsedS: 615 }),
+    ).toMatchObject({ remainingS: 0, overS: 135, complete: true })
   })
 
   it('dit l’écart à l’allure visée, et quand il sort de la bande', () => {

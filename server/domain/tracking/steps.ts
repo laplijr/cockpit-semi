@@ -18,6 +18,10 @@ export interface StepRemaining {
   remainingM: number | null
   /** Secondes restantes, pour une étape courue en durée. */
   remainingS: number | null
+  /** Mètres courus au-delà de la cible, une fois l'étape franchie (§ 9, P18). */
+  overM: number | null
+  /** Secondes courues au-delà de la cible. */
+  overS: number | null
   complete: boolean
 }
 
@@ -31,20 +35,36 @@ export function flattenWorkout(workout: StructuredWorkout): StepTarget[] {
  * Ce qui reste de l'étape en cours. Une étape porte une durée ou une distance,
  * jamais les deux (§ 9, P6.7) : c'est celle-là qu'on décompte, depuis la
  * marque où l'étape a commencé.
+ *
+ * Le décompte ne s'arrête pas à zéro : passé la cible, il dit le dépassement.
+ * Sur la dernière étape il n'y a pas de suivante pour reprendre la main, et
+ * un « reste 0 m » figé ne disait plus où on en était (§ 9, P18).
  */
 export function stepRemaining(target: StepTarget, since: RunMark, now: RunMark): StepRemaining {
   if (target.durationS !== undefined) {
-    const remainingS = target.durationS - (now.elapsedS - since.elapsedS)
-    return { remainingM: null, remainingS: Math.max(0, remainingS), complete: remainingS <= 0 }
+    const left = target.durationS - (now.elapsedS - since.elapsedS)
+    return {
+      remainingM: null,
+      remainingS: Math.max(0, left),
+      overM: null,
+      overS: Math.max(0, -left),
+      complete: left <= 0,
+    }
   }
 
   if (target.distanceM !== undefined) {
-    const remainingM = target.distanceM - (now.distanceM - since.distanceM)
-    return { remainingM: Math.max(0, remainingM), remainingS: null, complete: remainingM <= 0 }
+    const left = target.distanceM - (now.distanceM - since.distanceM)
+    return {
+      remainingM: Math.max(0, left),
+      remainingS: null,
+      overM: Math.max(0, -left),
+      overS: null,
+      complete: left <= 0,
+    }
   }
 
   /** Une étape sans cible ne se termine qu'à la main : les lignes droites. */
-  return { remainingM: null, remainingS: null, complete: false }
+  return { remainingM: null, remainingS: null, overM: null, overS: null, complete: false }
 }
 
 /**

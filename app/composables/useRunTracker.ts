@@ -144,7 +144,7 @@ export function useRunTracker() {
 
     announced = last.km
     vibrate(200)
-    announce(`Kilomètre ${last.km}, ${formatPace(last.seconds)}`)
+    announce(`Kilomètre ${last.km}, ${speakPace(last.seconds)}`)
   }
 
   function watch() {
