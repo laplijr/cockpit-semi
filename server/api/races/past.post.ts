@@ -5,6 +5,7 @@ import { resultRefusal } from '../../domain/races/result'
 import { useDatabase } from '../../infra/db/client'
 import { createRaceResultGateway } from '../../infra/db/race-result-gateway'
 import { race } from '../../infra/db/schema'
+import { shareRacedRace } from '../../utils/circle-share'
 import { currentAthleteId, planGateway, systemClock } from '../../utils/context'
 
 const bodySchema = z.object({
@@ -52,7 +53,7 @@ export default defineEventHandler(async (event) => {
     })
     .returning()
 
-  return recordRaceResult(
+  const outcome = await recordRaceResult(
     createRaceResultGateway(db, athleteId),
     planGateway(athleteId),
     systemClock,
@@ -66,4 +67,8 @@ export default defineEventHandler(async (event) => {
       notes: null,
     },
   )
+
+  await shareRacedRace(db, athleteId, created!.id)
+
+  return outcome
 })

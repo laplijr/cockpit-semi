@@ -4,6 +4,7 @@ import { SegmentMode } from '../../../domain/races/race'
 import { resultRefusal } from '../../../domain/races/result'
 import { useDatabase } from '../../../infra/db/client'
 import { createRaceResultGateway } from '../../../infra/db/race-result-gateway'
+import { shareRacedRace } from '../../../utils/circle-share'
 import { currentAthleteId, planGateway, systemClock } from '../../../utils/context'
 import { ownedRace } from '../../../utils/scope'
 
@@ -49,7 +50,7 @@ export default defineEventHandler(async (event) => {
   const refusal = resultRefusal(existing, systemClock.today(), body.resultatS)
   if (refusal) throw createError({ statusCode: 409, statusMessage: refusal })
 
-  return recordRaceResult(
+  const outcome = await recordRaceResult(
     createRaceResultGateway(db, athleteId),
     planGateway(athleteId),
     systemClock,
@@ -59,4 +60,9 @@ export default defineEventHandler(async (event) => {
       ...body,
     },
   )
+
+  /** Une course courue va au cercle d'elle-même, comme une séance (§ 9, P12). */
+  await shareRacedRace(db, athleteId, id)
+
+  return outcome
 })

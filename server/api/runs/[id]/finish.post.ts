@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { finishRun } from '../../../application/record-run'
 import { Sensation } from '../../../domain/load/feedback'
+import { useDatabase } from '../../../infra/db/client'
+import { shareDoneSession } from '../../../utils/circle-share'
 import { currentAthleteId, runGateways, systemClock } from '../../../utils/context'
 import { fixesSchema } from '../../../utils/run-fixes'
 
@@ -30,7 +32,14 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, bodySchema.parse)
 
   try {
-    return await finishRun(runGateways(athleteId), systemClock, { runId: id, ...body })
+    const outcome = await finishRun(runGateways(athleteId), systemClock, { runId: id, ...body })
+
+    /** La séance vient de passer « faite » : elle va au cercle (§ 9, P12). */
+    if (outcome.sessionId !== null) {
+      await shareDoneSession(useDatabase(), athleteId, outcome.sessionId)
+    }
+
+    return outcome
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : 'Enregistrement impossible'
     throw createError({ statusCode: 422, statusMessage: message })
