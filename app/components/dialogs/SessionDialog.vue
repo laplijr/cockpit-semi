@@ -158,6 +158,24 @@ const editing = ref(false)
 const adding = ref(false)
 const editError = ref('')
 
+/**
+ * Une séance faite est un enregistrement, pas un formulaire (§ 8, P12) : la
+ * fenêtre s'ouvre en lecture, et les blocs de saisie se prennent par la porte.
+ */
+const done = computed(() => session.value?.status === 'faite')
+const correcting = ref(false)
+const reading = computed(() => done.value && !correcting.value)
+
+watch(session, () => (correcting.value = false))
+
+/** La trace relevée, quand la séance a été courue depuis le cockpit (P10.1). */
+const { data: track } = useFetch<{
+  track: { runId: number; points: { lat: number; lon: number }[]; distanceM: number } | null
+}>(() => `/api/sessions/${session.value?.id}/track`, {
+  immediate: computed(() => done.value && session.value?.sport === 'course') as unknown as boolean,
+  default: () => ({ track: null }),
+})
+
 async function cancelSession() {
   if (!session.value) return
   editError.value = ''
@@ -268,6 +286,19 @@ const plannedMinutes = computed(() => {
       <span v-if="manualDay" class="pill">posé à la main</span>
       <!-- Le matériel dit ce que la séance suppose, une fois (§ 5, P11.3). -->
       <span v-if="session.sport === 'muscu'" class="pill">{{ EQUIPMENT_LABELS[equipment] }}</span>
+
+      <!-- La porte de l'édition : une icône seule au pouce, son mot au-dessus
+           de la rupture (§ 8, P12). -->
+      <button
+        v-if="done"
+        type="button"
+        class="btn btn-ghost size-11 shrink-0 justify-center p-0 lean:size-auto lean:px-3"
+        :aria-label="correcting ? 'Quitter l’édition' : 'Corriger cette séance'"
+        @click="correcting = !correcting"
+      >
+        <UiAppIcon :name="correcting ? 'check' : 'pen'" :size="16" />
+        <span class="hidden lean:inline">{{ correcting ? 'Terminer' : 'Corriger' }}</span>
+      </button>
     </div>
 
     <!-- Les trois chiffres du sport, les mêmes que sur la tuile du jour : une
@@ -357,8 +388,9 @@ const plannedMinutes = computed(() => {
           </p>
         </div>
 
-        <!-- Une journée peut recevoir une séance de plus, vide ou non (P6.43). -->
-        <div v-if="session.date >= plan.today" class="tile bg-surface-inset">
+        <!-- Une journée peut recevoir une séance de plus, vide ou non (P6.43).
+             Sur une séance faite, c'est de la saisie : elle passe par la porte. -->
+        <div v-if="session.date >= plan.today && !reading" class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Ajouter une séance ce jour-là</span>
 
           <PlanSessionForm v-if="adding" :date="session.date" @saved="emit('saved')" />
@@ -451,7 +483,7 @@ const plannedMinutes = computed(() => {
           bloc, celui-ci garde le sien : une seule action principale par ligne
           (§ 8, P6.7).
         -->
-        <div v-if="session.sport === 'course'" class="tile bg-surface-inset">
+        <div v-if="session.sport === 'course' && !done" class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Sur la montre</span>
 
           <a
@@ -472,44 +504,71 @@ const plannedMinutes = computed(() => {
         <!-- Une séance faite peut aller au cercle, et rien d'autre (§ 8, P9.2). -->
         <CircleShareRow v-if="session.status === 'faite'" source="seance" :source-id="session.id" />
 
+        <!-- Trois lignes courtes ne sont pas un objet à axe : la table se
+             replie au lieu de défiler, et ses deux titres se disent une fois
+             en tête (§ 8, P12). -->
         <div class="tile bg-surface-inset">
           <span class="label text-[10.5px]">Prescrit contre réalisé</span>
-          <UiAxisScroller>
-            <table class="table-axis w-full text-[13px]">
-              <tbody>
-                <tr class="border-b border-line-soft">
-                  <td class="py-[6px] text-text-dim">Durée</td>
-                  <td class="mono py-[6px] text-right">{{ plannedMinutes }} min</td>
-                  <td class="mono py-[6px] text-right">
-                    {{ session.actualDurationMin ? `${session.actualDurationMin} min` : '—' }}
-                  </td>
-                </tr>
-                <tr v-if="session.prescription.totalDistanceM > 0">
-                  <td class="py-[6px] text-text-dim">Distance</td>
-                  <td class="mono py-[6px] text-right">
-                    {{ formatDistance(session.prescription.totalDistanceM) }}
-                  </td>
-                  <td class="mono py-[6px] text-right">
-                    {{ session.actualDistanceM ? formatDistance(session.actualDistanceM) : '—' }}
-                  </td>
-                </tr>
-                <tr class="border-t border-line-soft">
-                  <td class="py-[6px] text-text-dim">RPE</td>
-                  <td class="mono py-[6px] text-right">{{ session.prescription.expectedRpe }}</td>
-                  <td class="mono py-[6px] text-right">{{ session.feedbackRpe ?? '—' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </UiAxisScroller>
+          <table class="w-full text-[13px]">
+            <thead>
+              <tr>
+                <th class="label pb-1 text-left text-[10px] font-semibold"></th>
+                <th class="label pb-1 text-right text-[10px] font-semibold">Prévu</th>
+                <th class="label pb-1 text-right text-[10px] font-semibold">Réalisé</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-t border-line-soft">
+                <td class="py-[6px] text-text-dim">Durée</td>
+                <td class="mono py-[6px] text-right">{{ plannedMinutes }} min</td>
+                <td class="mono py-[6px] text-right">
+                  {{ session.actualDurationMin ? `${session.actualDurationMin} min` : '—' }}
+                </td>
+              </tr>
+              <tr v-if="session.prescription.totalDistanceM > 0" class="border-t border-line-soft">
+                <td class="py-[6px] text-text-dim">Distance</td>
+                <td class="mono py-[6px] text-right">
+                  {{ formatDistance(session.prescription.totalDistanceM) }}
+                </td>
+                <td class="mono py-[6px] text-right">
+                  {{ session.actualDistanceM ? formatDistance(session.actualDistanceM) : '—' }}
+                </td>
+              </tr>
+              <tr class="border-t border-line-soft">
+                <td class="py-[6px] text-text-dim">RPE</td>
+                <td class="mono py-[6px] text-right">{{ session.prescription.expectedRpe }}</td>
+                <td class="mono py-[6px] text-right">{{ session.feedbackRpe ?? '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <!-- Une sortie a besoin d'un parcours : il se demande ici, à la
-             distance de la séance, depuis l'adresse du profil (§ 9, P5.5). -->
+        <!-- Une sortie à venir a besoin d'un parcours : il se demande ici, à
+             la distance de la séance, depuis l'adresse du profil (§ 9, P5.5).
+             Une course faite ne se retrace pas (§ 8, P12). -->
         <SessionsRouteSuggestion
-          v-if="session.sport === 'course' && session.prescription.totalDistanceM > 0"
+          v-if="!done && session.sport === 'course' && session.prescription.totalDistanceM > 0"
           :session-id="session.id"
           :distance-m="session.prescription.totalDistanceM"
         />
+
+        <!-- Ce qui a été couru, quand la sortie est partie du cockpit (P10.1).
+             Sans trace, le bloc n'existe pas : il ne propose rien à la place. -->
+        <div v-if="done && track?.track" class="tile bg-surface-inset">
+          <span class="label text-[10.5px]">Trace</span>
+          <!-- Leaflet ne se rend que dans un navigateur (§ 8, P5.5). -->
+          <ClientOnly>
+            <UiRouteMap :points="track.track.points" :height="220" />
+          </ClientOnly>
+          <a
+            :href="`/api/sessions/${session.id}/track.gpx`"
+            class="btn btn-ghost self-stretch lean:self-start"
+            download
+          >
+            <UiAppIcon name="route" :size="15" />
+            Télécharger la trace
+          </a>
+        </div>
 
         <!-- Les repas du jour vivent avec la séance : c'est elle qui décide de
              leurs heures (§ 9, P6.4). -->
@@ -537,8 +596,15 @@ const plannedMinutes = computed(() => {
         </div>
       </div>
 
-      <div class="border-t border-line-soft pt-4 lean:border-t-0 lean:border-l lean:pt-0 lean:pl-6">
-        <span class="label text-[10.5px]">Retour de séance</span>
+      <!-- Le retour de séance est de la saisie : sur une séance faite il ne
+           se montre qu'en édition, pour corriger le réalisé (§ 8, P12). -->
+      <div
+        v-if="!reading"
+        class="border-t border-line-soft pt-4 lean:border-t-0 lean:border-l lean:pt-0 lean:pl-6"
+      >
+        <span class="label text-[10.5px]">{{
+          done ? 'Corriger le réalisé' : 'Retour de séance'
+        }}</span>
         <FeedbackForm
           :session="session"
           :watch-zones="plan.pause?.watchZones ?? plan.lastWatchZones"
