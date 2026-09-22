@@ -136,6 +136,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
         runs: template.sessions,
         weekInPhase: phase ? week.index - phase.startWeek + 1 : week.index,
         nextRaceADate: nextRaceAOnOrAfter(upcoming, week.startDate),
+        blockedDates,
         allowances: openPause?.allowances,
       })
 

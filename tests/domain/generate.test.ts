@@ -121,17 +121,18 @@ describe('règles de placement (§ 5)', () => {
     ...BASE,
     openPause: { startDate: '2026-09-16', estimatedEndDate: '2026-10-05' },
   })
-  const allSessions = plan.weeks.flatMap((week) => week.sessions)
+  /** Vélo et muscu compris : un jour bloqué l'est pour les trois sports (§ 5). */
+  const everything = plan.weeks.flatMap((week) => [...week.sessions, ...week.support])
 
   it('ne pose aucune séance un jour de course', () => {
     for (const date of ['2027-03-07', '2027-04-04', '2027-08-08']) {
-      expect(allSessions.filter((session) => session.date === date)).toEqual([])
+      expect(everything.filter((session) => session.date === date)).toEqual([])
     }
   })
 
   it('laisse le lendemain d’une course A en repos', () => {
     for (const date of ['2027-03-08', '2027-08-09']) {
-      expect(allSessions.filter((session) => session.date === date)).toEqual([])
+      expect(everything.filter((session) => session.date === date)).toEqual([])
     }
   })
 

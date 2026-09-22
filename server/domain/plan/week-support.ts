@@ -107,6 +107,8 @@ export interface WeekSupportInput {
   weekInPhase: number
   /** Date de la prochaine course A : la muscu s'arrête sept jours avant. */
   nextRaceADate?: IsoDate | null
+  /** Jours sans séance : jour de course, lendemain d'une course A (§ 5). */
+  blockedDates?: IsoDate[]
   /** Autorisations de la pause en cours : une blessure basse gèle les jambes. */
   allowances?: PauseAllowances
 }
@@ -128,9 +130,18 @@ export function buildWeekSupport({
   runs,
   weekInPhase,
   nextRaceADate = null,
+  blockedDates = [],
   allowances,
 }: WeekSupportInput): WeekSupport {
-  const available = [...constraints.availableDays].sort((a, b) => a - b)
+  /**
+   * Un jour bloqué l'est pour tous les sports : la course à pied s'en écartait
+   * déjà, le vélo posait sa sortie du lendemain de course A sur le repos que
+   * la règle réserve (§ 5).
+   */
+  const blocked = new Set(blockedDates)
+  const available = [...constraints.availableDays]
+    .sort((a, b) => a - b)
+    .filter((weekday) => !blocked.has(addDays(week.startDate, weekday - 1)))
   if (available.length === 0) return EMPTY
 
   const runDays = new Set(runs.map((run) => run.weekday))
