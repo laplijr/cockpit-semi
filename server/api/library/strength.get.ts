@@ -9,18 +9,24 @@ import {
   STRENGTH_PHASE_LABELS,
   strengthPhaseFor,
 } from '../../domain/strength/phases'
-import { STRENGTH_SESSION_TYPES, strengthPrescription } from '../../domain/strength/session-types'
-import { STRENGTH_PER_PHASE } from '../../domain/plan/week-support'
+import {
+  STRENGTH_CATALOGUE,
+  STRENGTH_SESSION_TYPES,
+  strengthPrescription,
+} from '../../domain/strength/session-types'
+import { strengthPerPhase } from '../../domain/plan/week-support'
+import { strengthIntentOf } from '../../domain/athlete/constraints'
+import type { AthleteConstraints } from '../../domain/athlete/constraints'
 import { PhaseType } from '../../domain/plan/phases'
 import { useDatabase } from '../../infra/db/client'
 import { athleteWeekIds, loadActivePlanVersion } from '../../infra/db/plan-gateway'
-import { phase, session, strengthSet } from '../../infra/db/schema'
+import { athlete, phase, session, strengthSet } from '../../infra/db/schema'
 import { currentAthleteId, systemClock } from '../../utils/context'
 
 export default defineEventHandler(async (event) => {
   const athleteId = await currentAthleteId(event)
   const db = useDatabase()
-  const [active, sets] = await Promise.all([
+  const [active, sets, [profile]] = await Promise.all([
     loadActivePlanVersion(db, athleteId),
     db
       .select({
@@ -33,7 +39,15 @@ export default defineEventHandler(async (event) => {
       .innerJoin(session, eq(strengthSet.sessionId, session.id))
       .where(inArray(session.weekId, athleteWeekIds(db, athleteId)))
       .orderBy(desc(session.date)),
+    db.select({ constraints: athlete.constraints }).from(athlete).where(eq(athlete.id, athleteId)),
   ])
+
+  /** Le catalogue de l'athlète, et lui seul : l'autre n'est pas le sien (§ 5, P11.2). */
+  const intent = strengthIntentOf(
+    (profile?.constraints ?? { availableDays: [] }) as AthleteConstraints,
+  )
+  const perPhase = strengthPerPhase(intent)
+  const catalogue = new Set(STRENGTH_CATALOGUE[intent])
 
   const today = systemClock.today()
   const current = active?.weeks.find((week) => week.startDate <= today && today <= week.endDate)
@@ -61,18 +75,20 @@ export default defineEventHandler(async (event) => {
     strengthPhase,
     strengthPhaseLabel: STRENGTH_PHASE_LABELS[strengthPhase],
     dose: STRENGTH_DOSES[strengthPhase],
-    plannedCodes: STRENGTH_PER_PHASE[phaseType],
+    plannedCodes: perPhase[phaseType],
     efforts: EFFORT_LABELS,
     recoveryByEffort: EFFORT_RECOVERY_S,
     restFactor: STRENGTH_DOSES[strengthPhase].restFactor,
     exercises: STRENGTH_EXERCISES,
     lastLoadsKg,
-    sessions: Object.values(STRENGTH_SESSION_TYPES).map((type) => ({
-      ...type,
-      prescription: strengthPrescription(type.code, {
-        phase: strengthPhase,
-        progressionWeek: current?.index ?? 1,
-      }),
-    })),
+    sessions: Object.values(STRENGTH_SESSION_TYPES)
+      .filter((type) => catalogue.has(type.code))
+      .map((type) => ({
+        ...type,
+        prescription: strengthPrescription(type.code, {
+          phase: strengthPhase,
+          progressionWeek: current?.index ?? 1,
+        }),
+      })),
   }
 })

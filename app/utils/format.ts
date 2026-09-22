@@ -110,6 +110,12 @@ export const SESSION_LABELS: Record<string, string> = {
   push: 'Push',
   pull: 'Pull',
   mobilite: 'Mobilité',
+  /** Catalogue « pour la course » (§ 5, P11.2) : plus un mot de salle de sport. */
+  appuis: 'Appuis',
+  tronc: 'Tronc',
+  rappel: 'Rappel',
+  puissance: 'Puissance',
+  reprise: 'Reprise',
 }
 
 export const STRENGTH_PHASE_LABELS: Record<string, string> = {

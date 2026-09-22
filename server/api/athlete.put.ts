@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { regeneratePlan } from '../application/regenerate-plan'
 import { AthleteProfile, MAX_AVATAR_BYTES } from '../domain/athlete/profile'
 import { Sport } from '../domain/shared/sport'
+import { StrengthIntent } from '../domain/strength/intent'
 import { PlanTrigger } from '../domain/plan/session'
 import { useDatabase } from '../infra/db/client'
 import { athlete } from '../infra/db/schema'
@@ -31,6 +32,7 @@ const bodySchema = z.object({
     easyDays: z.array(weekdaySchema).optional(),
     runsPerWeek: z.number().int().min(2).max(6).optional(),
     sports: z.array(z.enum(Sport)).optional(),
+    strengthIntent: z.enum(StrengthIntent).optional(),
     notes: z.array(z.string()).optional(),
   }),
 })

@@ -1,6 +1,7 @@
 import type { Prescription, PrescriptionStep } from '../shared/prescription'
 import type { StrengthExercise } from './exercises'
 import { StrengthEffort, recoveryFor, strengthExercise } from './exercises'
+import { StrengthIntent } from './intent'
 import type { StrengthPhase } from './phases'
 import { STRENGTH_DOSES } from './phases'
 
@@ -13,6 +14,10 @@ export enum StrengthSessionCode {
   Comeback = 'reprise',
   Cycling = 'velo',
   Full = 'full',
+  /** Catalogue « pour la course » (§ 5, P11.2) : le Legs d'aujourd'hui. */
+  Footing = 'appuis',
+  Core = 'tronc',
+  Recall = 'rappel',
 }
 
 export interface StrengthSessionType {
@@ -167,6 +172,82 @@ export const STRENGTH_SESSION_TYPES: Record<StrengthSessionCode, StrengthSession
     minGapAfterRunS: SAME_DAY_GAP_S,
     note: 'Dose minimale d’une semaine au pic, d’une séance rattrapée, et séance unique de l’affûtage.',
   },
+  [StrengthSessionCode.Footing]: {
+    code: StrengthSessionCode.Footing,
+    label: 'Appuis',
+    lowerBody: true,
+    plyometricIds: ['pliometrie'],
+    exerciseIds: [
+      'squat',
+      'sdt-roumain',
+      'fente-bulgare',
+      'mollet-unipodal',
+      'mollet-soleaire',
+      'nordic',
+    ],
+    preventionIds: AFTER_LEGS,
+    baseRpe: 7,
+    warmupMin: 8,
+    minGapAfterRunS: SAME_DAY_GAP_S,
+    note: 'Jambes et appuis : la séance qui tient la foulée. Le soir d’un jour dur, course d’abord et six heures d’écart.',
+  },
+  [StrengthSessionCode.Core]: {
+    code: StrengthSessionCode.Core,
+    label: 'Tronc',
+    lowerBody: false,
+    plyometricIds: [],
+    exerciseIds: [
+      'pallof',
+      'planche-laterale',
+      'dead-bug',
+      'farmer-walk',
+      'monster-walk',
+      'copenhagen',
+    ],
+    preventionIds: ['short-foot', 'genou-au-mur'],
+    baseRpe: 5,
+    warmupMin: 6,
+    minGapAfterRunS: 0,
+    note: 'Bassin, tronc et hanche, sans charge sur les jambes : tenable la veille d’un seuil.',
+  },
+  [StrengthSessionCode.Recall]: {
+    code: StrengthSessionCode.Recall,
+    label: 'Rappel',
+    lowerBody: true,
+    plyometricIds: [],
+    exerciseIds: ['goblet-squat', 'pallof', 'sdt-roumain', 'mollet-soleaire'],
+    preventionIds: ['monster-walk'],
+    baseRpe: 5,
+    warmupMin: 0,
+    minGapAfterRunS: SAME_DAY_GAP_S,
+    note: 'Séance unique de l’affûtage : un rappel de force sur les jambes, rien de plus.',
+  },
+}
+
+/**
+ * Les séances que l'athlète peut voir, par intention (§ 5, P11.2). Reprise et
+ * Vélo ne sont dans aucune table par phase — l'une vient d'une pause, l'autre
+ * du vélo — mais elles appartiennent au catalogue et se lisent en bibliothèque.
+ */
+export const STRENGTH_CATALOGUE: Record<StrengthIntent, StrengthSessionCode[]> = {
+  [StrengthIntent.Complete]: [
+    StrengthSessionCode.Legs,
+    StrengthSessionCode.Push,
+    StrengthSessionCode.Pull,
+    StrengthSessionCode.Power,
+    StrengthSessionCode.Mobility,
+    StrengthSessionCode.Comeback,
+    StrengthSessionCode.Cycling,
+    StrengthSessionCode.Full,
+  ],
+  [StrengthIntent.Running]: [
+    StrengthSessionCode.Footing,
+    StrengthSessionCode.Core,
+    StrengthSessionCode.Power,
+    StrengthSessionCode.Mobility,
+    StrengthSessionCode.Comeback,
+    StrengthSessionCode.Recall,
+  ],
 }
 
 export function strengthSessionType(code: StrengthSessionCode): StrengthSessionType {

@@ -1,4 +1,5 @@
 import { Sport } from '../shared/sport'
+import { StrengthIntent } from '../strength/intent'
 
 export const MONDAY = 1
 export const SUNDAY = 7
@@ -20,6 +21,11 @@ export interface AthleteConstraints {
    * généré ne bouge pas. La course ne se retire pas, c'est le moteur (§ 5).
    */
   sports?: Sport[]
+  /**
+   * Programme de renforcement. Sans valeur, `complet` : un plan déjà généré
+   * ne bouge pas, exactement comme pour `sports` (§ 5, P11.2).
+   */
+  strengthIntent?: StrengthIntent
   notes?: string[]
 }
 
@@ -27,6 +33,11 @@ export interface AthleteConstraints {
 export function practises(constraints: AthleteConstraints, sport: Sport): boolean {
   if (sport === Sport.Running) return true
   return constraints.sports === undefined || constraints.sports.includes(sport)
+}
+
+/** Intention déclarée, ou celle d'aujourd'hui quand rien n'a été dit (§ 5, P11.2). */
+export function strengthIntentOf(constraints: AthleteConstraints): StrengthIntent {
+  return constraints.strengthIntent ?? StrengthIntent.Complete
 }
 
 export const DEFAULT_CONSTRAINTS: AthleteConstraints = { availableDays: [] }

@@ -12,7 +12,8 @@ import {
   strengthPrescription,
   strengthSessionType,
 } from '../strength/session-types'
-import { MONDAY, SUNDAY, practises } from '../athlete/constraints'
+import { MONDAY, SUNDAY, practises, strengthIntentOf } from '../athlete/constraints'
+import { StrengthIntent } from '../strength/intent'
 import type { IsoDate } from './calendar'
 import { addDays } from './calendar'
 import { dayBefore, dayGap } from './week-template'
@@ -45,6 +46,27 @@ export const STRENGTH_PER_PHASE: Record<PhaseType, StrengthSessionCode[]> = {
   [PhaseType.Taper]: [StrengthSessionCode.Full],
   [PhaseType.Recovery]: [StrengthSessionCode.Mobility, StrengthSessionCode.Push],
   [PhaseType.Transition]: [],
+}
+
+/**
+ * Même table sous l'intention « pour la course » (§ 5, P11.2) : Appuis tient
+ * la foulée, Tronc remplace Push et Pull, et l'affûtage garde son rappel.
+ */
+export const STRENGTH_PER_PHASE_RUNNING: Record<PhaseType, StrengthSessionCode[]> = {
+  [PhaseType.Base]: [StrengthSessionCode.Footing, StrengthSessionCode.Core],
+  [PhaseType.ShortBase]: [StrengthSessionCode.Footing, StrengthSessionCode.Core],
+  [PhaseType.Development]: [StrengthSessionCode.Footing, StrengthSessionCode.Core],
+  [PhaseType.Speed]: [StrengthSessionCode.Power, StrengthSessionCode.Core],
+  [PhaseType.Specific]: [StrengthSessionCode.Footing, StrengthSessionCode.Core],
+  [PhaseType.Rebuild]: [StrengthSessionCode.Footing, StrengthSessionCode.Core],
+  [PhaseType.Taper]: [StrengthSessionCode.Recall],
+  [PhaseType.Recovery]: [StrengthSessionCode.Mobility, StrengthSessionCode.Core],
+  [PhaseType.Transition]: [],
+}
+
+/** Le catalogue de l'athlète : sans intention déclarée, celui d'aujourd'hui. */
+export function strengthPerPhase(intent: StrengthIntent): Record<PhaseType, StrengthSessionCode[]> {
+  return intent === StrengthIntent.Running ? STRENGTH_PER_PHASE_RUNNING : STRENGTH_PER_PHASE
 }
 
 /** Nombre de sorties vélo par semaine : deux en base, une ensuite (§ 5). */
@@ -124,6 +146,7 @@ export function buildWeekSupport({
         weekInPhase,
         nextRaceADate,
         allowances,
+        intent: strengthIntentOf(constraints),
       })
     : []
 
@@ -162,6 +185,8 @@ interface StrengthPlacementInput {
   weekInPhase: number
   nextRaceADate: IsoDate | null
   allowances: PauseAllowances | undefined
+  /** Catalogue de séances : l'intention le choisit, et rien d'autre (§ 5, P11.2). */
+  intent: StrengthIntent
 }
 
 function placeStrength({
@@ -173,6 +198,7 @@ function placeStrength({
   weekInPhase,
   nextRaceADate,
   allowances,
+  intent,
 }: StrengthPlacementInput): PlannedSupportSession[] {
   const legsAllowed = allowances?.legStrength ?? true
   const phase = strengthPhaseFor(week.phaseType, weekInPhase)
@@ -183,8 +209,10 @@ function placeStrength({
    * Legs devient une reprise, et les autres séances perdent leurs exercices
    * jambes au lieu de disparaître (§ 5).
    */
-  const codes = STRENGTH_PER_PHASE[week.phaseType].map((code) =>
-    !legsAllowed && code === StrengthSessionCode.Legs ? StrengthSessionCode.Comeback : code,
+  const codes = strengthPerPhase(intent)[week.phaseType].map((code) =>
+    !legsAllowed && (code === StrengthSessionCode.Legs || code === StrengthSessionCode.Footing)
+      ? StrengthSessionCode.Comeback
+      : code,
   )
 
   const sessions: PlannedSupportSession[] = []

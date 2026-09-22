@@ -7,6 +7,7 @@ import {
 } from '~~/server/domain/athlete/onboarding'
 import { defaultsFor, type AthleteProfile } from '~~/server/domain/athlete/profile'
 import { Sport } from '~~/server/domain/shared/sport'
+import { StrengthIntent } from '~~/server/domain/strength/intent'
 
 /** Hors coque : l'arrivant n'a encore rien à piloter (§ 8, P8.2). */
 definePageMeta({ layout: false })
@@ -41,6 +42,7 @@ const form = reactive({
   longRunDay: athleteStore.athlete?.constraints?.longRunDay ?? 7,
   runsPerWeek: athleteStore.athlete?.constraints?.runsPerWeek ?? null,
   sports: [...(athleteStore.athlete?.constraints?.sports ?? [Sport.Running])],
+  strengthIntent: athleteStore.athlete?.constraints?.strengthIntent ?? StrengthIntent.Complete,
 })
 
 const fitness = ref<FitnessStartValue>(emptyFitnessStart(state.value!.today))
@@ -115,6 +117,7 @@ async function persist() {
           availableDays: [...form.availableDays].sort((a, b) => a - b),
           longRunDay: form.longRunDay,
           sports: form.sports,
+          strengthIntent: form.strengthIntent,
           ...(form.runsPerWeek ? { runsPerWeek: form.runsPerWeek } : {}),
         },
       },
@@ -263,7 +266,7 @@ async function onRaceCreated() {
           />
         </div>
         <div class="tile">
-          <ProfilSportsField v-model="form.sports" />
+          <ProfilSportsField v-model="form.sports" v-model:intent="form.strengthIntent" />
         </div>
       </template>
 
