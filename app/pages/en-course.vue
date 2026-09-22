@@ -266,7 +266,14 @@ async function record(payload: {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col gap-3 bg-ink px-4 pt-3 pb-4">
+  <div
+    class="flex min-h-dvh flex-col gap-3 bg-ink px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom))]"
+  >
+    <!-- `dvh` et non `vh` : sur un navigateur de téléphone, `100vh` est la
+         hauteur barres rétractées — un document plus haut que ce qu'on voit,
+         donc du vide noir sous le dernier bouton (§ 8, P7.4). Le pied garde la
+         zone sûre : l'action de l'écran est poussée en bas par `mt-auto`, et
+         sans elle elle tombe sur la barre d'accueil. -->
     <p v-if="briefError && !cycling && !free" class="tile text-[13px] text-warn">
       Cette séance ne se court pas depuis le cockpit.
       <NuxtLink to="/" class="text-accent">Retour au cockpit</NuxtLink>

@@ -53,9 +53,11 @@ const sizing = computed(() => ({ '--modal-width': `${props.width}px`, ...sheet.s
       </div>
 
       <!-- La fenêtre s'ouvre sur la forme de son corps, jamais sur une boîte
-           vide ni après l'attente de la requête (§ 8, P5.20). -->
+           vide ni après l'attente de la requête (§ 8, P5.20). La feuille touche
+           le bas de l'écran : sans la zone sûre, sa dernière ligne passe sous
+           la barre d'accueil du téléphone. -->
       <div
-        class="flex min-h-0 flex-1 flex-col gap-[inherit] overflow-y-auto px-[18px] pb-[18px] lean:contents"
+        class="flex min-h-0 flex-1 flex-col gap-[inherit] overflow-y-auto px-[18px] pb-[calc(18px+env(safe-area-inset-bottom))] lean:contents"
       >
         <Suspense>
           <slot />

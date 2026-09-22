@@ -156,7 +156,9 @@ async function onRaceCreated() {
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col items-center px-4 py-8 lean:px-6 lean:py-12">
+  <div
+    class="flex min-h-dvh flex-col items-center px-4 pt-8 pb-[calc(32px+env(safe-area-inset-bottom))] lean:px-6 lean:py-12"
+  >
     <div class="flex w-full max-w-[720px] flex-col gap-5">
       <header class="flex flex-col gap-3">
         <span
