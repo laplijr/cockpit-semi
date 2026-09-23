@@ -26,6 +26,8 @@ const run = (over: Partial<WeekSessionRecord> = {}): WeekSessionRecord => ({
   sport: Sport.Running,
   status: SessionStatus.Done,
   actualDistanceM: 10000,
+  key: false,
+  longRun: false,
   ...over,
 })
 
@@ -98,7 +100,12 @@ describe('compteurs et série depuis la reprise (§ 9, P6.5)', () => {
     ...over,
   })
 
-  const summary = (sessionsDone: number, light = false, sessionsPlanned = 5) => ({
+  const summary = (
+    sessionsDone: number,
+    light = false,
+    sessionsPlanned = 5,
+    keyDone = { longRun: 1, quality: 1 },
+  ) => ({
     targetRunM: 40000,
     actualRunM: 38_000,
     runGapM: -2000,
@@ -111,6 +118,8 @@ describe('compteurs et série depuis la reprise (§ 9, P6.5)', () => {
     },
     sessionsPlanned,
     sessionsDone,
+    longRun: { planned: 1, done: keyDone.longRun },
+    quality: { planned: 1, done: keyDone.quality },
     light,
     test: false,
     comeback: false,
@@ -173,5 +182,26 @@ describe('compteurs et série depuis la reprise (§ 9, P6.5)', () => {
   it('juge une semaine tenue à quatre séances sur cinq', () => {
     expect(isConforming(summary(4))).toBe(true)
     expect(isConforming(summary(3))).toBe(false)
+  })
+
+  it('ne dit pas tenue une semaine sans sa sortie longue ni sa séance clé (P19)', () => {
+    expect(isConforming(summary(7, false, 8, { longRun: 0, quality: 1 }))).toBe(false)
+    expect(isConforming(summary(7, false, 8, { longRun: 1, quality: 0 }))).toBe(false)
+    expect(isConforming(summary(7, false, 8, { longRun: 1, quality: 1 }))).toBe(true)
+  })
+
+  it('n’exige pas ce que la semaine ne prévoyait pas', () => {
+    const easy = summariseWeek(week, [], [run(), run(), run(), run()])!
+    expect(easy.longRun.planned).toBe(0)
+    expect(easy.quality.planned).toBe(0)
+    expect(isConforming(easy)).toBe(true)
+  })
+
+  it('casse la série sur une semaine sans séance clé, par la même règle', () => {
+    const weeks = [
+      { summary: summary(5, false, 5, { longRun: 1, quality: 0 }), excused: false },
+      { summary: summary(5), excused: false },
+    ]
+    expect(conformingStreak(weeks)).toBe(0)
   })
 })

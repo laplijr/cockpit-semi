@@ -24,6 +24,8 @@ const summary = (over: Partial<WeekSummary> = {}): WeekSummary => ({
   },
   sessionsPlanned: 5,
   sessionsDone: 5,
+  longRun: { planned: 1, done: 1 },
+  quality: { planned: 1, done: 1 },
   light: false,
   test: false,
   comeback: false,

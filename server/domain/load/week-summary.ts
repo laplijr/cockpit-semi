@@ -23,6 +23,8 @@ export interface WeekSessionRecord {
   sport: Sport
   status: SessionStatus
   actualDistanceM: number | null
+  key: boolean
+  longRun: boolean
 }
 
 export interface WeekSummary {
@@ -35,6 +37,10 @@ export interface WeekSummary {
   loadBySport: Record<Sport, number>
   sessionsPlanned: number
   sessionsDone: number
+  /** Nul quand la semaine n'en prévoyait pas. */
+  longRun: { planned: number; done: number }
+  /** Séances clés hors sortie longue : la qualité de la semaine. */
+  quality: { planned: number; done: number }
   light: boolean
   test: boolean
   comeback: boolean
@@ -64,6 +70,9 @@ export function summariseWeek(
   const runs = sessions.filter(
     (item) => item.sport === Sport.Running && DONE_STATUSES.includes(item.status),
   )
+  const isDone = (item: WeekSessionRecord) => DONE_STATUSES.includes(item.status)
+  const longRuns = sessions.filter((item) => item.longRun)
+  const quality = sessions.filter((item) => item.key && !item.longRun)
   const measured = runs.filter((item) => item.actualDistanceM !== null)
   const actualRunM =
     measured.length === 0 ? null : Math.round(sum(measured, (item) => item.actualDistanceM ?? 0))
@@ -75,7 +84,9 @@ export function summariseWeek(
     loadUa: sum(days, (day) => day.totalUa),
     loadBySport,
     sessionsPlanned: sessions.length,
-    sessionsDone: sessions.filter((item) => DONE_STATUSES.includes(item.status)).length,
+    sessionsDone: sessions.filter(isDone).length,
+    longRun: { planned: longRuns.length, done: longRuns.filter(isDone).length },
+    quality: { planned: quality.length, done: quality.filter(isDone).length },
     light: week.light,
     test: week.test,
     comeback: week.comebackRatio !== null,
@@ -115,12 +126,16 @@ export interface ProgressWeek {
 }
 
 /**
- * Une semaine compte quand quatre séances sur cinq ont été faites. En dessous,
- * et sans cause déclarée, la série repart de zéro.
+ * Une semaine compte quand quatre séances sur cinq ont été faites, et que la
+ * sortie longue et au moins une séance clé en sont, quand elle en prévoyait.
+ * Le seul compte laissait « tenue » une semaine sans sa séance clé ni sa sortie
+ * longue (P19). La série de P6.5 lit la même règle, par décision de Ronan.
  */
 export function isConforming(summary: WeekSummary): boolean {
   if (summary.sessionsPlanned === 0) return false
-  return summary.sessionsDone >= summary.sessionsPlanned * CONFORMING_SHARE
+  if (summary.sessionsDone < summary.sessionsPlanned * CONFORMING_SHARE) return false
+  if (summary.longRun.planned > 0 && summary.longRun.done === 0) return false
+  return summary.quality.planned === 0 || summary.quality.done > 0
 }
 
 /**

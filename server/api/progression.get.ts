@@ -11,6 +11,7 @@ import { ObjectiveMode, RacePriority, RaceStatus } from '../domain/races/race'
 import { personalRecords, recordFor } from '../domain/races/records'
 import { ProposalStatus } from '../domain/rules/proposal-status'
 import { windowStart } from '../domain/shared/period'
+import { Sport } from '../domain/shared/sport'
 import { strengthExercise } from '../domain/strength/exercises'
 import { SessionStatus } from '../domain/plan/session'
 import { RunSessionCode } from '../domain/running/session-types'
@@ -97,6 +98,7 @@ export default defineEventHandler(async (event) => {
         status: session.status,
         sport: session.sport,
         code: session.code,
+        key: session.key,
         actualDistanceM: session.actualDistanceM,
       })
       .from(session)
@@ -153,7 +155,14 @@ export default defineEventHandler(async (event) => {
       test: week.test,
       comebackRatio: week.comebackRatio,
       loadUa: days.reduce((total, day) => total + day.totalUa, 0),
-      summary: summariseWeek(week, days, inWeek(pastSessions)),
+      summary: summariseWeek(
+        week,
+        days,
+        inWeek(pastSessions).map((item) => ({
+          ...item,
+          longRun: item.sport === Sport.Running && item.code === RunSessionCode.LongRun,
+        })),
+      ),
     }
   })
 

@@ -29,6 +29,8 @@ const summary = (actualRunM: number, loadUa: number) => ({
   },
   sessionsPlanned: 4,
   sessionsDone: 4,
+  longRun: { planned: 1, done: 1 },
+  quality: { planned: 1, done: 1 },
   light: false,
   test: false,
   comeback: false,

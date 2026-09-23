@@ -95,6 +95,8 @@ export default defineEventHandler(async (event) => {
       sport: item.sport,
       status: item.status,
       actualDistanceM: item.actualDistanceM,
+      key: item.key,
+      longRun: toReviewSession(item).longRun,
     })),
   )
   if (!summary) return { review: null }
