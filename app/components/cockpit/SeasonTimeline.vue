@@ -17,10 +17,27 @@ const props = defineProps<{
  */
 const layout = computed(() => seasonLayout({ ...props }))
 
+/**
+ * Le cap est la prochaine course A, comme sur Courses et dans le cadran
+ * « Course A » : la fin de la frise faisait lire « 47 semaines » là où les deux
+ * autres disaient quinze (P19). Sans course A, la course de fin de plan.
+ */
 const target = computed(() => {
+  const nextA = props.races
+    .filter((race) => race.priority === 'A' && race.date >= props.today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .at(0)
   const raceId = layout.value.segments.at(-1)?.raceId
-  return props.races.find((race) => race.id === raceId)
+  return nextA ?? props.races.find((race) => race.id === raceId)
 })
+
+const WEEK_MS = 7 * 86_400_000
+
+const weeksToTarget = computed(() =>
+  target.value
+    ? Math.max(0, Math.round((Date.parse(target.value.date) - Date.parse(props.today)) / WEEK_MS))
+    : 0,
+)
 
 /**
  * Sans course visée, le plan tourne en cycle d'entretien (§ 5, P8.1) : la
@@ -29,7 +46,7 @@ const target = computed(() => {
  */
 const caption = computed(() =>
   target.value
-    ? `${layout.value.totalWeeks} semaines jusqu'à ${target.value.name}`
+    ? `${weeksToTarget.value} semaine${weeksToTarget.value > 1 ? 's' : ''} jusqu'à ${target.value.name}`
     : `entretien · ${layout.value.totalWeeks} semaines, aucune course visée`,
 )
 
