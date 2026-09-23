@@ -56,6 +56,31 @@ describe('les trois chiffres du sport', () => {
     ])
   })
 
+  it('prend l’allure des fractions d’une séance de qualité, pas celle de l’échauffement (P19)', () => {
+    const vma = session({
+      code: 'VMA',
+      key: true,
+      prescription: {
+        label: 'VMA',
+        totalDistanceM: 5000,
+        expectedRpe: 8,
+        steps: [
+          { label: 'Échauffement', distanceM: 2000, paceSecPerKm: 419 },
+          {
+            label: 'Fraction',
+            repeats: 4,
+            distanceM: 500,
+            paceSecPerKm: 323,
+            recoveryS: 150,
+            intense: true,
+          },
+          { label: 'Retour au calme', distanceM: 1000, paceSecPerKm: 419 },
+        ],
+      },
+    })
+    expect(sessionFigures(vma).find((figure) => figure.key === 'trois')?.value).toBe('5:23/km')
+  })
+
   it('décrit un renforcement par sa durée, ses exercices et l’effort attendu', () => {
     const figures = sessionFigures(strength())
 

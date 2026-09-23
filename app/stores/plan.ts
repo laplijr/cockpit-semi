@@ -25,6 +25,8 @@ export interface PlanSession {
       durationS?: number
       paceSecPerKm?: number
       recoveryS?: number
+      /** Portion soumise au quota d'intensité : les fractions d'une séance de qualité. */
+      intense?: boolean
       exerciseId?: string
       reps?: number
       isometric?: boolean

@@ -15,13 +15,19 @@ export interface SessionFigure {
   planned?: string
 }
 
-/** L'allure de l'étape la plus longue : celle qui donne le ton de la séance. */
+/**
+ * L'allure qui donne le ton de la séance : celle des fractions quand il y en a,
+ * sinon celle de l'étape la plus longue. La plus longue seule faisait lire
+ * l'allure de l'échauffement en tête d'une VMA (P19).
+ */
 function targetPace(session: PlanSession): string {
-  const paced = session.prescription.steps
-    .filter((step) => step.paceSecPerKm)
-    .sort((a, b) => (b.distanceM ?? b.durationS ?? 0) - (a.distanceM ?? a.durationS ?? 0))
+  const paced = session.prescription.steps.filter((step) => step.paceSecPerKm)
+  const intense = paced.filter((step) => step.intense)
+  const ranked = (intense.length > 0 ? intense : paced).sort(
+    (a, b) => (b.distanceM ?? b.durationS ?? 0) - (a.distanceM ?? a.durationS ?? 0),
+  )
 
-  return paced[0]?.paceSecPerKm ? `${formatPace(paced[0].paceSecPerKm)}/km` : '—'
+  return ranked[0]?.paceSecPerKm ? `${formatPace(ranked[0].paceSecPerKm)}/km` : '—'
 }
 
 /** L'allure tenue se déduit du réalisé ; il faut les deux mesures. */
