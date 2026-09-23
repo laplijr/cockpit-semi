@@ -355,13 +355,15 @@ const plannedMinutes = computed(() => {
             <span class="mono text-[12px] text-text-dim">
               <template v-if="step.distanceM">{{ formatDistance(step.distanceM) }}</template>
               <template v-if="step.durationS && !step.reps">
-                · {{ formatMinutes(step.durationS / 60) }}
+                · {{ formatSeconds(step.durationS) }}
               </template>
               <template v-if="step.paceSecPerKm">
                 · {{ formatPace(step.paceSecPerKm) }}/km
               </template>
               <template v-if="step.tempo"> · tempo {{ step.tempo }}</template>
-              <template v-if="step.recoveryS"> · récup {{ step.recoveryS }}″</template>
+              <template v-if="step.recoveryS">
+                · récup {{ formatSeconds(step.recoveryS) }}</template
+              >
               <template v-if="loads[step.exerciseId ?? '']">
                 ·
                 <span class="text-text-dim line-through">

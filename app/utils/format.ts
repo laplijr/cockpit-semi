@@ -242,6 +242,19 @@ export function formatMinutes(minutes: number | null | undefined): string {
     : `${Math.floor(total / 60)} h ${String(rest).padStart(2, '0')}`
 }
 
+/**
+ * Une durée d'étape au format de la montre : « 45″ », « 2′30 », « 3′ ». Passer
+ * par `formatMinutes` arrondissait 150 s à « 3′ » (P19).
+ */
+export function formatSeconds(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined) return '—'
+  const total = Math.round(seconds)
+  if (total < 60) return `${total}″`
+  const rest = total % 60
+  if (rest === 0) return formatMinutes(total / 60)
+  return `${Math.floor(total / 60)}′${String(rest).padStart(2, '0')}`
+}
+
 export function formatLoad(kilograms: number | null | undefined): string {
   if (kilograms === null || kilograms === undefined) return '—'
   return `${kilograms.toFixed(1).replace('.0', '').replace('.', ',')} kg`

@@ -253,7 +253,7 @@ function nextStep() {
 }
 
 function describeTarget(step: StepTarget): string {
-  if (step.durationS) return formatMinutes(step.durationS / 60)
+  if (step.durationS) return formatSeconds(step.durationS)
   if (step.distanceM) return formatDistance(step.distanceM)
   return 'à la sensation'
 }

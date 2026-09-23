@@ -105,9 +105,9 @@ const figures = computed(() => {
       >
         {{ step.repeats ? `${step.repeats} × ` : '' }}{{ step.label }}
         <template v-if="step.distanceM"> · {{ formatDistance(step.distanceM) }}</template>
-        <template v-if="step.durationS"> · {{ formatMinutes(step.durationS / 60) }}</template>
+        <template v-if="step.durationS"> · {{ formatSeconds(step.durationS) }}</template>
         <template v-if="step.paceSecPerKm"> · {{ formatPace(step.paceSecPerKm) }}/km</template>
-        <template v-if="step.recoveryS"> · récup {{ step.recoveryS }}″</template>
+        <template v-if="step.recoveryS"> · récup {{ formatSeconds(step.recoveryS) }}</template>
       </span>
     </div>
 
