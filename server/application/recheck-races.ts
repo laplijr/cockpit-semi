@@ -1,7 +1,13 @@
 import type { IsoDate } from '../domain/plan/calendar'
-import { LookupKey, registrationOpen, type RaceLookupFields } from '../domain/races/lookup'
+import {
+  LookupKey,
+  hasUsableDate,
+  registrationOpen,
+  type RaceLookupFields,
+} from '../domain/races/lookup'
 import { ProposalTrigger } from '../domain/rules/proposal-status'
 import { ProposalEffect, RuleId, type Proposal } from '../domain/rules/rules'
+import { frenchShortDate } from '../domain/shared/french'
 
 /** Au-delà, la date d'une course mérite d'être revérifiée (§ 6). */
 export const RECHECK_AFTER_DAYS = 30
@@ -44,14 +50,14 @@ export async function recheckRaces(
     await gateway.saveLookup(race.raceId, race.query, fields)
 
     const found = fields[LookupKey.Date]?.value
-    if (!found || found === race.date) continue
+    if (!found || !hasUsableDate(fields) || found === race.date) continue
 
     proposals.push({
       ruleId: RuleId.C1,
       effect: ProposalEffect.MoveRace,
       target: { kind: 'race', id: race.raceId },
-      before: `${race.name} le ${race.date}`,
-      after: `${race.name} le ${found}`,
+      before: `${race.name} le ${frenchShortDate(race.date)}`,
+      after: `${race.name} le ${frenchShortDate(found)}`,
       explanation: `La date annoncée par l'organisateur a changé depuis la dernière vérification.`,
       payload: { date: found },
     })

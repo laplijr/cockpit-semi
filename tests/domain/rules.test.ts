@@ -86,7 +86,7 @@ describe('R2 — deux signaux de fatigue allègent les faciles', () => {
     const proposals = evaluateRules(context({ recent: [tired], upcoming: [upcoming()] }))
     const r2 = proposals.filter((p) => p.ruleId === RuleId.R2)
     expect(r2[0]!.effect).toBe(ProposalEffect.ReduceEasyVolume)
-    expect(r2[0]!.after).toContain('5.6 km')
+    expect(r2[0]!.after).toContain('5,6 km')
   })
 
   it('réduit la sortie longue suivante de 10 %', () => {
@@ -97,7 +97,7 @@ describe('R2 — deux signaux de fatigue allègent les faciles', () => {
       }),
     )
     const longRun = proposals.find((p) => p.effect === ProposalEffect.ReduceLongRun)!
-    expect(longRun.after).toContain('12.6 km')
+    expect(longRun.after).toContain('12,6 km')
   })
 
   it('ne déclenche pas avec un seul signal', () => {
@@ -279,6 +279,58 @@ describe('R9 — le moteur se trompe toujours dans le même sens', () => {
 })
 
 describe('moteur de règles', () => {
+  it('écrit ses textes en français : ni point décimal ni date ISO (P19)', () => {
+    const tired = outcome({
+      rpe: 10,
+      sensations: [Sensation.HeavyLegs],
+      sleepHours: 5,
+      pain: { zone: 'mollet', intensity: 4 },
+    })
+    const proposals = evaluateRules(
+      context({
+        recent: [tired, outcome({ sessionId: 2, skipped: true, sleepHours: 5 })],
+        upcoming: [
+          upcoming({ distanceM: 8300 }),
+          upcoming({ sessionId: 11, code: RunSessionCode.LongRun, distanceM: 14700 }),
+          upcoming({
+            sessionId: 12,
+            date: '2026-11-24',
+            code: RunSessionCode.Vma,
+            key: true,
+            repeats: 6,
+            expectedRpe: 8,
+          }),
+        ],
+        sameDayStrength: [upcoming({ sessionId: 20, sport: Sport.Strength, repeats: 4 })],
+        personal: {
+          suppressed: [],
+          sleepSensitive: false,
+          dayShifts: [{ code: RunSessionCode.Endurance, fromWeekday: 6, toWeekday: 7 }],
+          deadWeekdays: [2],
+          rpeBias: [{ code: RunSessionCode.Vma, bias: 1 }],
+        },
+      }),
+    )
+
+    const fired = idsOf(proposals)
+    for (const id of [
+      RuleId.R1,
+      RuleId.R2,
+      RuleId.R3,
+      RuleId.R6,
+      RuleId.R8,
+      RuleId.R100,
+      RuleId.R101,
+      RuleId.R102,
+    ]) {
+      expect(fired.has(id)).toBe(true)
+    }
+    for (const text of proposals.flatMap((p) => [p.before, p.after, p.explanation])) {
+      expect(text).not.toMatch(/\d\.\d/)
+      expect(text).not.toMatch(/\d{4}-\d{2}-\d{2}/)
+    }
+  })
+
   it('ne propose rien sur une semaine sans historique', () => {
     expect(evaluateRules(context())).toEqual([])
   })

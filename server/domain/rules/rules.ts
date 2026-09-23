@@ -10,7 +10,8 @@ import { VDOT_GAIN_PER_BLOCK } from '../fitness/projection'
 import { EMPTY_ADJUSTMENTS, type PersonalAdjustments } from '../learning/personal-rules'
 import { FATIGUE_SENSATIONS, type Pain, type Sensation } from '../load/feedback'
 import { addDays, weekday as weekdayOf, type IsoDate } from '../plan/calendar'
-import { RunSessionCode } from '../running/session-types'
+import { RunSessionCode, runSessionType } from '../running/session-types'
+import { frenchKm, frenchShortDate } from '../shared/french'
 import { Sport } from '../shared/sport'
 
 /** Identifiants des règles de recalcul (§ 5). Les règles apprises prendront R100+. */
@@ -169,7 +170,7 @@ function r1(context: RuleContext): Proposal[] {
     target: { kind: 'session' as const, id: strength.sessionId },
     before: `${strength.repeats ?? 0} séries`,
     after: `${Math.max(1, (strength.repeats ?? 1) - 1)} séries, sans excentrique lourd`,
-    explanation: `La séance clé du ${last.date} a été courue à RPE ${last.rpe} pour ${last.expectedRpe} prévu.`,
+    explanation: `La séance clé du ${frenchShortDate(last.date)} a été courue à RPE ${last.rpe} pour ${last.expectedRpe} prévu.`,
   }))
 }
 
@@ -184,8 +185,8 @@ function r2(context: RuleContext): Proposal[] {
       ruleId: RuleId.R2,
       effect: ProposalEffect.ReduceEasyVolume,
       target: { kind: 'session' as const, id: session.sessionId },
-      before: `${Math.round(session.distanceM / 100) / 10} km`,
-      after: `${Math.round((session.distanceM * 0.7) / 100) / 10} km, sous 70 % de FCmax`,
+      before: frenchKm(session.distanceM),
+      after: `${frenchKm(session.distanceM * 0.7)}, sous 70 % de FCmax`,
       explanation: 'Deux signaux de fatigue sont actifs sur ta dernière séance.',
     }))
 
@@ -195,8 +196,8 @@ function r2(context: RuleContext): Proposal[] {
       ruleId: RuleId.R2,
       effect: ProposalEffect.ReduceLongRun,
       target: { kind: 'session', id: longRun.sessionId },
-      before: `${Math.round(longRun.distanceM / 100) / 10} km`,
-      after: `${Math.round((longRun.distanceM * 0.9) / 100) / 10} km`,
+      before: frenchKm(longRun.distanceM),
+      after: frenchKm(longRun.distanceM * 0.9),
       explanation: 'Deux signaux de fatigue sont actifs : la sortie longue suivante perd 10 %.',
     })
   }
@@ -293,7 +294,7 @@ function r6(context: RuleContext): Proposal[] {
       effect: ProposalEffect.RescheduleKeySession,
       target: { kind: 'session', id: nextKey.sessionId },
       before: 'séance sautée, perdue',
-      after: `replacée avant le ${nextKey.date}`,
+      after: `replacée avant le ${frenchShortDate(nextKey.date)}`,
       explanation: `L'écart avec la prochaine séance clé atteint ${Math.round(hours)} h.`,
     },
   ]
@@ -335,7 +336,7 @@ function r8(context: RuleContext): Proposal[] {
       ruleId: RuleId.R8,
       effect: ProposalEffect.ConvertToCycling,
       target: { kind: 'session' as const, id: session.sessionId },
-      before: `${session.code} en course`,
+      before: `${runSessionType(session.code).label} en course`,
       after: 'vélo à charge équivalente',
       explanation: 'La douleur interdit la course : la charge est reportée sur le vélo.',
     }))
@@ -378,8 +379,8 @@ function moveProposal(
     ruleId,
     effect: ProposalEffect.MoveSession,
     target: { kind: 'session', id: session.sessionId },
-    before: `${WEEKDAY_NAMES[from - 1]} ${session.date}`,
-    after: `${WEEKDAY_NAMES[to - 1]} ${date}`,
+    before: `${WEEKDAY_NAMES[from - 1]} ${frenchShortDate(session.date)}`,
+    after: `${WEEKDAY_NAMES[to - 1]} ${frenchShortDate(date)}`,
     explanation:
       ruleId === RuleId.R100
         ? 'Habitude acceptée : cette séance se fait ce jour-là.'

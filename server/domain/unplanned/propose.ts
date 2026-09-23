@@ -2,7 +2,11 @@ import type { IsoDate } from '../plan/calendar'
 import { addDays, startOfWeek } from '../plan/calendar'
 import type { Proposal, UpcomingSession } from '../rules/rules'
 import { MIN_HOURS_BETWEEN_KEY_SESSIONS, ProposalEffect, RuleId } from '../rules/rules'
+import { CYCLE_SESSION_TYPES } from '../cycling/session-types'
+import { RUN_SESSION_TYPES } from '../running/session-types'
+import { frenchShortDate } from '../shared/french'
 import { Sport } from '../shared/sport'
+import { STRENGTH_SESSION_TYPES } from '../strength/session-types'
 import type { UnplannedUnavailability } from './events'
 import { UnavailabilityScope, coversDate } from './events'
 
@@ -26,6 +30,17 @@ export interface UnplannedContext {
 }
 
 const HOURS_PER_DAY = 24
+
+const SESSION_LABELS: Record<string, string> = Object.fromEntries(
+  [RUN_SESSION_TYPES, CYCLE_SESSION_TYPES, STRENGTH_SESSION_TYPES].flatMap((types) =>
+    Object.values(types).map((type) => [type.code, type.label]),
+  ),
+)
+
+/** « Seuil le 24 nov. » : la séance et son jour, tels qu'ils s'affichent. */
+function sessionOn(code: string, date: IsoDate): string {
+  return `${SESSION_LABELS[code] ?? code} le ${frenchShortDate(date)}`
+}
 
 /**
  * Jour d'accueil d'une séance clé déplacée : dans la même semaine, sans séance
@@ -85,8 +100,8 @@ export function proposeForUnavailabilities(
           ruleId: RuleId.I1,
           effect: ProposalEffect.MoveSession,
           target: { kind: 'session', id: session.sessionId },
-          before: `${session.code} le ${session.date}`,
-          after: `${session.code} le ${landing}`,
+          before: sessionOn(session.code, session.date),
+          after: sessionOn(session.code, landing),
           explanation: `Tu as déclaré une indisponibilité : ${unavailability.label}.`,
           payload: { date: landing },
         })
@@ -98,7 +113,7 @@ export function proposeForUnavailabilities(
         ruleId: RuleId.I1,
         effect: ProposalEffect.CancelSession,
         target: { kind: 'session', id: session.sessionId },
-        before: `${session.code} le ${session.date}`,
+        before: sessionOn(session.code, session.date),
         after: 'séance retirée, sans rattrapage',
         explanation: `Tu as déclaré une indisponibilité : ${unavailability.label}.`,
       })
