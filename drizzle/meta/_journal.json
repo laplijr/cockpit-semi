@@ -239,6 +239,13 @@
       "when": 1790069728739,
       "tag": "0033_lowly_mimic",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790155751199,
+      "tag": "0034_p19_textes_propositions",
+      "breakpoints": true
     }
   ]
 }
