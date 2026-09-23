@@ -1,16 +1,17 @@
 <script setup lang="ts">
 /**
- * Courbe d'une série datée, dessinée en SVG sans bibliothèque. Elle porte ses
- * bornes en clair — la valeur haute, la valeur basse, les deux dates — parce
- * qu'une courbe sans échelle ne se lit pas (§ 8).
+ * Courbe d'une série datée, dessinée en SVG sans bibliothèque. Elle porte en
+ * clair sa première et sa dernière valeur, chacune au-dessus de sa date : le
+ * maximum à gauche et le minimum à droite se lisaient comme un départ et une
+ * arrivée, donc une série qui monte passait pour une baisse (P19).
  */
 const props = withDefaults(
   defineProps<{
     points: { date: string; value: number }[]
     height?: number
-    /** Unité affichée à côté des bornes ; vide par défaut. */
+    /** Unité affichée à côté des valeurs ; vide par défaut. */
     unit?: string
-    /** Décimales des bornes. */
+    /** Décimales des valeurs. */
     decimals?: number
   }>(),
   { height: 120, unit: '', decimals: 1 },
@@ -46,8 +47,8 @@ const label = (value: number) => `${formatDecimal(value, props.decimals)}${props
 <template>
   <div v-if="line" class="flex flex-col gap-1">
     <div class="flex items-baseline justify-between">
-      <span class="mono text-[10.5px] text-text-dim">{{ label(bounds.high) }}</span>
-      <span class="mono text-[10.5px] text-text-dim">{{ label(bounds.low) }}</span>
+      <span class="mono text-[10.5px] text-text-dim">{{ label(points[0]!.value) }}</span>
+      <span class="mono text-[10.5px] text-text-dim">{{ label(points.at(-1)!.value) }}</span>
     </div>
 
     <svg
