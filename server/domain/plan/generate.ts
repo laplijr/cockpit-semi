@@ -5,6 +5,8 @@ import { RacePriority } from '../races/race'
 import type { PauseAllowances } from '../pause/pause'
 import type { PlanPhase, PlannedRace } from './periodization'
 import { SHORT_RACE_MAX_M, buildPhases, phaseAtWeek } from './periodization'
+import { PhaseType } from './phases'
+import { RunSessionCode } from '../running/session-types'
 import type { PlannedSupportSession } from './week-support'
 import { buildWeekSupport } from './week-support'
 import type { PlannedSession } from './week-template'
@@ -132,6 +134,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     upcoming.filter((race) => race.distanceM <= SHORT_RACE_MAX_M).map((race) => race.id),
   )
   const runHistory: RecentRun[] = [...recentRuns]
+  let lastFullWeek: FullWeek | undefined
 
   return {
     startDate,
@@ -148,7 +151,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
         blockedDates,
         raceDates: structuring.map((race) => race.date),
         shortCycle: week.raceId !== null && shortCycleRaces.has(week.raceId),
-        recentLongestRunM: longestRunBefore(runHistory, week.startDate),
+        longRunLimitM: longRunLimit(runHistory, week, lastFullWeek),
       })
       runHistory.push(
         ...template.sessions.map((run) => ({
@@ -156,6 +159,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
           distanceM: run.prescription.totalDistanceM,
         })),
       )
+      lastFullWeek = fullWeekOf(week, template.sessions) ?? lastFullWeek
 
       const phase = phaseAtWeek(phases, week.index)
       const support = buildWeekSupport({
@@ -202,6 +206,46 @@ export function nextSessionAfter(plan: GeneratedPlan, date: IsoDate): PlannedSes
 
 /** Fenêtre de référence du plafond de pic de la sortie longue (§ 5). */
 export const LONG_RUN_SPIKE_WINDOW_DAYS = 30
+
+/** Montée maximale de la sortie longue sur la plus longue course des 30 jours d'avant. */
+export const LONG_RUN_SPIKE = 1.1
+
+/** Phases qui n'installent pas de volume : elles ne servent pas de référence à l'affûtage. */
+const UNLOADING_PHASES = [PhaseType.Taper, PhaseType.Recovery, PhaseType.Transition]
+
+/** Dernière semaine pleine : l'affûtage réduit sa sortie longue comme son volume. */
+interface FullWeek {
+  targetRunM: number
+  longRunM: number
+}
+
+function fullWeekOf(week: PlanWeek, runs: PlannedSession[]): FullWeek | undefined {
+  if (week.light || UNLOADING_PHASES.includes(week.phaseType)) return undefined
+  const longRun = runs.find((run) => run.code === RunSessionCode.LongRun)
+  if (!longRun) return undefined
+  return { targetRunM: week.targetRunM, longRunM: longRun.prescription.totalDistanceM }
+}
+
+/**
+ * Plafond de la sortie longue tiré de l'historique : pas plus de 10 % au-dessus
+ * de la plus longue course des 30 jours d'avant (Garmin-RUNSAFE, Nielsen et al.,
+ * BJSM 2025) et, en affûtage, la dernière sortie longue pleine réduite dans la
+ * même proportion que le volume (70 % puis 50 %, § 5).
+ */
+function longRunLimit(
+  history: RecentRun[],
+  week: PlanWeek,
+  lastFullWeek: FullWeek | undefined,
+): number | undefined {
+  const longest = longestRunBefore(history, week.startDate)
+  const bySpike = longest === undefined ? undefined : Math.round(longest * LONG_RUN_SPIKE)
+  const byTaper =
+    week.phaseType === PhaseType.Taper && lastFullWeek
+      ? Math.round((lastFullWeek.longRunM * week.targetRunM) / lastFullWeek.targetRunM)
+      : undefined
+  const limits = [bySpike, byTaper].filter((limit) => limit !== undefined)
+  return limits.length === 0 ? undefined : Math.min(...limits)
+}
 
 /** Plus longue course, faite ou prévue, dans les 30 jours d'avant une date ; nulle sans historique. */
 function longestRunBefore(runs: RecentRun[], date: IsoDate): number | undefined {

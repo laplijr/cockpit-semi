@@ -230,6 +230,38 @@ describe('plafond de pic de la sortie longue (§ 5, P23)', () => {
   })
 })
 
+describe('sortie longue en affûtage (§ 5, P24)', () => {
+  const plan = generatePlan({ ...BASE, today: '2026-09-14' })
+  const longRunOf = (week: (typeof plan.weeks)[number]) =>
+    week.sessions.find((session) => session.code === RunSessionCode.LongRun)?.prescription
+      .totalDistanceM
+
+  it('réduit la sortie longue comme le volume, depuis la dernière semaine pleine', () => {
+    const tapers = plan.weeks.filter((week) => week.phaseType === PhaseType.Taper)
+    expect(tapers.length).toBeGreaterThan(0)
+    for (const taper of tapers) {
+      const longRun = longRunOf(taper)
+      if (longRun === undefined) continue
+      const full = plan.weeks
+        .filter(
+          (week) =>
+            week.index < taper.index &&
+            !week.light &&
+            ![PhaseType.Taper, PhaseType.Recovery].includes(week.phaseType) &&
+            longRunOf(week) !== undefined,
+        )
+        .at(-1)!
+      const ratio = taper.targetRunM / full.targetRunM
+      expect(longRun).toBeLessThanOrEqual(Math.round(longRunOf(full)! * ratio) + 1)
+    }
+  })
+
+  it('ne pose plus 21 km la semaine d’avant le semi de Paris', () => {
+    const before = plan.weeks.find((week) => week.endDate === '2027-02-28')!
+    expect(longRunOf(before) ?? 0).toBeLessThan(14_000)
+  })
+})
+
 describe('pause ouverte sans date de reprise (§ 5)', () => {
   const plan = generatePlan({
     ...BASE,

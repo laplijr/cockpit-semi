@@ -290,22 +290,25 @@ describe('sortie longue (§ 5, P23)', () => {
     expect(total(sessions)).toBeGreaterThanOrEqual(23_900)
   })
 
-  it('reprend le volume qu’une endurance au plafond de 75′ laissait perdre', () => {
+  it('ne reçoit pas le volume que les endurances au plafond de 75′ ne portent pas', () => {
     const week = buildWeekTemplate({
-      week: { ...weekIn(PhaseType.Base), targetRunM: 30_000 },
-      constraints: { ...CONSTRAINTS, runsPerWeek: 3 },
+      week: { ...weekIn(PhaseType.Specific), targetRunM: 52_000 },
+      constraints: { ...CONSTRAINTS, runsPerWeek: 5 },
       vdot: VDOT,
     })
-    expect(week.volumeCapped).toBe(false)
-    expect(total(week.sessions)).toBeGreaterThanOrEqual(29_900)
+    const [longRun] = byCode(week.sessions, RunSessionCode.LongRun)
+    const maxEasy = Math.round((75 * 60 * 1000) / paceFor(VDOT, TrainingZone.Easy))
+    expect(easyRuns(week.sessions).every((easy) => easy === maxEasy)).toBe(true)
+    expect(week.volumeCapped).toBe(true)
+    expect(longRun!).toBeLessThan(week.longRunMaxM - 500)
   })
 
-  it('ne dépasse pas de plus de 10 % la plus longue course des 30 jours d’avant', () => {
+  it('s’arrête au plafond que lui impose l’historique', () => {
     const week = buildWeekTemplate({
       week: { ...weekIn(PhaseType.Base), targetRunM: 30_000 },
       constraints: { ...CONSTRAINTS, runsPerWeek: 3 },
       vdot: VDOT,
-      recentLongestRunM: 8_000,
+      longRunLimitM: 8_800,
     })
     const [longRun] = byCode(week.sessions, RunSessionCode.LongRun)
     expect(week.longRunMaxM).toBe(8_800)
@@ -316,13 +319,13 @@ describe('sortie longue (§ 5, P23)', () => {
     expect(week.volumeCapped).toBe(true)
   })
 
-  it('reste sous 150 minutes à l’allure E', () => {
+  it('reste sous 120 minutes à l’allure E', () => {
     const week = buildWeekTemplate({
       week: { ...weekIn(PhaseType.Base), targetRunM: 90_000 },
       constraints: { ...CONSTRAINTS, runsPerWeek: 3 },
       vdot: VDOT,
     })
-    const ceiling = (150 * 60 * 1000) / paceFor(VDOT, TrainingZone.Easy)
+    const ceiling = (120 * 60 * 1000) / paceFor(VDOT, TrainingZone.Easy)
     expect(byCode(week.sessions, RunSessionCode.LongRun)[0]!).toBeLessThanOrEqual(ceiling + 1)
   })
 })

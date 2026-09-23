@@ -20,14 +20,14 @@ export const MAX_STRIDES_PER_WEEK = 2
 /** Dans un cycle 5 km, la sortie longue est bornée en durée, pas en distance (§ 5). */
 export const SHORT_CYCLE_LONG_RUN_MAX_MIN = 75
 
-/** Plafond de durée de la sortie longue hors cycle 5 km, à l'allure E (§ 5). */
-export const LONG_RUN_MAX_MIN = 150
+/**
+ * Plafond de durée de la sortie longue hors cycle 5 km, à l'allure E : le haut
+ * d'une préparation semi. 150′ est une sortie longue de marathon (§ 5).
+ */
+export const LONG_RUN_MAX_MIN = 120
 
 /** La sortie longue dépasse chaque endurance de la semaine d'au moins 30 % (§ 5). */
 export const LONG_RUN_OVER_EASY = 1.3
-
-/** Montée maximale de la sortie longue sur la plus longue course des 30 jours d'avant. */
-export const LONG_RUN_SPIKE = 1.1
 
 /** Bornes de durée d'une endurance, à l'allure E (§ 5). */
 export const EASY_MIN_MIN = 35
@@ -85,8 +85,8 @@ export interface WeekTemplateInput {
   raceDates?: IsoDate[]
   /** Vrai dans un cycle 5 km : la sortie longue passe alors en durée. */
   shortCycle?: boolean
-  /** Plus longue course prévue dans les 30 jours d'avant la semaine : borne le pic (§ 5). */
-  recentLongestRunM?: number
+  /** Plafond tiré de l'historique : pic sur les 30 jours d'avant, affûtage (§ 5). */
+  longRunLimitM?: number
 }
 
 export interface WeekTemplate {
@@ -197,7 +197,7 @@ export function buildWeekTemplate({
   blockedDates = [],
   raceDates = [],
   shortCycle = false,
-  recentLongestRunM,
+  longRunLimitM,
 }: WeekTemplateInput): WeekTemplate {
   const blocked = new Set(blockedDates)
   const available = [...constraints.availableDays]
@@ -207,7 +207,7 @@ export function buildWeekTemplate({
   const empty = {
     sessions: [],
     volumeCapped: false,
-    longRunMaxM: longRunCeiling(vdot, shortCycle, recentLongestRunM),
+    longRunMaxM: longRunCeiling(vdot, shortCycle, longRunLimitM),
   }
   if (available.length === 0) return empty
 
@@ -283,7 +283,7 @@ export function buildWeekTemplate({
     context,
     vdot,
     shortCycle,
-    recentLongestRunM,
+    longRunLimitM,
     allowed,
   })
 }
@@ -313,7 +313,7 @@ interface PrescriptionInput {
   context: PrescriptionContext
   vdot: number
   shortCycle: boolean
-  recentLongestRunM: number | undefined
+  longRunLimitM: number | undefined
   allowed: (code: RunSessionCode) => boolean
 }
 
@@ -324,14 +324,14 @@ function buildPrescriptions({
   context,
   vdot,
   shortCycle,
-  recentLongestRunM,
+  longRunLimitM,
   allowed,
 }: PrescriptionInput): WeekTemplate {
   const days = [...assignments.keys()].sort((a, b) => a - b)
   const easyPace = paceFor(vdot, TrainingZone.Easy)
   const minEasyM = Math.round((EASY_MIN_MIN * 60 * 1000) / easyPace)
   const maxEasyM = Math.round((EASY_MAX_MIN * 60 * 1000) / easyPace)
-  const longRunMaxM = longRunCeiling(vdot, shortCycle, recentLongestRunM)
+  const longRunMaxM = longRunCeiling(vdot, shortCycle, longRunLimitM)
 
   const longRunDay = days.find((day) => assignments.get(day) === RunSessionCode.LongRun)
   const qualityDays = days.filter(
@@ -398,14 +398,15 @@ function buildPrescriptions({
     if (stridesLeft > 0) stridesLeft -= 1
   }
 
-  // Le surplus va d'abord à la sortie longue, dans la limite de ses plafonds.
-  const surplus = Math.max(0, easyVolume - longRunM - easyM * easyDays.length)
-  let remaining = surplus
+  /**
+   * Le volume que les endurances au plafond de 75′ ne portent pas est perdu, et
+   * la semaine le dit. Versé à la sortie longue, il la montait à son plafond de
+   * durée chaque semaine, affûtage compris (§ 5).
+   */
   if (longRunDay !== undefined) {
-    const finalLongRunM = Math.min(longRunMaxM, longRunM + surplus)
-    prescriptions.set(longRunDay, prescribeLongRun(week, context, finalLongRunM))
-    remaining -= finalLongRunM - longRunM
+    prescriptions.set(longRunDay, prescribeLongRun(week, context, longRunM))
   }
+  const remaining = easyVolume - longRunM - easyM * easyDays.length
 
   return {
     volumeCapped: remaining > 1,
@@ -433,20 +434,18 @@ function longRunTarget(weeklyVolumeM: number, easyVolumeM: number, easyCount: nu
 }
 
 /**
- * Plafond de la sortie longue : une durée à l'allure E, 150′ ou 75′ en cycle
- * 5 km, et pas plus de 10 % au-dessus de la plus longue course prévue dans les
- * 30 jours d'avant (Garmin-RUNSAFE, Nielsen et al., BJSM 2025). Aucun des deux
- * ne dépend du nombre de courses de la semaine (§ 5).
+ * Plafond de la sortie longue : une durée à l'allure E, 120′ ou 75′ en cycle
+ * 5 km, et le plafond que l'historique impose (pic, affûtage). Aucun ne dépend
+ * du nombre de courses de la semaine (§ 5).
  */
 export function longRunCeiling(
   vdot: number,
   shortCycle: boolean,
-  recentLongestRunM: number | undefined,
+  longRunLimitM: number | undefined,
 ): number {
   const minutes = shortCycle ? SHORT_CYCLE_LONG_RUN_MAX_MIN : LONG_RUN_MAX_MIN
   const byDuration = Math.round((minutes * 60 * 1000) / paceFor(vdot, TrainingZone.Easy))
-  if (recentLongestRunM === undefined) return byDuration
-  return Math.min(byDuration, Math.round(recentLongestRunM * LONG_RUN_SPIKE))
+  return longRunLimitM === undefined ? byDuration : Math.min(byDuration, longRunLimitM)
 }
 
 function prescribeLongRun(
