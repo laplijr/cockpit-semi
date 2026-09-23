@@ -19,6 +19,12 @@ export interface OpenPause {
   allowances?: PauseAllowances
 }
 
+/** Une course réellement faite : sa date et sa distance suffisent au plafond de pic. */
+export interface RecentRun {
+  date: IsoDate
+  distanceM: number
+}
+
 export interface GeneratePlanInput {
   today: IsoDate
   constraints: AthleteConstraints
@@ -45,6 +51,12 @@ export interface GeneratePlanInput {
    * garde-fou de calcul, et le plan démarre en endurance seule (§ 5).
    */
   vdotKnown?: boolean
+  /**
+   * Courses faites dans les 30 jours avant aujourd'hui. Avec les courses
+   * prévues, elles donnent la référence du plafond de pic : sans elles, une
+   * reprise se brideait sur ses seules endurances de première semaine (§ 5).
+   */
+  recentRuns?: RecentRun[]
 }
 
 export interface GeneratedWeek extends PlanWeek {
@@ -86,6 +98,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
     lastTestDate = null,
     maxWeeklyIncreasePct,
     vdotKnown = true,
+    recentRuns = [],
   } = input
   const startDate = planStartDate(today, openPause)
   /** Sans date de reprise, on raisonne quand même depuis aujourd'hui pour les phases. */
@@ -118,6 +131,7 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
   const shortCycleRaces = new Set(
     upcoming.filter((race) => race.distanceM <= SHORT_RACE_MAX_M).map((race) => race.id),
   )
+  const runHistory: RecentRun[] = [...recentRuns]
 
   return {
     startDate,
@@ -134,7 +148,14 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
         blockedDates,
         raceDates: structuring.map((race) => race.date),
         shortCycle: week.raceId !== null && shortCycleRaces.has(week.raceId),
+        recentLongestRunM: longestRunBefore(runHistory, week.startDate),
       })
+      runHistory.push(
+        ...template.sessions.map((run) => ({
+          date: run.date,
+          distanceM: run.prescription.totalDistanceM,
+        })),
+      )
 
       const phase = phaseAtWeek(phases, week.index)
       const support = buildWeekSupport({
@@ -149,6 +170,12 @@ export function generatePlan(input: GeneratePlanInput): GeneratedPlan {
 
       return {
         ...week,
+        // Une semaine réduite annonce ce qu'elle pose, pas ce qu'elle visait. Le
+        // minimum, parce que les lignes droites s'ajoutent hors du partage (§ 5).
+        targetRunM: template.volumeCapped
+          ? Math.min(week.targetRunM, plannedDistance(template.sessions))
+          : week.targetRunM,
+        longRunMaxM: template.longRunMaxM,
         volumeCapped: template.volumeCapped,
         targetCyclingMin: support.targetCyclingMin,
         targetStrengthCount: support.targetStrengthCount,
@@ -171,6 +198,22 @@ export function sessionsOn(plan: GeneratedPlan, date: IsoDate): PlannedSession[]
 export function nextSessionAfter(plan: GeneratedPlan, date: IsoDate): PlannedSession | undefined {
   const tomorrow = addDays(date, 1)
   return plan.weeks.flatMap((week) => week.sessions).find((session) => session.date >= tomorrow)
+}
+
+/** Fenêtre de référence du plafond de pic de la sortie longue (§ 5). */
+export const LONG_RUN_SPIKE_WINDOW_DAYS = 30
+
+/** Plus longue course, faite ou prévue, dans les 30 jours d'avant une date ; nulle sans historique. */
+function longestRunBefore(runs: RecentRun[], date: IsoDate): number | undefined {
+  const from = addDays(date, -LONG_RUN_SPIKE_WINDOW_DAYS)
+  const distances = runs
+    .filter((run) => run.date >= from && run.date < date)
+    .map((run) => run.distanceM)
+  return distances.length === 0 ? undefined : Math.max(...distances)
+}
+
+function plannedDistance(runs: PlannedSession[]): number {
+  return runs.reduce((total, run) => total + run.prescription.totalDistanceM, 0)
 }
 
 /** Prochaine course A à partir d'une date : la muscu s'arrête sept jours avant. */

@@ -2,7 +2,7 @@ import type { AthleteConstraints } from '../domain/athlete/constraints'
 import type { ForecastTarget } from '../domain/fitness/accuracy'
 import type { PauseAllowances } from '../domain/pause/pause'
 import type { IsoDate } from '../domain/plan/calendar'
-import type { GeneratedPlan } from '../domain/plan/generate'
+import type { GeneratedPlan, RecentRun } from '../domain/plan/generate'
 import type { PlannedRace } from '../domain/plan/periodization'
 import type { PlanTrigger } from '../domain/plan/session'
 import type { GeoPoint, RouteTarget } from '../domain/routes/route'
@@ -97,6 +97,8 @@ export interface PlanGateway {
   loadCurrentFitness(today: IsoDate): Promise<FitnessSnapshot | undefined>
   /** Date du dernier test 20′, qui borne la replanification du suivant. */
   loadLastTestDate(): Promise<IsoDate | null>
+  /** Courses faites depuis une date, avec leur distance : référence du plafond de pic (§ 5). */
+  loadRunsSince(date: IsoDate): Promise<RecentRun[]>
   savePlan(plan: GeneratedPlan, trigger: PlanTrigger, parameters: PlanParameters): Promise<number>
   /**
    * Sérialise les régénérations d'un même athlète. Deux qui s'entrelacent se

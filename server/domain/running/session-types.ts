@@ -19,7 +19,7 @@ export enum RunSessionCode {
 /**
  * Assiette du quota. « I ≤ 8 %, T ≤ 10 % » (§ 8) portent sur la portion
  * intense de la séance, pas sur l'échauffement ni le retour au calme ;
- * la sortie longue, elle, est plafonnée dans son ensemble.
+ * la sortie longue, elle, se mesure dans son ensemble.
  */
 export enum QuotaBasis {
   Total = 'total',
@@ -29,6 +29,11 @@ export enum QuotaBasis {
 export interface RunQuota {
   /** Part maximale du volume hebdomadaire de course. */
   maxShareOfWeeklyVolume?: number
+  /**
+   * Part visée au minimum. Un plancher et non un plafond : la sortie longue
+   * le porte, et ses plafonds de durée et de pic l'emportent sur lui (§ 5).
+   */
+  minShareOfWeeklyVolume?: number
   basis?: QuotaBasis
   maxPerWeek?: number
 }
@@ -72,7 +77,7 @@ export const RUN_SESSION_TYPES: Record<RunSessionCode, RunSessionType> = {
     code: RunSessionCode.LongRun,
     label: 'Sortie longue',
     zone: TrainingZone.Easy,
-    quota: { maxShareOfWeeklyVolume: 0.3, basis: QuotaBasis.Total, maxPerWeek: 1 },
+    quota: { minShareOfWeeklyVolume: 0.3, basis: QuotaBasis.Total, maxPerWeek: 1 },
     allowedPhases: [
       PhaseType.Base,
       PhaseType.ShortBase,

@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { TrainingZone, paceFor } from '~~/server/domain/fitness/vdot'
 import { buildPhases } from '~~/server/domain/plan/periodization'
 import { PhaseType } from '~~/server/domain/plan/phases'
-import { EASY_MIN_MIN, buildWeekTemplate } from '~~/server/domain/plan/week-template'
+import {
+  EASY_MIN_MIN,
+  LONG_RUN_OVER_EASY,
+  buildWeekTemplate,
+} from '~~/server/domain/plan/week-template'
 import { buildWeeks } from '~~/server/domain/plan/weeks'
 import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
 import {
@@ -223,7 +227,7 @@ describe('durées et volume', () => {
 
   it('signale une semaine dont le volume a dû être réduit', () => {
     const capped = buildWeekTemplate({
-      week: { ...weekIn(PhaseType.Base), targetRunM: 90_000, longRunMaxM: 27_000 },
+      week: { ...weekIn(PhaseType.Base), targetRunM: 90_000 },
       constraints: CONSTRAINTS,
       vdot: VDOT,
     })
@@ -235,5 +239,90 @@ describe('durées et volume', () => {
       buildWeekTemplate({ week: weeks[0]!, constraints: { availableDays: [] }, vdot: VDOT })
         .sessions,
     ).toEqual([])
+  })
+})
+
+describe('sortie longue (§ 5, P23)', () => {
+  const byCode = (sessions: ReturnType<typeof template>['sessions'], code: RunSessionCode) =>
+    sessions.filter((item) => item.code === code).map((item) => item.prescription.totalDistanceM)
+  // L'écart se mesure sur la course en endurance : les 6 × 100 m s'y ajoutent sans compter.
+  const easyRuns = (sessions: ReturnType<typeof template>['sessions']) =>
+    sessions
+      .filter((item) => item.code === RunSessionCode.Endurance)
+      .map((item) => item.prescription.steps[0]!.distanceM!)
+  const total = (sessions: ReturnType<typeof template>['sessions']) =>
+    sessions.reduce((sum, item) => sum + item.prescription.totalDistanceM, 0)
+
+  it.each([3, 4, 5, 6])('dépasse chaque endurance d’au moins 30 %% à %i courses', (runs) => {
+    const sessions = buildWeekTemplate({
+      week: { ...weekIn(PhaseType.Base), targetRunM: 30_000 },
+      constraints: { ...CONSTRAINTS, runsPerWeek: runs },
+      vdot: VDOT,
+    }).sessions
+    const [longRun] = byCode(sessions, RunSessionCode.LongRun)
+    expect(sessions).toHaveLength(runs)
+    for (const easy of easyRuns(sessions)) {
+      expect(longRun!).toBeGreaterThanOrEqual(easy * LONG_RUN_OVER_EASY - 1)
+    }
+  })
+
+  it('vaut au moins 30 % de la semaine quand ses plafonds le permettent', () => {
+    for (const runs of [3, 4, 5, 6]) {
+      const sessions = buildWeekTemplate({
+        week: { ...weekIn(PhaseType.Base), targetRunM: 30_000 },
+        constraints: { ...CONSTRAINTS, runsPerWeek: runs },
+        vdot: VDOT,
+      }).sessions
+      expect(byCode(sessions, RunSessionCode.LongRun)[0]!).toBeGreaterThanOrEqual(9_000)
+    }
+  })
+
+  it('passe devant les endurances d’une reprise à trois courses sans séance clé', () => {
+    const comeback = weeks.find((week) => week.comebackRatio === 0.8)!
+    const { sessions } = buildWeekTemplate({
+      week: { ...comeback, targetRunM: 24_000 },
+      constraints: CONSTRAINTS,
+      vdot: VDOT,
+    })
+    const [longRun] = byCode(sessions, RunSessionCode.LongRun)
+    expect(Math.max(...byCode(sessions, RunSessionCode.Endurance))).toBeLessThan(longRun!)
+    expect(Math.max(...easyRuns(sessions)) * LONG_RUN_OVER_EASY).toBeLessThanOrEqual(longRun! + 1)
+    expect(total(sessions)).toBeGreaterThanOrEqual(23_900)
+  })
+
+  it('reprend le volume qu’une endurance au plafond de 75′ laissait perdre', () => {
+    const week = buildWeekTemplate({
+      week: { ...weekIn(PhaseType.Base), targetRunM: 30_000 },
+      constraints: { ...CONSTRAINTS, runsPerWeek: 3 },
+      vdot: VDOT,
+    })
+    expect(week.volumeCapped).toBe(false)
+    expect(total(week.sessions)).toBeGreaterThanOrEqual(29_900)
+  })
+
+  it('ne dépasse pas de plus de 10 % la plus longue course des 30 jours d’avant', () => {
+    const week = buildWeekTemplate({
+      week: { ...weekIn(PhaseType.Base), targetRunM: 30_000 },
+      constraints: { ...CONSTRAINTS, runsPerWeek: 3 },
+      vdot: VDOT,
+      recentLongestRunM: 8_000,
+    })
+    const [longRun] = byCode(week.sessions, RunSessionCode.LongRun)
+    expect(week.longRunMaxM).toBe(8_800)
+    expect(longRun).toBe(8_800)
+    for (const easy of easyRuns(week.sessions)) {
+      expect(easy * LONG_RUN_OVER_EASY).toBeLessThanOrEqual(longRun!)
+    }
+    expect(week.volumeCapped).toBe(true)
+  })
+
+  it('reste sous 150 minutes à l’allure E', () => {
+    const week = buildWeekTemplate({
+      week: { ...weekIn(PhaseType.Base), targetRunM: 90_000 },
+      constraints: { ...CONSTRAINTS, runsPerWeek: 3 },
+      vdot: VDOT,
+    })
+    const ceiling = (150 * 60 * 1000) / paceFor(VDOT, TrainingZone.Easy)
+    expect(byCode(week.sessions, RunSessionCode.LongRun)[0]!).toBeLessThanOrEqual(ceiling + 1)
   })
 })

@@ -2,11 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { addWeeks, startOfWeek, weekday, weeksBetween } from '~~/server/domain/plan/calendar'
 import { MAINTENANCE_WEEKS, buildPhases, phaseAtWeek } from '~~/server/domain/plan/periodization'
 import { PhaseType } from '~~/server/domain/plan/phases'
-import {
-  LONG_RUN_MAX_SHARE,
-  UNKNOWN_FITNESS_TEST_WEEK,
-  buildWeeks,
-} from '~~/server/domain/plan/weeks'
+import { UNKNOWN_FITNESS_TEST_WEEK, buildWeeks } from '~~/server/domain/plan/weeks'
 import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
 
 /** Les trois courses réelles du § 0, calées sur une reprise au 5 oct. 2026. */
@@ -159,12 +155,6 @@ describe('semaines générées', () => {
 
   it('plafonne le volume au pic', () => {
     expect(Math.max(...weeks.map((week) => week.targetRunM))).toBeLessThanOrEqual(45_000)
-  })
-
-  it('borne la sortie longue à 30 % du volume de la semaine', () => {
-    for (const week of weeks) {
-      expect(week.longRunMaxM).toBeLessThanOrEqual(week.targetRunM * LONG_RUN_MAX_SHARE + 1)
-    }
   })
 
   it('fait décroître l’affûtage de Paris, jamais croître', () => {

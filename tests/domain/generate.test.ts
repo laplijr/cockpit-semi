@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { generatePlan, nextSessionAfter, sessionsOn } from '~~/server/domain/plan/generate'
+import { addDays } from '~~/server/domain/plan/calendar'
 import { PhaseType } from '~~/server/domain/plan/phases'
 import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
 import { TrainingZone, paceFor } from '~~/server/domain/fitness/vdot'
@@ -178,6 +179,54 @@ describe('règles de placement (§ 5)', () => {
     for (const run of longRuns) {
       expect(run.prescription.totalDistanceM).toBeLessThanOrEqual(Math.round(cap) + 1)
     }
+  })
+})
+
+describe('plafond de pic de la sortie longue (§ 5, P23)', () => {
+  // Départ un lundi, sous reprise : aucune semaine partielle, montée 60 / 80 / 100 %.
+  const plan = generatePlan({
+    ...BASE,
+    today: '2026-09-14',
+    openPause: { startDate: '2026-09-01', estimatedEndDate: '2026-09-14' },
+  })
+  const runs = plan.weeks.flatMap((week) => week.sessions)
+
+  it('ne dépasse jamais de plus de 10 % la plus longue course des 30 jours d’avant', () => {
+    for (const week of plan.weeks.slice(1)) {
+      const from = addDays(week.startDate, -30)
+      const before = runs
+        .filter((run) => run.date >= from && run.date < week.startDate)
+        .map((run) => run.prescription.totalDistanceM)
+      const longRun = week.sessions.find((session) => session.code === RunSessionCode.LongRun)
+      if (!longRun || before.length === 0) continue
+      expect(longRun.prescription.totalDistanceM).toBeLessThanOrEqual(
+        Math.round(Math.max(...before) * 1.1),
+      )
+    }
+  })
+
+  it('compte les courses faites avant le plan dans la référence', () => {
+    const longRunOfWeek2 = (recentRuns: { date: string; distanceM: number }[]) =>
+      generatePlan({
+        ...BASE,
+        today: '2026-09-14',
+        openPause: { startDate: '2026-09-01', estimatedEndDate: '2026-09-14' },
+        recentRuns,
+      }).weeks[1]!.sessions.find((session) => session.code === RunSessionCode.LongRun)!.prescription
+        .totalDistanceM
+    const planOnly = longRunOfWeek2([])
+    const withDone = longRunOfWeek2([{ date: '2026-08-30', distanceM: 12_000 }])
+    expect(withDone).toBeGreaterThan(planOnly)
+    expect(withDone).toBeLessThanOrEqual(13_200)
+  })
+
+  it('n’annonce jamais pour une semaine réduite plus que ses courses', () => {
+    const capped = plan.weeks.filter((week) => week.volumeCapped && week.sessions.length > 0)
+    const posed = (week: (typeof capped)[number]) =>
+      week.sessions.reduce((sum, run) => sum + run.prescription.totalDistanceM, 0)
+    expect(capped.length).toBeGreaterThan(0)
+    for (const week of capped) expect(week.targetRunM).toBeLessThanOrEqual(posed(week))
+    expect(capped.some((week) => week.targetRunM === posed(week))).toBe(true)
   })
 })
 

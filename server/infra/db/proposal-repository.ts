@@ -362,7 +362,7 @@ async function scaleWeek(
 
   await db
     .update(week)
-    .set({ targetRunM: volumeM, longRunMaxM: Math.round(volumeM * 0.3) })
+    .set({ targetRunM: volumeM })
     .where(and(eq(week.id, target.id), inArray(week.id, mine)))
 
   const sessions = await db

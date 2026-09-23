@@ -77,12 +77,18 @@ const plan = (maxWeeklyIncreasePct?: number) =>
     maxWeeklyIncreasePct,
   })
 
-/** Montées d'une semaine pleine à la suivante, hors semaines allégées. */
-function climbs(weeks: { targetRunM: number; light: boolean }[]) {
+/**
+ * Montées d'une semaine pleine à la suivante, hors semaines allégées. Une
+ * semaine réduite par les plafonds de la sortie longue annonce ce qu'elle pose
+ * et sort de la trajectoire : la suivante y revient, ce n'est pas un palier (§ 5).
+ */
+function climbs(weeks: { targetRunM: number; light: boolean; volumeCapped: boolean }[]) {
   const full = weeks.filter((week) => !week.light)
   return full
     .slice(1)
-    .map((week, index) => ({ from: full[index]!.targetRunM, to: week.targetRunM }))
+    .map((week, index) => ({ from: full[index]!, to: week }))
+    .filter((step) => !step.from.volumeCapped)
+    .map((step) => ({ from: step.from.targetRunM, to: step.to.targetRunM }))
     .filter((step) => step.to > step.from)
 }
 

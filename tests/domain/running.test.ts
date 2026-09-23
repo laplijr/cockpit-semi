@@ -42,9 +42,9 @@ describe('quotas (§ 8)', () => {
     expect(respectsQuota(RunSessionCode.Threshold, 4100, WEEKLY_VOLUME_M)).toBe(false)
   })
 
-  it('plafonne la sortie longue à 30 % du volume hebdomadaire', () => {
-    expect(maxDistanceFor(RunSessionCode.LongRun, WEEKLY_VOLUME_M)).toBe(12_000)
-    expect(respectsQuota(RunSessionCode.LongRun, 12_500, WEEKLY_VOLUME_M)).toBe(false)
+  it('donne à la sortie longue un plancher de 30 % et aucun plafond de part', () => {
+    expect(RUN_SESSION_TYPES[RunSessionCode.LongRun].quota.minShareOfWeeklyVolume).toBe(0.3)
+    expect(maxDistanceFor(RunSessionCode.LongRun, WEEKLY_VOLUME_M)).toBeUndefined()
   })
 
   it('ne plafonne pas l’endurance fondamentale', () => {

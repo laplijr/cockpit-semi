@@ -1,4 +1,18 @@
-import { and, asc, desc, eq, inArray, isNull, lte, ne, notInArray, or, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  ne,
+  notInArray,
+  or,
+  sql,
+} from 'drizzle-orm'
 import type {
   AthleteSnapshot,
   FitnessSnapshot,
@@ -15,7 +29,7 @@ import {
   DEFAULT_START_VOLUME_M,
 } from '../../domain/athlete/constraints'
 import { STANDARD_INCREASE_PCT, defaultsFor } from '../../domain/athlete/profile'
-import type { GeneratedPlan } from '../../domain/plan/generate'
+import type { GeneratedPlan, RecentRun } from '../../domain/plan/generate'
 import type { PlannedRace } from '../../domain/plan/periodization'
 import { SessionOrigin, SessionStatus, type PlanTrigger } from '../../domain/plan/session'
 import type { ForecastTarget } from '../../domain/fitness/accuracy'
@@ -28,6 +42,7 @@ import type { IsoDate } from '../../domain/plan/calendar'
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
 import {
+  activity,
   athlete,
   feedback,
   fitnessPoint,
@@ -119,6 +134,21 @@ export function createPlanGateway(db: Database, athleteId: number): PlanGateway 
         .orderBy(desc(fitnessPoint.date))
         .limit(1)
       return row?.date ?? null
+    },
+
+    async loadRunsSince(date: IsoDate): Promise<RecentRun[]> {
+      const rows = await db
+        .select({ date: activity.date, distanceM: activity.distanceM })
+        .from(activity)
+        .where(
+          and(
+            eq(activity.athleteId, athleteId),
+            eq(activity.sport, Sport.Running),
+            gte(activity.date, date),
+            isNotNull(activity.distanceM),
+          ),
+        )
+      return rows.map((row) => ({ date: row.date, distanceM: row.distanceM! }))
     },
 
     async savePlan(

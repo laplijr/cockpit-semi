@@ -7,6 +7,7 @@ import {
   fitsInWeek,
   isAllowedInPhase,
   prescription,
+  runSessionType,
 } from '../running/session-types'
 import type { IsoDate } from './calendar'
 import { addDays } from './calendar'
@@ -18,6 +19,15 @@ export const MAX_STRIDES_PER_WEEK = 2
 
 /** Dans un cycle 5 km, la sortie longue est bornée en durée, pas en distance (§ 5). */
 export const SHORT_CYCLE_LONG_RUN_MAX_MIN = 75
+
+/** Plafond de durée de la sortie longue hors cycle 5 km, à l'allure E (§ 5). */
+export const LONG_RUN_MAX_MIN = 150
+
+/** La sortie longue dépasse chaque endurance de la semaine d'au moins 30 % (§ 5). */
+export const LONG_RUN_OVER_EASY = 1.3
+
+/** Montée maximale de la sortie longue sur la plus longue course des 30 jours d'avant. */
+export const LONG_RUN_SPIKE = 1.1
 
 /** Bornes de durée d'une endurance, à l'allure E (§ 5). */
 export const EASY_MIN_MIN = 35
@@ -75,12 +85,16 @@ export interface WeekTemplateInput {
   raceDates?: IsoDate[]
   /** Vrai dans un cycle 5 km : la sortie longue passe alors en durée. */
   shortCycle?: boolean
+  /** Plus longue course prévue dans les 30 jours d'avant la semaine : borne le pic (§ 5). */
+  recentLongestRunM?: number
 }
 
 export interface WeekTemplate {
   sessions: PlannedSession[]
   /** Vrai quand le volume visé dépassait ce que les courses peuvent porter. */
   volumeCapped: boolean
+  /** Plafond appliqué à la sortie longue de la semaine. */
+  longRunMaxM: number
 }
 
 function dayOfWeek(week: PlanWeek, weekday: number): IsoDate {
@@ -183,16 +197,22 @@ export function buildWeekTemplate({
   blockedDates = [],
   raceDates = [],
   shortCycle = false,
+  recentLongestRunM,
 }: WeekTemplateInput): WeekTemplate {
   const blocked = new Set(blockedDates)
   const available = [...constraints.availableDays]
     .sort((a, b) => a - b)
     .filter((weekday) => !blocked.has(dayOfWeek(week, weekday)))
 
-  if (available.length === 0) return { sessions: [], volumeCapped: false }
+  const empty = {
+    sessions: [],
+    volumeCapped: false,
+    longRunMaxM: longRunCeiling(vdot, shortCycle, recentLongestRunM),
+  }
+  if (available.length === 0) return empty
 
   const runs = runsFor(week, constraints, available.length)
-  if (runs === 0) return { sessions: [], volumeCapped: false }
+  if (runs === 0) return empty
 
   /**
    * La semaine d'une course se pose depuis le jour J et non depuis le lundi :
@@ -263,6 +283,7 @@ export function buildWeekTemplate({
     context,
     vdot,
     shortCycle,
+    recentLongestRunM,
     allowed,
   })
 }
@@ -292,6 +313,7 @@ interface PrescriptionInput {
   context: PrescriptionContext
   vdot: number
   shortCycle: boolean
+  recentLongestRunM: number | undefined
   allowed: (code: RunSessionCode) => boolean
 }
 
@@ -302,94 +324,92 @@ function buildPrescriptions({
   context,
   vdot,
   shortCycle,
+  recentLongestRunM,
   allowed,
 }: PrescriptionInput): WeekTemplate {
   const days = [...assignments.keys()].sort((a, b) => a - b)
   const easyPace = paceFor(vdot, TrainingZone.Easy)
   const minEasyM = Math.round((EASY_MIN_MIN * 60 * 1000) / easyPace)
   const maxEasyM = Math.round((EASY_MAX_MIN * 60 * 1000) / easyPace)
+  const longRunMaxM = longRunCeiling(vdot, shortCycle, recentLongestRunM)
 
-  const keyDays = days.filter((day) => assignments.get(day) !== RunSessionCode.Endurance)
+  const longRunDay = days.find((day) => assignments.get(day) === RunSessionCode.LongRun)
+  const qualityDays = days.filter(
+    (day) => ![RunSessionCode.Endurance, RunSessionCode.LongRun].includes(assignments.get(day)!),
+  )
   const easyDays = days.filter(
     (day) => assignments.get(day) === RunSessionCode.Endurance && day !== activationDay,
   )
 
   const prescriptions = new Map<number, Prescription>()
-  for (const day of keyDays) {
-    prescriptions.set(day, prescribeKey(assignments.get(day)!, context, shortCycle, vdot, week))
+  for (const day of qualityDays) {
+    prescriptions.set(day, prescription(assignments.get(day)!, context))
   }
-
-  const keyVolume = [...prescriptions.values()].reduce(
+  const qualityVolume = [...prescriptions.values()].reduce(
     (total, item) => total + item.totalDistanceM,
     0,
   )
-  let remaining = Math.max(0, week.targetRunM - keyVolume)
 
   // Les lignes droites s'intègrent à une endurance, jamais en séance à part (§ 5).
   let stridesLeft = allowed(RunSessionCode.Strides) ? MAX_STRIDES_PER_WEEK : 0
 
+  let activationM = 0
   if (activationDay !== undefined) {
-    const distanceM = Math.round((ACTIVATION_MIN * 60 * 1000) / easyPace)
+    activationM = Math.round((ACTIVATION_MIN * 60 * 1000) / easyPace)
     prescriptions.set(
       activationDay,
       prescription(RunSessionCode.Endurance, {
         ...context,
-        targetDistanceM: distanceM,
+        targetDistanceM: activationM,
         withStrides: stridesLeft > 0,
       }),
     )
     if (stridesLeft > 0) stridesLeft -= 1
-    remaining = Math.max(0, remaining - distanceM)
   }
 
-  const easyShare = easyDays.length === 0 ? 0 : remaining / easyDays.length
+  const easyVolume = Math.max(0, week.targetRunM - qualityVolume - activationM)
+  const longRunM =
+    longRunDay === undefined
+      ? 0
+      : Math.min(longRunMaxM, longRunTarget(week.targetRunM, easyVolume, easyDays.length))
+
+  const easyShare = easyDays.length === 0 ? 0 : Math.max(0, easyVolume - longRunM) / easyDays.length
   const floored = Math.min(maxEasyM, Math.max(minEasyM, Math.round(easyShare)))
   // Sur une semaine trop courte, le plancher de 35′ ferait dépasser le volume :
   // mieux vaut une endurance plus brève qu'une semaine hors cible.
-  const overshoots = keyVolume + floored * easyDays.length > week.targetRunM * 1.05
-  const clamped = overshoots ? Math.max(0, Math.round(easyShare)) : floored
+  const overshoots =
+    qualityVolume + activationM + longRunM + floored * easyDays.length > week.targetRunM * 1.05
+  const bounded = overshoots ? Math.round(easyShare) : floored
+  // Une endurance ne rattrape jamais la sortie longue, même au plancher de 35′.
+  const easyM =
+    longRunDay === undefined
+      ? bounded
+      : Math.min(bounded, Math.floor(longRunM / LONG_RUN_OVER_EASY))
 
   for (const day of easyDays) {
     prescriptions.set(
       day,
       prescription(RunSessionCode.Endurance, {
         ...context,
-        targetDistanceM: clamped,
+        targetDistanceM: easyM,
         withStrides: stridesLeft > 0,
       }),
     )
     if (stridesLeft > 0) stridesLeft -= 1
-    remaining -= clamped
   }
 
-  // Le surplus va d'abord à la sortie longue, dans la limite de son quota.
-  let volumeCapped = false
-  if (remaining > 0) {
-    const longRunDay = keyDays.find((day) => assignments.get(day) === RunSessionCode.LongRun)
-    if (longRunDay !== undefined) {
-      const current = prescriptions.get(longRunDay)!
-      // Le plafond du cycle 5 km prime sur le quota de 30 % (§ 5).
-      const ceiling = shortCycle
-        ? Math.min(week.longRunMaxM, shortCycleLongRunCap(vdot))
-        : week.longRunMaxM
-      const room = Math.max(0, ceiling - current.totalDistanceM)
-      const added = Math.min(room, remaining)
-      if (added > 0) {
-        prescriptions.set(
-          longRunDay,
-          prescription(RunSessionCode.LongRun, {
-            ...context,
-            targetDistanceM: current.totalDistanceM + added,
-          }),
-        )
-        remaining -= added
-      }
-    }
-    volumeCapped = remaining > 1
+  // Le surplus va d'abord à la sortie longue, dans la limite de ses plafonds.
+  const surplus = Math.max(0, easyVolume - longRunM - easyM * easyDays.length)
+  let remaining = surplus
+  if (longRunDay !== undefined) {
+    const finalLongRunM = Math.min(longRunMaxM, longRunM + surplus)
+    prescriptions.set(longRunDay, prescribeLongRun(week, context, finalLongRunM))
+    remaining -= finalLongRunM - longRunM
   }
 
   return {
-    volumeCapped,
+    volumeCapped: remaining > 1,
+    longRunMaxM,
     sessions: days.map((weekday) => ({
       date: addDays(week.startDate, weekday - 1),
       weekday,
@@ -400,30 +420,44 @@ function buildPrescriptions({
   }
 }
 
-/** Distance couverte en 75′ à l'allure E : plafond de la sortie longue d'un cycle 5 km. */
-function shortCycleLongRunCap(vdot: number): number {
-  return Math.round((SHORT_CYCLE_LONG_RUN_MAX_MIN * 60 * 1000) / paceFor(vdot, TrainingZone.Easy))
+/**
+ * Distance visée de la sortie longue, avant ses plafonds : au moins sa part
+ * plancher de la semaine, et au moins 1,3 fois l'endurance qui se partage le
+ * reste du volume facile. Le second terme porte les semaines à peu de courses,
+ * où la part plancher tombe sous la moyenne d'une course (§ 5).
+ */
+function longRunTarget(weeklyVolumeM: number, easyVolumeM: number, easyCount: number): number {
+  const floorShare = runSessionType(RunSessionCode.LongRun).quota.minShareOfWeeklyVolume ?? 0
+  const aboveEasy = (LONG_RUN_OVER_EASY * easyVolumeM) / (easyCount + LONG_RUN_OVER_EASY)
+  return Math.round(Math.max(weeklyVolumeM * floorShare, aboveEasy))
 }
 
-function prescribeKey(
-  code: RunSessionCode,
-  context: PrescriptionContext,
-  shortCycle: boolean,
+/**
+ * Plafond de la sortie longue : une durée à l'allure E, 150′ ou 75′ en cycle
+ * 5 km, et pas plus de 10 % au-dessus de la plus longue course prévue dans les
+ * 30 jours d'avant (Garmin-RUNSAFE, Nielsen et al., BJSM 2025). Aucun des deux
+ * ne dépend du nombre de courses de la semaine (§ 5).
+ */
+export function longRunCeiling(
   vdot: number,
+  shortCycle: boolean,
+  recentLongestRunM: number | undefined,
+): number {
+  const minutes = shortCycle ? SHORT_CYCLE_LONG_RUN_MAX_MIN : LONG_RUN_MAX_MIN
+  const byDuration = Math.round((minutes * 60 * 1000) / paceFor(vdot, TrainingZone.Easy))
+  if (recentLongestRunM === undefined) return byDuration
+  return Math.min(byDuration, Math.round(recentLongestRunM * LONG_RUN_SPIKE))
+}
+
+function prescribeLongRun(
   week: PlanWeek,
+  context: PrescriptionContext,
+  targetDistanceM: number,
 ): Prescription {
-  if (code === RunSessionCode.LongRun && shortCycle) {
-    // Cycle 5 km : la sortie longue est bornée à 75′ à l'allure E (§ 5).
-    return prescription(code, {
-      ...context,
-      targetDistanceM: Math.min(week.longRunMaxM, shortCycleLongRunCap(vdot)),
-    })
-  }
-
   // En spécifique, la sortie longue porte sa portion à allure semi (§ 5).
-  if (code === RunSessionCode.LongRun && week.phaseType === PhaseType.Specific) {
-    return prescription(code, { ...context, withHalfPaceFinish: true })
-  }
-
-  return prescription(code, context)
+  return prescription(RunSessionCode.LongRun, {
+    ...context,
+    targetDistanceM,
+    withHalfPaceFinish: week.phaseType === PhaseType.Specific,
+  })
 }

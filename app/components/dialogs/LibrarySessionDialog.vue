@@ -33,6 +33,14 @@ const expectedRpe = computed(() => runType.value?.expectedRpe ?? rideType.value?
 
 const term = computed(() => glossaryTermFor(SESSION_TERMS, props.code))
 
+/** La sortie longue porte un plancher, les séances de qualité un plafond (§ 5). */
+function quotaLabel(quota: { maxShareOfWeeklyVolume?: number; minShareOfWeeklyVolume?: number }) {
+  if (quota.maxShareOfWeeklyVolume) return `${Math.round(quota.maxShareOfWeeklyVolume * 100)} %`
+  if (quota.minShareOfWeeklyVolume)
+    return `au moins ${Math.round(quota.minShareOfWeeklyVolume * 100)} %`
+  return '—'
+}
+
 /** Les chiffres qui tiennent la séance, selon le sport. */
 const figures = computed(() => {
   if (runType.value) {
@@ -51,9 +59,7 @@ const figures = computed(() => {
       {
         key: 'quota',
         label: 'Quota',
-        value: runType.value.quota.maxShareOfWeeklyVolume
-          ? `${Math.round(runType.value.quota.maxShareOfWeeklyVolume * 100)} %`
-          : '—',
+        value: quotaLabel(runType.value.quota),
       },
     ]
   }

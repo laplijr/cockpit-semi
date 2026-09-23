@@ -6,7 +6,7 @@ import {
 import { STANDARD_INCREASE_PCT } from '../domain/athlete/profile'
 import type { GeneratedPlan } from '../domain/plan/generate'
 import { addDays } from '../domain/plan/calendar'
-import { generatePlan } from '../domain/plan/generate'
+import { LONG_RUN_SPIKE_WINDOW_DAYS, generatePlan } from '../domain/plan/generate'
 import { VDOT_GAIN_PER_BLOCK } from '../domain/fitness/projection'
 import { COMEBACK_RATIOS } from '../domain/plan/weeks'
 import type { PlanTrigger } from '../domain/plan/session'
@@ -50,12 +50,13 @@ async function regenerate(
   clock: Clock,
   trigger: PlanTrigger,
 ): Promise<RegenerateResult> {
-  const [athlete, races, latestPause, fitness, lastTestDate] = await Promise.all([
+  const [athlete, races, latestPause, fitness, lastTestDate, recentRuns] = await Promise.all([
     gateway.loadAthlete(),
     gateway.loadRaces(),
     gateway.loadLatestPause(),
     gateway.loadCurrentFitness(clock.today()),
     gateway.loadLastTestDate(),
+    gateway.loadRunsSince(addDays(clock.today(), -LONG_RUN_SPIKE_WINDOW_DAYS)),
   ])
 
   const openPause = latestPause?.endDate === null ? latestPause : undefined
@@ -88,6 +89,7 @@ async function regenerate(
     lastTestDate,
     maxWeeklyIncreasePct: athlete?.maxWeeklyIncreasePct ?? STANDARD_INCREASE_PCT,
     vdotKnown,
+    recentRuns,
   })
 
   const planVersionId = await gateway.savePlan(plan, trigger, {

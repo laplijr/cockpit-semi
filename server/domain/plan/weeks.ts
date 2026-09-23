@@ -9,7 +9,6 @@ export const BLOCK_WEEKS = 4
 /** Montée par défaut, quand le profil ne dit rien : +10 %/semaine (§ 5). */
 export const WEEKLY_PROGRESSION = 1.1
 export const LIGHT_WEEK_FACTOR = 0.7
-export const LONG_RUN_MAX_SHARE = 0.3
 
 /** Montée de charge d'une reprise surveillée après pause (§ 0). */
 export const COMEBACK_RATIOS = [0.6, 0.8, 1] as const
@@ -73,6 +72,7 @@ export interface PlanWeek {
   /** Course préparée par la semaine ; nul dans le cycle d'entretien (§ 5). */
   raceId: number | null
   targetRunM: number
+  /** Plafond de la sortie longue, renseigné à la génération (§ 5). */
   longRunMaxM: number
   light: boolean
   comebackRatio?: number
@@ -211,7 +211,7 @@ export function buildWeeks({
       phaseType: phase.type,
       raceId: phase.raceId,
       targetRunM: Math.round(targetRunM),
-      longRunMaxM: Math.round(targetRunM * LONG_RUN_MAX_SHARE),
+      longRunMaxM: 0,
       light,
       comebackRatio,
       phaseProgress,
