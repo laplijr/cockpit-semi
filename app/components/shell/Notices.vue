@@ -14,15 +14,14 @@ const notices = useBrowserNotices()
 const DONE = [SessionStatus.Done, SessionStatus.Modified] as string[]
 
 /** Rien n'est chargé pour les rappels seuls : ils lisent ce qui est déjà là. */
-const ready = computed(() => notices.enabled.value && plan.loaded && plan.today !== '')
+const ready = computed(
+  () => notices.enabled.value && plan.loaded && plan.today !== '' && proposals.loaded,
+)
 
 watch(
   ready,
-  async (loaded) => {
+  (loaded) => {
     if (!loaded) return
-
-    /** Le compte des décisions n'est chargé que par les surfaces qui l'affichent. */
-    if (!proposals.loaded) await proposals.load()
 
     notices.check({
       today: plan.today,

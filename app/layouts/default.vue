@@ -12,10 +12,16 @@ const plan = usePlanStore()
  * montrer sans lui — Semaine, Courses — l'attendent, elles, dans leur setup.
  */
 const circleUnread = useCircleUnread()
+/**
+ * Le badge des décisions est porté par la coque : chargé par les seules pages
+ * qui les affichent, il manquait à une session ouverte sur Semaine (P19).
+ */
+const proposals = usePropositionsStore()
 
 onMounted(() => {
   plan.ensureLoaded()
   circleUnread.refresh()
+  proposals.load()
 })
 
 useShellShortcuts()

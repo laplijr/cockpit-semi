@@ -2,7 +2,6 @@
 import type { PendingInstrument } from '~/components/cockpit/FirstDaysTile.vue'
 
 const plan = usePlanStore()
-const proposals = usePropositionsStore()
 
 /**
  * Rien n'est attendu avant le rendu : le cockpit se peint tout de suite et
@@ -13,10 +12,6 @@ const {
   status: racesStatus,
   refresh: refreshRaces,
 } = useFetch('/api/races', { lazy: true, server: false })
-
-onMounted(() => {
-  proposals.load()
-})
 
 /** Une course passée ne tient pas le cap : son J− serait à l'envers (P7.5). */
 const raceA = computed(() =>

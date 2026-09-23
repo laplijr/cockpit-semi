@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const proposals = usePropositionsStore()
-await proposals.load()
 
 const STATUS_LABELS: Record<string, string> = {
   proposee: 'en attente',
@@ -21,7 +20,8 @@ const decided = usePagedList(() => proposals.decided, PER_PAGE)
     <div class="tile">
       <span class="label">Historique des décisions</span>
 
-      <p v-if="decided.total === 0" class="text-[13px] text-text-dim">
+      <UiSkeleton v-if="!proposals.loaded" :height="19" width="46%" />
+      <p v-else-if="decided.total === 0" class="text-[13px] text-text-dim">
         Aucune décision prise pour l'instant.
       </p>
 
