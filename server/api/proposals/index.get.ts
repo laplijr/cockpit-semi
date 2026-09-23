@@ -1,11 +1,11 @@
 import { and, inArray } from 'drizzle-orm'
 import { groupDecisions, groupProposals } from '../../application/group-proposals'
-import { ProposalStatus } from '../../domain/rules/proposal-status'
+import { ProposalStatus, isOutdated } from '../../domain/rules/proposal-status'
 import { useDatabase } from '../../infra/db/client'
 import { athleteWeekIds } from '../../infra/db/plan-gateway'
 import { listProposals } from '../../infra/db/proposal-repository'
 import { session } from '../../infra/db/schema'
-import { currentAthleteId } from '../../utils/context'
+import { currentAthleteId, systemClock } from '../../utils/context'
 
 export default defineEventHandler(async (event) => {
   const athleteId = await currentAthleteId(event)
@@ -39,10 +39,17 @@ export default defineEventHandler(async (event) => {
 
   // La ligne garde tout ce qu'elle portait — le dialog de détail en a besoin —
   // et gagne sa cible nommée : quelle séance, quel jour, quel sport.
-  const pending = proposed.map((row) => ({
-    ...row,
-    target: row.targetId === null ? null : (byId.get(row.targetId) ?? null),
-  }))
+  // Ce que le cron n'a pas encore expiré ne se montre déjà plus : une séance
+  // passée n'a plus rien à décider, ni dans la liste ni dans le compte (P19).
+  const today = systemClock.today()
+  const pending = proposed
+    .map((row) => ({
+      ...row,
+      target: row.targetId === null ? null : (byId.get(row.targetId) ?? null),
+    }))
+    .filter(
+      (row) => !isOutdated({ targetDate: row.target?.date ?? null, payload: row.payload }, today),
+    )
 
   return {
     pending,

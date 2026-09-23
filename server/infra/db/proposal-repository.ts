@@ -6,7 +6,11 @@ import { SessionStatus } from '../../domain/plan/session'
 import { PauseType } from '../../domain/pause/pause'
 import { applyToPrescription, isSessionEffect } from '../../domain/rules/apply'
 import { toCyclingPrescription } from '../../domain/cycling/convert'
-import { ProposalStatus, type ProposalTrigger } from '../../domain/rules/proposal-status'
+import {
+  ProposalStatus,
+  isOutdated,
+  type ProposalTrigger,
+} from '../../domain/rules/proposal-status'
 import {
   ProposalEffect,
   evaluateRules,
@@ -453,6 +457,30 @@ export async function expireStaleProposals(db: Database, athleteId: number, toda
         lt(proposal.createdAt, cutoff),
       ),
     )
+}
+
+/** Une proposition dont la séance ou la date de destination est passée expire (P19). */
+export async function expireOutdatedProposals(db: Database, athleteId: number, today: string) {
+  const rows = await db
+    .select({ id: proposal.id, payload: proposal.payload, targetDate: session.date })
+    .from(proposal)
+    .leftJoin(
+      session,
+      and(
+        eq(proposal.targetKind, 'session'),
+        eq(session.id, proposal.targetId),
+        inArray(session.weekId, athleteWeekIds(db, athleteId)),
+      ),
+    )
+    .where(and(eq(proposal.athleteId, athleteId), eq(proposal.status, ProposalStatus.Proposed)))
+
+  const ids = rows.filter((row) => isOutdated(row, today)).map((row) => row.id)
+  if (ids.length === 0) return
+
+  await db
+    .update(proposal)
+    .set({ status: ProposalStatus.Expired, decidedAt: new Date() })
+    .where(and(eq(proposal.athleteId, athleteId), inArray(proposal.id, ids)))
 }
 
 export async function pendingCount(db: Database, athleteId: number): Promise<number> {

@@ -11,6 +11,7 @@ import {
   type SessionOutcome,
   type UpcomingSession,
 } from '~~/server/domain/rules/rules'
+import { isOutdated } from '~~/server/domain/rules/proposal-status'
 import { RunSessionCode } from '~~/server/domain/running/session-types'
 import { Sport } from '~~/server/domain/shared/sport'
 
@@ -344,5 +345,44 @@ describe('moteur de règles', () => {
       expect(proposal.after).toBeTruthy()
       expect(proposal.explanation).toBeTruthy()
     }
+  })
+})
+
+describe('une proposition ne survit pas à la séance qu’elle vise (P19)', () => {
+  const tired = outcome({ rpe: 9, sensations: [Sensation.HeavyLegs] })
+
+  it('expire une proposition de R2 qui visait la séance d’hier', () => {
+    const easy = upcoming({ date: '2026-11-21' })
+    const r2 = evaluateRules(context({ recent: [tired], upcoming: [easy] })).find(
+      (p) => p.ruleId === RuleId.R2,
+    )!
+    const dates = { targetDate: easy.date, payload: r2.payload ?? null }
+    expect(isOutdated(dates, '2026-11-21')).toBe(false)
+    expect(isOutdated(dates, '2026-11-22')).toBe(true)
+  })
+
+  it('expire une proposition de R6 dont l’échéance est passée', () => {
+    const nextKey = upcoming({
+      sessionId: 12,
+      date: '2026-11-22',
+      key: true,
+      code: RunSessionCode.LongRun,
+    })
+    const r6 = evaluateRules(
+      context({ recent: [outcome({ skipped: true })], upcoming: [nextKey] }),
+    ).find((p) => p.ruleId === RuleId.R6)!
+    expect(r6.after).toBe('replacée avant le 22 nov.')
+    expect(
+      isOutdated({ targetDate: nextKey.date, payload: r6.payload ?? null }, '2026-11-24'),
+    ).toBe(true)
+  })
+
+  it('expire un déplacement dont le jour d’arrivée est passé', () => {
+    expect(
+      isOutdated({ targetDate: '2026-11-26', payload: { date: '2026-11-23' } }, '2026-11-24'),
+    ).toBe(true)
+    expect(isOutdated({ targetDate: null, payload: { date: '2026-11-25' } }, '2026-11-24')).toBe(
+      false,
+    )
   })
 })

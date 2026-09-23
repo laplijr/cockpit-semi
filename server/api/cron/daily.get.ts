@@ -5,7 +5,11 @@ import { recheckRaces } from '../../application/recheck-races'
 import { ProposalTrigger } from '../../domain/rules/proposal-status'
 import { useDatabase, type Database } from '../../infra/db/client'
 import { hasLlmKey } from '../../infra/llm/client'
-import { evaluateAndStore, expireStaleProposals } from '../../infra/db/proposal-repository'
+import {
+  evaluateAndStore,
+  expireOutdatedProposals,
+  expireStaleProposals,
+} from '../../infra/db/proposal-repository'
 import { createRecheckGateway } from '../../infra/db/recheck-gateway'
 import { athlete } from '../../infra/db/schema'
 import { createRaceSearcher } from '../../infra/search/race-lookup'
@@ -55,6 +59,7 @@ export default defineEventHandler(async (event) => {
 
 async function runFor(db: Database, athleteId: number, today: string): Promise<AthleteReport> {
   await expireStaleProposals(db, athleteId, today)
+  await expireOutdatedProposals(db, athleteId, today)
   const proposals = await evaluateAndStore(db, athleteId, today, ProposalTrigger.DailyCron)
 
   /** À J−7, chaque course encore planifiée reçoit son plan ravito (§ 5). */
