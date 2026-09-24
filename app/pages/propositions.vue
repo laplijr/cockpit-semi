@@ -33,7 +33,17 @@ const decided = usePagedList(() => proposals.decided, PER_PAGE)
         :key="item.key"
         class="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-line-soft py-[10px] first:border-t-0"
       >
-        <span class="pill">{{ item.ruleId }}</span>
+        <!-- La règle se nomme ; son code est l'identifiant du moteur (P20). -->
+        <UiHoverBubble
+          :label="RULE_NAMES[item.ruleId] ?? item.ruleId"
+          size="sm"
+          trigger-class="lean:w-[184px] lean:shrink-0"
+        >
+          <template #trigger>
+            <span class="pill explicable">{{ RULE_NAMES[item.ruleId] ?? item.ruleId }}</span>
+          </template>
+          <span class="mono text-meta text-text-dim">{{ item.ruleId }}</span>
+        </UiHoverBubble>
         <span v-if="item.before && item.after && item.count > 1" class="mono text-meta">
           {{ item.count }} séances
         </span>

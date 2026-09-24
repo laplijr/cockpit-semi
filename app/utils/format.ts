@@ -299,6 +299,27 @@ export const EFFECT_ACTIONS: Record<string, string> = {
   seance_retiree: 'retirée',
 }
 
+/**
+ * Le nom d'une règle, pour l'historique : le code est l'identifiant du
+ * moteur, il passe dans la bulle (P20).
+ */
+export const RULE_NAMES: Record<string, string> = {
+  R1: 'Séance clé trop dure',
+  R2: 'Fatigue accumulée',
+  R3: 'Nuits courtes',
+  R4: 'Signal de fatigue',
+  R5: 'Douleur',
+  R6: 'Séance sautée',
+  R7: 'Séances clés tenues',
+  R8: 'Course vers vélo',
+  R9: 'Recalage de la progression',
+  I1: 'Imprévu',
+  C1: 'Date de course',
+  R100: 'Habitude de jour',
+  R101: 'Jour sans séance',
+  R102: 'Ressenti appris',
+}
+
 /** Effets qui ne visent pas une séance : ils se nomment tout seuls. */
 export const EFFECT_TITLES: Record<string, string> = {
   progression_gelee: 'Progression de bloc gelée',

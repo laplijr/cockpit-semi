@@ -51,6 +51,11 @@ function targetOf(group: ProposalGroup): string {
   return `${group.targets.length} séances${sport}`
 }
 
+/** Le déclencheur chiffré, sans le point final : la ligne le tronque avant le delta (P20). */
+function motiveOf(group: ProposalGroup): string {
+  return group.explanation.replace(/\.$/, '')
+}
+
 /** L'icône du sport visé ; un groupe qui mêle les sports n'en a pas. */
 function sportOf(group: ProposalGroup): string | null {
   const sports = new Set(group.targets.map((target) => target.sport))
@@ -123,22 +128,26 @@ async function apply() {
         class="tap explicable-zone grid min-w-0 flex-1 grid-cols-1 content-center gap-1 text-left wide:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] wide:items-baseline wide:gap-3"
         @click="ui.openModal('proposition', group.ids[0]!)"
       >
-        <span class="flex min-w-0 items-baseline gap-2">
-          <UiAppIcon
-            v-if="sportOf(group)"
-            :name="sportStyle(sportOf(group)!).icon"
-            :size="14"
-            :label="SPORT_LABELS[sportOf(group)!] ?? sportOf(group)!"
-            :class="['shrink-0 self-center', sportStyle(sportOf(group)!).tone]"
-          />
-          <!-- Le titre complet et l'identifiant de règle passent au survol. -->
-          <UiHoverBubble :label="titleOf(group)" size="lg" trigger-class="min-w-0">
-            <template #trigger>
-              <span class="explicable truncate text-body">{{ targetOf(group) }}</span>
-            </template>
-            <template #title>{{ titleOf(group) }}</template>
-            <span class="mono text-meta text-text-dim">{{ group.ruleId }}</span>
-          </UiHoverBubble>
+        <span class="flex min-w-0 flex-col gap-px">
+          <span class="flex min-w-0 items-baseline gap-2">
+            <UiAppIcon
+              v-if="sportOf(group)"
+              :name="sportStyle(sportOf(group)!).icon"
+              :size="14"
+              :label="SPORT_LABELS[sportOf(group)!] ?? sportOf(group)!"
+              :class="['shrink-0 self-center', sportStyle(sportOf(group)!).tone]"
+            />
+            <!-- Le titre complet et l'identifiant de règle passent au survol. -->
+            <UiHoverBubble :label="titleOf(group)" size="lg" trigger-class="min-w-0">
+              <template #trigger>
+                <span class="explicable truncate text-body">{{ targetOf(group) }}</span>
+              </template>
+              <template #title>{{ titleOf(group) }}</template>
+              <span class="mono text-meta text-text-dim">{{ group.ruleId }}</span>
+            </UiHoverBubble>
+          </span>
+          <!-- Pourquoi, sur la ligne : le motif ne se lisait qu'au survol (P20). -->
+          <span class="truncate text-meta text-text-dim">{{ motiveOf(group) }}</span>
         </span>
 
         <!-- Le delta est un texte du moteur, parfois long : il tronque de son
