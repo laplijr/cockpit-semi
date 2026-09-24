@@ -1,19 +1,21 @@
-import type { ExerciseFigure } from './skeleton'
+import { FigureCloseUp, FigureView, type ExerciseFigure } from './skeleton'
 
 /** Les poses du groupe Tronc (P25). */
 export const CORE_FIGURES: Record<string, ExerciseFigure> = {
-  pallof: {
-    scale: 0.9,
-    props: [{ kind: 'sol' }, { kind: 'elastique', from: 'hand', to: [4, 64] }],
-    poses: [
-      { ankle: [58, 151], lean: 0, arm: { to: [72, 66], elbow: 'bas' }, leg: [8, -8, 90] },
-      { ankle: [58, 151], lean: 0, arm: { to: [96, 66], elbow: 'bas' }, leg: [8, -8, 90] },
-    ],
-  },
+  /** Vu de dessus : l'élastique tire de côté, les mains partent droit devant. */
+  pallof: { closeUp: FigureCloseUp.PallofFromAbove, props: [], poses: [] },
+  /**
+   * De face, le coude sous l'épaule et le bras du dessus tendu vers le haut :
+   * les hanches montent du sol jusqu'à l'alignement, puis tiennent.
+   */
   'planche-laterale': {
-    scale: 0.8,
+    view: FigureView.Front,
+    scale: 0.72,
     props: [{ kind: 'sol' }],
-    poses: [{ hip: [66.2, 138.6], lean: 77.6, arm: [0, 90], leg: [-77.6, -77.6, 10] }],
+    poses: [
+      { hip: [56, 146], lean: 86, arm: [180, 180], armFar: [0, 90], leg: [-86, -86, 180] },
+      { hip: [58, 134], lean: 76, arm: [180, 180], armFar: [0, 90], leg: [-76, -76, 180] },
+    ],
   },
   'dead-bug': {
     scale: 0.75,
@@ -30,12 +32,5 @@ export const CORE_FIGURES: Record<string, ExerciseFigure> = {
       },
     ],
   },
-  'pallof-elastique': {
-    scale: 0.9,
-    props: [{ kind: 'sol' }, { kind: 'elastique', from: 'hand', to: [4, 64] }],
-    poses: [
-      { ankle: [58, 151], lean: 0, arm: { to: [72, 66], elbow: 'bas' }, leg: [8, -8, 90] },
-      { ankle: [58, 151], lean: 0, arm: { to: [96, 66], elbow: 'bas' }, leg: [8, -8, 90] },
-    ],
-  },
+  'pallof-elastique': { closeUp: FigureCloseUp.PallofFromAbove, props: [], poses: [] },
 }

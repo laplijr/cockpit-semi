@@ -25,7 +25,9 @@ const props = withDefaults(
 
 const figure = computed(() => FIGURES[props.exerciseId])
 const poses = computed(() => (figure.value ? resolvedPoses(figure.value) : []))
-const moving = computed(() => !props.still && poses.value.length === 2)
+/** Le nombre de positions : un gros plan en a deux, comme un geste simple. */
+const positions = computed(() => (figure.value?.closeUp ? 2 : poses.value.length))
+const moving = computed(() => !props.still && positions.value >= 2)
 
 const reducedMotion = ref(false)
 const progress = ref(0)
@@ -34,10 +36,18 @@ let frame = 0
 onMounted(() => {
   reducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (!moving.value || reducedMotion.value) return
-  const phases = tempoPhases(props.tempo)
+  const phases = figure.value?.walking
+    ? WALK_PHASES
+    : props.holdS
+      ? HOLD_PHASES
+      : tempoPhases(props.tempo)
   const start = performance.now()
   const tick = (now: number) => {
-    progress.value = tempoProgress(phases, (now - start) / 1000)
+    const seconds = (now - start) / 1000
+    progress.value =
+      positions.value > 2
+        ? sequenceProgress(positions.value, seconds)
+        : tempoProgress(phases, seconds)
     frame = requestAnimationFrame(tick)
   }
   frame = requestAnimationFrame(tick)
@@ -45,14 +55,16 @@ onMounted(() => {
 
 onBeforeUnmount(() => cancelAnimationFrame(frame))
 
-const keyPose = computed(() => (poses.value.length === 1 ? 0 : (figure.value?.keyPose ?? 1)))
+const keyPose = computed(() => figure.value?.keyPose ?? positions.value - 1)
 
-/** Les dessins à poser : un seul en mouvement ou figé, deux côte à côte sans mouvement. */
+/** Les dessins à poser : un seul en mouvement ou figé, toutes les poses côte à côte sans mouvement. */
 const frames = computed<FigureShape[]>(() => {
   const current = figure.value
   if (!current) return []
   if (moving.value && reducedMotion.value) {
-    return [shapeAt(current, poses.value, 0), shapeAt(current, poses.value, 1)]
+    return Array.from({ length: positions.value }, (_, index) =>
+      shapeAt(current, poses.value, index),
+    )
   }
   const t = moving.value ? progress.value : keyPose.value
   return [shapeAt(current, poses.value, t)]
@@ -60,9 +72,10 @@ const frames = computed<FigureShape[]>(() => {
 
 const TONES = {
   corps: 'var(--color-text)',
-  loin: 'color-mix(in srgb, var(--color-text) 40%, transparent)',
+  loin: 'color-mix(in srgb, var(--color-text) 38%, var(--color-surface))',
   charge: 'var(--color-accent)',
-  decor: 'var(--color-line-strong)',
+  decor: 'var(--color-text-muted)',
+  meuble: 'var(--color-line-strong)',
 } as const
 </script>
 
@@ -76,42 +89,46 @@ const TONES = {
         :width="width"
         :height="(width * FRAME.height) / FRAME.width"
       >
-        <rect
-          v-for="(rect, rectIndex) in shape.rects"
-          :key="`r${rectIndex}`"
-          :x="rect.x"
-          :y="rect.y"
-          :width="rect.width"
-          :height="rect.height"
-          fill="none"
-          :stroke="TONES.decor"
-          stroke-width="1.5"
-        />
-        <line
-          v-for="(line, lineIndex) in shape.lines"
-          :key="`l${lineIndex}`"
-          :x1="line.from[0]"
-          :y1="line.from[1]"
-          :x2="line.to[0]"
-          :y2="line.to[1]"
-          :stroke="TONES[line.tone]"
-          :stroke-width="line.tone === 'decor' ? 1.5 : 3.5"
-          stroke-linecap="round"
-        />
-        <circle
-          v-for="(circle, circleIndex) in shape.circles"
-          :key="`c${circleIndex}`"
-          :cx="circle.at[0]"
-          :cy="circle.at[1]"
-          :r="circle.r"
-          :fill="circle.fill ? TONES[circle.tone] : 'none'"
-          :stroke="circle.fill ? 'none' : TONES[circle.tone]"
-          stroke-width="2.5"
-        />
+        <template v-for="(item, itemIndex) in shape.items" :key="itemIndex">
+          <line
+            v-if="item.kind === 'line'"
+            :x1="item.from[0]"
+            :y1="item.from[1]"
+            :x2="item.to[0]"
+            :y2="item.to[1]"
+            :stroke="TONES[item.tone]"
+            :stroke-width="item.width"
+            stroke-linecap="round"
+          />
+          <circle
+            v-else-if="item.kind === 'circle'"
+            :cx="item.at[0]"
+            :cy="item.at[1]"
+            :r="item.r"
+            :fill="item.fill ? TONES[item.tone] : 'none'"
+            :stroke="item.fill ? 'none' : TONES[item.tone]"
+            stroke-width="2.5"
+          />
+          <rect
+            v-else-if="item.kind === 'rect'"
+            :x="item.x"
+            :y="item.y"
+            :width="item.width"
+            :height="item.height"
+            rx="2"
+            :fill="TONES[item.tone]"
+          />
+          <path
+            v-else
+            :d="item.d"
+            :fill="TONES[item.tone]"
+            :stroke="item.width ? TONES[item.tone] : 'none'"
+            :stroke-width="item.width ?? 0"
+            stroke-linejoin="round"
+          />
+        </template>
       </svg>
     </span>
-    <span v-if="holdS && poses.length === 1" class="mono text-meta text-text-dim">
-      {{ holdS }}″ tenues
-    </span>
+    <span v-if="holdS" class="mono text-meta text-text-dim"> {{ holdS }}″ tenues </span>
   </span>
 </template>

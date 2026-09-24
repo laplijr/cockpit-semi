@@ -34,7 +34,7 @@ export const PUSH_FIGURES: Record<string, ExerciseFigure> = {
   },
   dips: {
     scale: 0.85,
-    props: [{ kind: 'barre-fixe', at: [62, 90] }],
+    props: [{ kind: 'barre-fixe', at: [62, 90], support: 'bas' }],
     poses: [
       { hip: [57, 87], lean: 5, arm: { to: [62, 90], elbow: 'arriere' }, leg: [10, -60, -30] },
       { hip: [55, 104], lean: 20, arm: { to: [62, 90], elbow: 'arriere' }, leg: [10, -60, -30] },

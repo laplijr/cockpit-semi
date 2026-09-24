@@ -56,10 +56,21 @@ export interface PoseInput {
   legFar?: LegInput
 }
 
+/**
+ * La demi-largeur des épaules et des hanches. Nulle de profil, où les deux
+ * côtés se superposent ; de face et de dessus, les bras partent de deux
+ * épaules et les jambes de deux hanches.
+ */
+export interface BodySpread {
+  shoulders: number
+  hips: number
+}
+
 /** Une pose résolue : rien que des angles, et une ancre. */
 export interface PoseSpec {
   hip?: Point
   ankle?: Point
+  spread?: BodySpread
   lean: number
   head?: number
   arm: ArmAngles
@@ -70,12 +81,17 @@ export interface PoseSpec {
 
 export interface Joints {
   head: Point
+  /** Le milieu des épaules et celui des hanches : la ligne du buste. */
   shoulder: Point
+  shoulderNear: Point
+  shoulderFar: Point
   elbow: Point
   hand: Point
   elbowFar: Point
   handFar: Point
   hip: Point
+  hipNear: Point
+  hipFar: Point
   knee: Point
   ankle: Point
   toe: Point
@@ -90,14 +106,14 @@ export type JointName = keyof Joints
 export const SEGMENTS: [JointName, JointName][] = [
   ['hip', 'shoulder'],
   ['shoulder', 'head'],
-  ['shoulder', 'elbow'],
+  ['shoulderNear', 'elbow'],
   ['elbow', 'hand'],
-  ['shoulder', 'elbowFar'],
+  ['shoulderFar', 'elbowFar'],
   ['elbowFar', 'handFar'],
-  ['hip', 'knee'],
+  ['hipNear', 'knee'],
   ['knee', 'ankle'],
   ['ankle', 'toe'],
-  ['hip', 'kneeFar'],
+  ['hipFar', 'kneeFar'],
   ['kneeFar', 'ankleFar'],
   ['ankleFar', 'toeFar'],
 ]
@@ -144,19 +160,49 @@ function reach(root: Point, target: Point, upper: number, lower: number, bend: B
   return [first!.angle, angleTo(first!.joint, end)] as const
 }
 
+/** Vers le côté proche, perpendiculaire au buste. */
+function sideOf(lean: number): Point {
+  const torso = (180 - lean) * RAD
+  return [-Math.cos(torso), Math.sin(torso)]
+}
+
+const offset = (point: Point, side: Point, amount: number): Point => [
+  point[0] + side[0] * amount,
+  point[1] + side[1] * amount,
+]
+
+/** Le milieu des hanches : donné, ou déduit de la cheville proche. */
 function hipOf(pose: PoseSpec, scale: number): Point {
   if (pose.hip) return pose.hip
   const ankle = pose.ankle!
   const [thigh, shin] = pose.leg
   const knee = step(ankle, shin + 180, LENGTHS.shin * scale)
-  return step(knee, thigh + 180, LENGTHS.thigh * scale)
+  const near = step(knee, thigh + 180, LENGTHS.thigh * scale)
+  return offset(near, sideOf(pose.lean), -(pose.spread?.hips ?? 0) * scale)
+}
+
+/** Le buste d'une pose : les milieux et les racines des membres. */
+function frameOf(pose: PoseSpec, scale: number) {
+  const hip = hipOf(pose, scale)
+  const shoulder = step(hip, 180 - pose.lean, LENGTHS.torso * scale)
+  const side = sideOf(pose.lean)
+  const shoulders = (pose.spread?.shoulders ?? 0) * scale
+  const hips = (pose.spread?.hips ?? 0) * scale
+  return {
+    hip,
+    shoulder,
+    hipNear: offset(hip, side, hips),
+    hipFar: offset(hip, side, -hips),
+    shoulderNear: offset(shoulder, side, shoulders),
+    shoulderFar: offset(shoulder, side, -shoulders),
+  }
 }
 
 /**
  * Les angles d'une pose écrite par points. L'ancre à la cheville suppose la
  * jambe proche en angles : c'est d'elle que se déduit la hanche.
  */
-export function resolvePose(input: PoseInput, scale = 1): PoseSpec {
+export function resolvePose(input: PoseInput, scale = 1, spread?: BodySpread): PoseSpec {
   const leg = (limb: LegInput, hip: Point): LegAngles =>
     Array.isArray(limb)
       ? limb
@@ -169,57 +215,54 @@ export function resolvePose(input: PoseInput, scale = 1): PoseSpec {
   const draft: PoseSpec = {
     hip: input.hip,
     ankle: input.ankle,
+    spread,
     lean: input.lean,
     head: input.head,
     arm: [0, 0],
     leg: Array.isArray(nearLeg) ? nearLeg : [0, 0, 90],
   }
-  const hip = hipOf(draft, scale)
-  const shoulder = step(hip, 180 - input.lean, LENGTHS.torso * scale)
-  const arm = (limb: ArmInput): ArmAngles =>
+  const body = frameOf(draft, scale)
+  const arm = (limb: ArmInput, root: Point): ArmAngles =>
     Array.isArray(limb)
       ? limb
-      : [...reach(shoulder, limb.to, LENGTHS.upperArm * scale, LENGTHS.forearm * scale, limb.elbow)]
+      : [...reach(root, limb.to, LENGTHS.upperArm * scale, LENGTHS.forearm * scale, limb.elbow)]
 
   return {
     ...draft,
-    arm: arm(input.arm),
-    armFar: input.armFar ? arm(input.armFar) : undefined,
-    leg: leg(input.leg, hip),
-    legFar: input.legFar ? leg(input.legFar, hip) : undefined,
+    arm: arm(input.arm, body.shoulderNear),
+    armFar: input.armFar ? arm(input.armFar, body.shoulderFar) : undefined,
+    leg: leg(input.leg, body.hipNear),
+    legFar: input.legFar ? leg(input.legFar, body.hipFar) : undefined,
   }
 }
 
 /** Les articulations d'une pose, à l'échelle de la figure. */
 export function jointsOf(pose: PoseSpec, scale = 1): Joints {
-  const hip = hipOf(pose, scale)
-  const torso = 180 - pose.lean
-  const shoulder = step(hip, torso, LENGTHS.torso * scale)
-  const head = step(shoulder, 180 - (pose.head ?? pose.lean), LENGTHS.neck * scale)
+  const body = frameOf(pose, scale)
+  const head = step(body.shoulder, 180 - (pose.head ?? pose.lean), LENGTHS.neck * scale)
 
-  const arm = (angles: ArmAngles) => {
-    const elbow = step(shoulder, angles[0], LENGTHS.upperArm * scale)
+  const arm = (angles: ArmAngles, root: Point) => {
+    const elbow = step(root, angles[0], LENGTHS.upperArm * scale)
     return [elbow, step(elbow, angles[1], LENGTHS.forearm * scale)] as const
   }
-  const leg = (angles: LegAngles) => {
-    const knee = step(hip, angles[0], LENGTHS.thigh * scale)
+  const leg = (angles: LegAngles, root: Point) => {
+    const knee = step(root, angles[0], LENGTHS.thigh * scale)
     const ankle = step(knee, angles[1], LENGTHS.shin * scale)
     return [knee, ankle, step(ankle, angles[2], LENGTHS.foot * scale)] as const
   }
 
-  const [elbow, hand] = arm(pose.arm)
-  const [elbowFar, handFar] = arm(pose.armFar ?? pose.arm)
-  const [knee, ankle, toe] = leg(pose.leg)
-  const [kneeFar, ankleFar, toeFar] = leg(pose.legFar ?? pose.leg)
+  const [elbow, hand] = arm(pose.arm, body.shoulderNear)
+  const [elbowFar, handFar] = arm(pose.armFar ?? pose.arm, body.shoulderFar)
+  const [knee, ankle, toe] = leg(pose.leg, body.hipNear)
+  const [kneeFar, ankleFar, toeFar] = leg(pose.legFar ?? pose.leg, body.hipFar)
 
   return {
     head,
-    shoulder,
+    ...body,
     elbow,
     hand,
     elbowFar,
     handFar,
-    hip,
     knee,
     ankle,
     toe,
@@ -248,6 +291,7 @@ export function interpolatePose(a: PoseSpec, b: PoseSpec, t: number): PoseSpec {
   return {
     ...anchor,
     ...hip,
+    spread: a.spread,
     lean: mix(a.lean, b.lean, t),
     head: mix(a.head ?? a.lean, b.head ?? b.lean, t),
     arm: mixAngles(a.arm, b.arm, t),
@@ -265,15 +309,46 @@ export type Prop =
   | { kind: 'banc'; x: number; y: number; width: number; height: number }
   | { kind: 'marche'; x: number; y: number; width: number }
   | { kind: 'mur'; x: number }
-  | { kind: 'barre-fixe'; at: Point }
+  /** Une barre vue en bout : son montant descend au sol ou monte au plafond. */
+  | { kind: 'barre-fixe'; at: Point; support?: 'haut' | 'bas' }
   | { kind: 'sol' }
 
+/**
+ * D'où l'on regarde le geste (relecture de Ronan, 24 sept. 2026) : le profil
+ * ne montre ni une fente latérale, ni un Pallof, ni un Y-T-W. De face, x est
+ * le côté ; de dessus, x est le côté et y va de la tête aux pieds. Hors du
+ * profil, les deux côtés du corps se voient autant l'un que l'autre.
+ */
+export enum FigureView {
+  Profile = 'profil',
+  Front = 'face',
+  Above = 'dessus',
+}
+
+/**
+ * Un dessin à part quand le corps entier ne montre rien : la voûte du pied,
+ * ou un Pallof vu de dessus — de profil comme de face, l'élastique qui tire
+ * de côté ne se voit pas, et le geste se lit comme un développé.
+ */
+export enum FigureCloseUp {
+  Foot = 'pied',
+  PallofFromAbove = 'pallof-dessus',
+}
+
 export interface ExerciseFigure {
-  /** La pose de départ, et celle de l'autre bout du geste ; un isométrique n'en a qu'une. */
-  poses: [PoseInput] | [PoseInput, PoseInput]
+  /**
+   * Les poses du geste, dans l'ordre : départ, puis l'autre bout ; trois pour
+   * un geste en trois temps (Y, T, W). Un isométrique a l'entrée dans la
+   * position, puis la position tenue.
+   */
+  poses: PoseInput[]
+  view?: FigureView
+  closeUp?: FigureCloseUp
+  /** Un isométrique qui se fait en marchant : un pas, l'autre, sans tenue. */
+  walking?: boolean
   /** Échelle du corps : un bonhomme allongé ne tient pas à 1 dans 120 de large. */
   scale?: number
   props: Prop[]
-  /** La pose figée des vignettes : la seconde par défaut, celle qui se reconnaît. */
-  keyPose?: 0 | 1
+  /** La pose figée des vignettes : la dernière par défaut, celle qui se reconnaît. */
+  keyPose?: number
 }

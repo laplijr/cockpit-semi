@@ -1,10 +1,10 @@
-import type { ExerciseFigure } from './skeleton'
+import { FigureView, type ExerciseFigure } from './skeleton'
 
 /** Les poses du groupe Tirage (P25). */
 export const PULL_FIGURES: Record<string, ExerciseFigure> = {
   tractions: {
     scale: 0.85,
-    props: [{ kind: 'barre-fixe', at: [60, 14] }],
+    props: [{ kind: 'barre-fixe', at: [60, 14], support: 'haut' }],
     poses: [
       { hip: [60, 92], lean: 0, arm: { to: [60, 14], elbow: 'avant' }, leg: [10, -60, 0] },
       { hip: [58, 62], lean: 4, arm: { to: [60, 14], elbow: 'bas' }, leg: [10, -60, 0] },
@@ -45,8 +45,24 @@ export const PULL_FIGURES: Record<string, ExerciseFigure> = {
     ],
   },
   'farmer-walk': {
-    props: [{ kind: 'sol' }, { kind: 'haltere', at: 'hand' }],
-    poses: [{ ankle: [72, 151], lean: 0, arm: [2, 2], leg: [14, -6, 90], legFar: [-14, -14, 90] }],
+    walking: true,
+    props: [{ kind: 'sol' }, { kind: 'haltere', at: 'handFar' }, { kind: 'haltere', at: 'hand' }],
+    poses: [
+      {
+        hip: [60, 82],
+        lean: 0,
+        arm: [3, 3],
+        leg: { to: [74, 151], knee: 'avant', foot: 90 },
+        legFar: { to: [46, 151], knee: 'avant', foot: 90 },
+      },
+      {
+        hip: [60, 82],
+        lean: 0,
+        arm: [3, 3],
+        leg: { to: [46, 151], knee: 'avant', foot: 90 },
+        legFar: { to: [74, 151], knee: 'avant', foot: 90 },
+      },
+    ],
   },
   'rowing-elastique': {
     scale: 0.9,
@@ -58,7 +74,7 @@ export const PULL_FIGURES: Record<string, ExerciseFigure> = {
   },
   'rowing-australien': {
     scale: 0.75,
-    props: [{ kind: 'sol' }, { kind: 'barre-fixe', at: [86, 100] }],
+    props: [{ kind: 'sol' }, { kind: 'barre-fixe', at: [86, 100], support: 'bas' }],
     poses: [
       {
         hip: [54.2, 141.7],
@@ -74,12 +90,36 @@ export const PULL_FIGURES: Record<string, ExerciseFigure> = {
       },
     ],
   },
+  /** De dessus, à plat ventre, la tête en haut : les bras dessinent Y, puis T, puis W. */
   'ytw-sol': {
-    scale: 0.62,
-    props: [{ kind: 'sol' }],
+    view: FigureView.Above,
+    scale: 0.75,
+    props: [],
     poses: [
-      { hip: [51, 148], lean: 90, arm: [92, 92], leg: [-90, -90, 0] },
-      { hip: [51, 148], lean: 90, arm: [112, 112], leg: [-90, -90, 0] },
+      {
+        hip: [60, 96],
+        lean: 0,
+        arm: [150, 150],
+        armFar: [-150, -150],
+        leg: [3, 3, 0],
+        legFar: [-3, -3, 0],
+      },
+      {
+        hip: [60, 96],
+        lean: 0,
+        arm: [90, 90],
+        armFar: [-90, -90],
+        leg: [3, 3, 0],
+        legFar: [-3, -3, 0],
+      },
+      {
+        hip: [60, 96],
+        lean: 0,
+        arm: [55, 150],
+        armFar: [-55, -150],
+        leg: [3, 3, 0],
+        legFar: [-3, -3, 0],
+      },
     ],
   },
 }

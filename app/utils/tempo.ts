@@ -46,3 +46,27 @@ export function tempoProgress(phases: TempoPhases, seconds: number): number {
   if (time < up) return 1 - (up <= EXPLOSIVE_S ? time / up : ease(time / up))
   return 0
 }
+
+/** Un isométrique : entrer dans la position, la tenir, en sortir. */
+export const HOLD_PHASES: TempoPhases = [1.2, 3, 1.2, 0.8]
+
+/** Une marche chargée : un pas, puis l'autre. */
+export const WALK_PHASES: TempoPhases = [0.6, 0, 0.6, 0]
+
+const SEQUENCE_MOVE_S = 1.2
+const SEQUENCE_HOLD_S = 0.6
+
+/**
+ * Un geste en plusieurs temps (Y, T, W) : de pose en pose, puis retour, en
+ * marquant chaque position. Rend l'indice fractionnaire de la pose, de 0 à
+ * `count − 1`.
+ */
+export function sequenceProgress(count: number, seconds: number): number {
+  const legs = (count - 1) * 2
+  const leg = SEQUENCE_MOVE_S + SEQUENCE_HOLD_S
+  const time = seconds % (legs * leg)
+  const index = Math.floor(time / leg)
+  const within = Math.min(1, (time - index * leg) / SEQUENCE_MOVE_S)
+  const eased = within * within * (3 - 2 * within)
+  return index < count - 1 ? index + eased : legs - index - eased
+}
