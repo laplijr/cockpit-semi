@@ -1495,7 +1495,7 @@ Trois lectures que les concurrents ont et que le cockpit n'a pas, retenues par R
 
 Toutes trois sont du calcul pur sur des données déjà là, sans LLM ni appel externe. Toutes trois vivent dans **Comprendre** (Progression et dialogs de cadran) : le cockpit ne gagne rien, et la règle du § 11 n'y est donc pas en jeu. Progression, en revanche, en est déjà à huit blocs : chaque case dit ce qu'elle remplace ou ce qu'elle prolonge plutôt que d'empiler.
 
-- [ ] **La charge prolongée jusqu'au jour J.**
+- [x] **La charge prolongée jusqu'au jour J.**
   - `domain/load` gagne une projection : les séances prévues, converties par `prescribedUnits` (déjà là), prolongent les charges journalières réelles jusqu'à la date de la course A. Le ratio 7 j / 21 j et la monotonie se calculent de la même façon sur toute la frise.
   - Les jours sans réalisé comptent le prescrit, et le jour passé sans nouvelles (P20) compte zéro. La projection annonce donc ce qui arrive si le plan est tenu à partir d'aujourd'hui.
   - À l'écran, deux endroits :
@@ -1503,25 +1503,30 @@ Toutes trois sont du calcul pur sur des données déjà là, sans LLM ni appel e
     - le dialog du cadran de charge montre la même courbe sur les six semaines qui viennent, et nomme la première semaine qui sort de la bande.
   - Ce n'est ni un graphe de plus ni une proposition : une lecture. Si la projection sort de la bande, les règles existantes s'en chargent, ou pas.
   - Tests : un plan tenu donne un ratio dans la bande en développement ; l'affûtage le fait descendre sous 0,8 dans les dix jours qui précèdent une course A ; une semaine allégée creuse la courbe à sa place.
-- [ ] **L'histoire de la forme dit pourquoi elle a bougé.** Chaque point de forme porte sa cause, en une phrase et sans LLM :
+  - **Fait** : `domain/load/projection.ts` (`projectLoads`, `ratioSeries`, `firstExitFromBand`), servi par `GET /api/load` du début du plan à la prochaine course A. La courbe se pose sur les barres de « Volume et charge » (`ProgressionRatioOverlay`), et le dialog du cadran la montre sur six semaines. « Sortir de la bande » est un franchissement : une courbe déjà dehors aujourd'hui (0,55 le 24 nov. au scénario `cercle`) ne « sort » pas demain. Au passage, « repère 0.8–1.3 » et la monotonie du dialog s'écrivent à la virgule.
+  - **Trouvaille, laissée à Ronan** : la semaine allégée de **base** ne creuse pas la courbe, elle la monte. Elle porte la sortie longue vélo de 150′ (P4 : elle remplace une des deux sorties vélo de la semaine allégée), soit 600 UA, et les RPE attendus de la muscu montent avec la semaine de phase : 2 446 UA contre 2 057 la semaine pleine d'avant, sur le plan de test. Le test porte donc sur la semaine allégée de développement, où la règle tient (1,05 → 0,91). Le moteur n'est pas touché : c'est une décision de P4 que la projection rend visible.
+- [x] **L'histoire de la forme dit pourquoi elle a bougé.** Chaque point de forme porte sa cause, en une phrase et sans LLM :
   - la course ou le test qui l'a posé, avec son nom et son chrono ;
   - la course non représentative qui n'a donné qu'un plancher, et pourquoi (l'incident) ;
   - l'allure déclarée ;
   - la baisse tirée des ressentis de deux séances clés (§ 5), avec leurs dates ;
   - l'écart au point précédent, signé.
   
-  Le tableau de « Projection et confiance » remplace sa colonne « Origine » par cette cause, et la bulle d'un point de la courbe la répète. Même phrase dans le dialog du cadran VDOT, qui ne gagne pas de bloc : sa liste de points la porte. `confidenceHistory` sait déjà nommer les événements de confiance : la cause d'un point part du même endroit. **Ne change pas** : l'arbitrage du 22 sept. (P7.5) sur la date d'un point de forme, « fais au mieux, ne dis rien ». Son vieillissement ne devient pas une cause affichée.
-- [ ] **La répartition de l'intensité par semaine.**
+  Le tableau de « Projection et confiance » remplace sa colonne « Origine » par cette cause, et la bulle d'un point de la courbe la répète. Même phrase dans le dialog du cadran VDOT, qui ne gagne pas de bloc : sa liste de points la porte. `confidenceHistory` sait déjà nommer les événements de confiance : la cause d'un point part du même endroit. **Ne change pas** : l'arbitrage du 22 sept. (P7.5) sur la date d'un point de forme, « fais au mieux, ne dis rien ». Son vieillissement ne devient pas une cause affichée. **Fait** : `domain/fitness/cause.ts`, servi par `GET /api/progression` avec chaque point — « 10 km de Vannes en 56:40 », « Premier semi-marathon : plancher, blessure au km 14 · −1,4 », « Test 20′ : 3,7 km · +0,6 ». La distance d'un test se retrouve depuis son VDOT (l'inverse de `vdotFromTest` est exact) : la séance, elle, compte l'échauffement et le retour au calme, 6,4 km. La bulle de la courbe garde la pause, que la cause ne dit pas. **Écart** : la baisse tirée des ressentis de deux séances clés n'a pas de cause, parce qu'aucun code n'écrit ce point — la règle du § 5 n'est pas implémentée comme point de forme ; la cause s'y ajoutera le jour où elle le sera.
+- [x] **La répartition de l'intensité par semaine.**
   - `domain/load` gagne la part de temps de course en endurance (E), en seuil et allure (M, T) et en intensité (I, R) par semaine. Elle est calculée sur les séances faites, à partir de leurs étapes et des zones du VDOT de la date.
   - **Limite à consigner sous la case** : le réalisé n'a pas de tours, seulement des totaux (saisie, `.FIT` et suivi `run` confondus). La répartition lit donc le prescrit des séances faites, recalé sur leur durée réelle, et le dit dans sa bulle de glossaire. Une séance faite à une autre allure que prévue n'y change rien.
   - À l'écran, une barre empilée par semaine dans Progression, sous le graphe « Volume et charge » et sur le même axe : c'est une lecture de la trajectoire, pas une information de plus au sens du § 8. Deux repères : les quotas du moteur (I ≤ 8 %, T ≤ 10 %).
   - Test : une semaine type de développement tombe sous les deux quotas, et une semaine avec VMA et seuil les approche sans les dépasser.
+  - **Fait, avec deux écarts.** `domain/load/intensity.ts` classe chaque étape par le %VDOT de son allure contre les plages du § 5 (le chevauchement va à la zone la plus lente) : l'allure semi d'un coureur à VDOT 34 tombe à 84 %, plus près de l'allure T affichée que de l'allure M, et le « plus proche » la classait en seuil. (1) Le domaine rend les **cinq zones** et non trois étages : chaque quota ne borne qu'une zone, et M + T contre le seul quota de T mettait une semaine de spécifique à 16,8 % « au-dessus » alors que son seuil est à 6 %. (2) À l'écran, **deux couloirs par semaine** (T puis I, chacun avec son repère) au lieu d'une barre empilée, qui n'aurait porté qu'un des deux repères honnêtement ; les cinq parts sont dans la bulle, et la limite des tours dans l'entrée `intensite` du glossaire. Les lignes droites et les côtes comptent en R.
 - [ ] Vérifié dans le navigateur à 1440 px puis à 375 px, au scénario `cercle` puis `affutage-paris` :
   - la courbe de charge prolongée jusqu'au 7 mars et qui descend à l'affûtage ;
   - la cause de chacun des trois points de forme (le 10 km de Vannes, le plancher du 13 sept. et son incident, le test du 20 oct.) ;
   - les barres d'intensité sous leurs deux repères ;
   - Progression qui ne dépasse pas sa hauteur d'avant de plus d'une tuile.
-- [ ] Fini : lint, typecheck, tests et build verts. Un commit par livrable, « P22 — <résumé> ».
+
+  Vu au scénario `cercle` seulement, sur le build servi par node : la courbe pleine jusqu'au 24 nov., en pointillé ensuite, qui sort de la bande à la reprise (1,32 le 29 nov.) et descend à 0,56 la semaine de Paris ; les trois causes ; le test 20′ à 13 % au seuil en semaine 1 et la VMA à 4,8 % en semaine 5 sous leurs repères. Progression passe de 2 268 à 2 363 px à 1440 (+95, moins qu'une tuile) et de 4 111 à 4 202 à 375, `scrollWidth` 375. **`affutage-paris` n'a pas été rejoué** : `db:seed` vide la base partagée par les autres sessions ; l'affûtage de Paris se lit déjà sur la projection au scénario `cercle`, qui va jusqu'au 7 mars.
+- [x] Fini : lint, typecheck, tests et build verts. Un commit par livrable, « P22 — <résumé> ». L'écran de la cause et celui de la répartition partagent `progression.vue` et `/api/progression` : ils arrivent avec le commit de la répartition.
 
 P23 — La sortie longue reste la plus longue
 

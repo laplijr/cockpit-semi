@@ -21,6 +21,9 @@ const { data } = useFetch('/api/progression', {
   lazy: true,
 })
 
+/** La charge prolongée jusqu'au jour J : une lecture du plan, pas du filtre (P22). */
+const { data: load } = useFetch('/api/load', { lazy: true, server: false })
+
 /** Le bilan ne dépend pas du filtre de période : il porte sur une semaine. */
 const { data: bilan } = useFetch('/api/bilan', { lazy: true })
 
@@ -42,12 +45,16 @@ const vdotSpark = computed(() => {
 
 const lastVdot = computed(() => data.value?.vdot.at(-1) ?? null)
 
+const causesByDate = computed(() =>
+  Object.fromEntries((data.value?.vdot ?? []).map((point) => [point.date, point.cause])),
+)
+
 /** La table ne garde que les trois derniers points : le reste vit dans le dialog du cadran. */
 const recentVdot = computed(() => (data.value?.vdot ?? []).slice(-3))
 
 const VDOT_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
   { label: 'Date' },
-  { label: 'Origine' },
+  { label: 'Cause' },
   { label: 'VDOT', term: 'vdot' },
   { label: 'Projection semi', term: 'projection' },
   { label: 'Confiance', term: 'confiance' },
@@ -60,12 +67,6 @@ const VDOT_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
  */
 const confidenceAt = (date: string) =>
   data.value?.confidence.find((point) => point.date === date)?.confidencePct ?? null
-
-const ORIGIN_LABELS: Record<string, string> = {
-  course: 'Course',
-  test: 'Test 20′',
-  import_initial: 'Import',
-}
 
 /** La tuile en montre vingt-quatre : c'est le numéro de semaine qui le dit. */
 const visibleWeeks = computed(() => (data.value?.weeks ?? []).slice(0, 24))
@@ -238,6 +239,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       <ProgressionProjectionChart
         :points="data?.confidence ?? []"
         :race-name="data?.confidenceRace?.name ?? null"
+        :causes="causesByDate"
       />
 
       <UiAxisScroller>
@@ -253,8 +255,9 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
           <tbody>
             <tr v-for="point in recentVdot" :key="point.date" class="border-t border-line-soft">
               <td class="mono py-[6px]">{{ formatDate(point.date) }}</td>
-              <td class="py-[6px]">
-                {{ ORIGIN_LABELS[point.origin] ?? point.origin }}
+              <!-- Pourquoi la forme a bougé, à la place de son origine (P22). -->
+              <td class="py-[6px] pr-4">
+                {{ point.cause }}
                 <span v-if="point.isFloor" class="pill pill-warn ml-1">plancher</span>
               </td>
               <td class="mono py-[6px]">{{ point.vdot.toFixed(1).replace('.', ',') }}</td>
@@ -278,19 +281,37 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       <!-- Trois barres par semaine sur vingt-six semaines : un axe, pas une
            grille. Il défile au lieu de se comprimer (§ 8, P6.8). -->
       <UiAxisScroller>
-        <UiWeekBars :weeks="visibleWeeks" :height="96" class="min-w-[520px] lean:min-w-0">
-          <template #footer>
-            <div class="flex gap-1">
-              <span
-                v-for="(week, index) in visibleWeeks"
-                :key="week.index"
-                class="mono flex-1 text-center text-caption text-text-dim"
-              >
-                <template v-if="index % WEEK_LABEL_EVERY === 0">S{{ week.index }}</template>
-              </span>
-            </div>
-          </template>
-        </UiWeekBars>
+        <div class="flex min-w-[520px] flex-col gap-3 lean:min-w-0">
+          <span class="label text-caption">
+            <UiInfoHint term="chargeProjetee">Ratio 7 j / 21 j</UiInfoHint>
+          </span>
+          <!-- Le ratio se pose sur les barres, sur le même axe, jusqu'au jour J (P22). -->
+          <div class="relative">
+            <UiWeekBars :weeks="visibleWeeks" :height="96">
+              <template #footer>
+                <div class="flex gap-1">
+                  <span
+                    v-for="(week, index) in visibleWeeks"
+                    :key="week.index"
+                    class="mono flex-1 text-center text-caption text-text-dim"
+                  >
+                    <template v-if="index % WEEK_LABEL_EVERY === 0">S{{ week.index }}</template>
+                  </span>
+                </div>
+              </template>
+            </UiWeekBars>
+            <ProgressionRatioOverlay
+              v-if="load?.projection"
+              :weeks="visibleWeeks"
+              :points="load.projection.points"
+              :today="data.today"
+              :reference="load.reference"
+              :height="100"
+            />
+          </div>
+
+          <ProgressionIntensityLanes :weeks="visibleWeeks" />
+        </div>
       </UiAxisScroller>
     </div>
 

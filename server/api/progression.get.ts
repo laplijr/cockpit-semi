@@ -1,9 +1,12 @@
 import { and, asc, desc, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm'
 import { z } from 'zod'
 import { ForecastTarget, accuracy, accuracyByHorizon } from '../domain/fitness/accuracy'
+import { fitnessCause } from '../domain/fitness/cause'
 import { confidenceHistory } from '../domain/fitness/confidence-history'
+import { currentFitnessOf } from '../domain/fitness/current'
 import { raceTimeForVdot } from '../domain/fitness/vdot'
 import { rpeByCode } from '../domain/learning/calibration'
+import { weeklyIntensity } from '../domain/load/intensity'
 import { summariseRecovery } from '../domain/load/recovery'
 import { progressCounters, summariseWeek } from '../domain/load/week-summary'
 import { addDays } from '../domain/plan/calendar'
@@ -14,6 +17,7 @@ import { windowStart } from '../domain/shared/period'
 import { Sport } from '../domain/shared/sport'
 import { strengthExercise } from '../domain/strength/exercises'
 import { SessionStatus } from '../domain/plan/session'
+import type { Prescription } from '../domain/shared/prescription'
 import { RunSessionCode } from '../domain/running/session-types'
 import { useDatabase } from '../infra/db/client'
 import { loadGainPerBlock, loadResolvedForecasts } from '../infra/db/forecast-repository'
@@ -100,6 +104,8 @@ export default defineEventHandler(async (event) => {
         code: session.code,
         key: session.key,
         actualDistanceM: session.actualDistanceM,
+        actualDurationMin: session.actualDurationMin,
+        prescription: session.prescription,
       })
       .from(session)
       .where(
@@ -139,6 +145,44 @@ export default defineEventHandler(async (event) => {
       .limit(12),
   ])
 
+  const causeOf = (point: (typeof points)[number], index: number) =>
+    fitnessCause(point, points[index - 1], {
+      race: races.find((item) => item.id === point.raceId),
+    })
+
+  /** Le VDOT de la date, celui dont les zones classaient les allures ce jour-là. */
+  const vdotOn = (date: string) =>
+    currentFitnessOf(
+      points.filter((point) => point.date <= date),
+      date,
+    )?.vdot ??
+    (active?.version.parameters as { vdot?: number } | undefined)?.vdot ??
+    null
+
+  /**
+   * La répartition de l'intensité d'une semaine, sur ses courses faites (P22).
+   * Le réalisé n'a pas de tours : c'est le prescrit, recalé sur la durée.
+   */
+  const intensityOf = (sessions: typeof pastSessions) => {
+    const runs = sessions
+      .filter((item) => item.sport === Sport.Running)
+      .filter(
+        (item) => item.status === SessionStatus.Done || item.status === SessionStatus.Modified,
+      )
+      .flatMap((item) => {
+        const vdot = vdotOn(item.date)
+        if (vdot === null) return []
+        return [
+          {
+            prescription: item.prescription as unknown as Prescription,
+            vdot,
+            actualDurationS: item.actualDurationMin === null ? null : item.actualDurationMin * 60,
+          },
+        ]
+      })
+    return weeklyIntensity(runs)
+  }
+
   /** Une semaine du plan avec sa charge et son réalisé (§ 9, P5.14). */
   const weeks = (active?.weeks ?? []).map((week) => {
     const inWeek = <T extends { date: string }>(items: T[]) =>
@@ -155,6 +199,7 @@ export default defineEventHandler(async (event) => {
       test: week.test,
       comebackRatio: week.comebackRatio,
       loadUa: days.reduce((total, day) => total + day.totalUa, 0),
+      intensity: intensityOf(inWeek(pastSessions)),
       summary: summariseWeek(
         week,
         days,
@@ -254,11 +299,12 @@ export default defineEventHandler(async (event) => {
   return {
     today,
     period,
-    vdot: points.map((point) => ({
+    vdot: points.map((point, index) => ({
       date: point.date,
       vdot: point.vdot,
       origin: point.origin,
       isFloor: point.isFloor,
+      cause: causeOf(point, index),
       halfProjectionS: Math.round(raceTimeForVdot(point.vdot, HALF_MARATHON_M)),
     })),
     races: races.map((item) => ({

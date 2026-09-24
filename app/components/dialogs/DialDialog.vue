@@ -20,12 +20,6 @@ const KEY_SESSION_COLUMNS: { label: string; term?: GlossaryTerm }[] = [
   { label: 'Statut' },
 ]
 
-const ORIGIN_LABELS: Record<string, string> = {
-  course: 'Course',
-  test: 'Test 20′',
-  import_initial: 'Import',
-}
-
 const OBJECTIVE_LEVELS = [
   { label: 'Ambition', field: 'objectifAmbitionS', confidence: 'confidenceAmbitionPct' },
   { label: 'Réaliste', field: 'objectifS', confidence: 'confidencePct' },
@@ -47,6 +41,21 @@ const SPORTS = [
 const PER_PAGE = 10
 const vdotPoints = usePagedList(() => progression.value?.vdot ?? [], PER_PAGE)
 const keySessions = usePagedList(() => progression.value?.keySessions ?? [], PER_PAGE)
+
+/** Les six semaines qui viennent, lundi à dimanche, pour la charge projetée (P22). */
+const nextWeeks = computed(() => {
+  if (!load.value) return []
+  const today = load.value.today
+  const monday = addIsoDays(today, -((new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7))
+  return Array.from({ length: 6 }, (_, index) => ({
+    startDate: addIsoDays(monday, index * 7),
+    endDate: addIsoDays(monday, index * 7 + 6),
+  }))
+})
+
+function addIsoDays(date: string, days: number): string {
+  return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10)
+}
 
 const raceA = computed(() =>
   (races.value ?? [])
@@ -97,7 +106,9 @@ const title = computed(
             {{ load?.ratio ? load.ratio.ratio.toFixed(2).replace('.', ',') : '—' }}
           </span>
           <span class="mono text-meta text-text-dim">
-            repère {{ load?.reference.low }}–{{ load?.reference.high }}
+            repère {{ formatDecimal(load?.reference.low) }}–{{
+              formatDecimal(load?.reference.high)
+            }}
           </span>
         </div>
         <div class="tile bg-surface-inset">
@@ -108,6 +119,42 @@ const title = computed(
           <span class="label text-caption">Vingt-et-un jours précédents</span>
           <span class="mono text-heading">{{ load?.ratio?.chronic ?? '—' }} UA</span>
         </div>
+      </div>
+
+      <!-- La même courbe que Progression, sur les six semaines qui viennent :
+           une lecture, pas une proposition (P22). -->
+      <div v-if="load?.projection" class="tile bg-surface-inset">
+        <span class="label text-caption">
+          <UiInfoHint term="chargeProjetee">Six semaines si le plan est tenu</UiInfoHint>
+        </span>
+        <div class="relative h-[80px]">
+          <ProgressionRatioOverlay
+            :weeks="nextWeeks"
+            :points="load.projection.points"
+            :today="load.today"
+            :reference="load.reference"
+            :height="80"
+          />
+        </div>
+        <div class="flex gap-1">
+          <span
+            v-for="week in nextWeeks"
+            :key="week.startDate"
+            class="mono flex-1 text-center text-caption text-text-dim"
+          >
+            {{ formatDate(week.startDate) }}
+          </span>
+        </div>
+        <span class="text-meta text-text-dim">
+          <template v-if="load.projection.exit">
+            Première semaine hors de la bande : celle du
+            {{ formatDate(load.projection.exit.weekStart) }}, à
+            {{ load.projection.exit.ratio.toFixed(2).replace('.', ',') }}.
+          </template>
+          <template v-else>
+            La courbe reste dans la bande jusqu'au {{ formatDate(load.projection.endDate) }}.
+          </template>
+        </span>
       </div>
 
       <div class="tile bg-surface-inset">
@@ -124,7 +171,9 @@ const title = computed(
         La charge se compte en unités arbitraires : RPE × durée en minutes, pour tous les sports. Le
         ratio compare les sept derniers jours à la moyenne des vingt-et-un précédents, sans
         recouvrement. C'est un repère, jamais une décision à lui seul.
-        <template v-if="load?.monotony"> Monotonie de la semaine : {{ load.monotony }}. </template>
+        <template v-if="load?.monotony">
+          Monotonie de la semaine : {{ formatDecimal(load.monotony) }}.
+        </template>
       </p>
     </template>
 
@@ -216,7 +265,7 @@ const title = computed(
             <thead>
               <tr class="text-left">
                 <th
-                  v-for="head in ['Date', 'Origine', 'VDOT', 'Projection semi']"
+                  v-for="head in ['Date', 'Cause', 'VDOT', 'Projection semi']"
                   :key="head"
                   class="label pb-2 text-caption"
                 >
@@ -231,8 +280,8 @@ const title = computed(
                 class="border-t border-line-soft"
               >
                 <td class="mono py-[6px]">{{ formatDate(point.date) }}</td>
-                <td class="py-[6px]">
-                  {{ ORIGIN_LABELS[point.origin] ?? point.origin }}
+                <td class="py-[6px] pr-4">
+                  {{ point.cause }}
                   <span v-if="point.isFloor" class="pill pill-warn ml-1">plancher</span>
                 </td>
                 <td class="mono py-[6px]">{{ point.vdot.toFixed(1).replace('.', ',') }}</td>
