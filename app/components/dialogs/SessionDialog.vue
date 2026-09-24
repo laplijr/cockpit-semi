@@ -523,7 +523,9 @@ const plannedMinutes = computed(() => {
         <!-- Trois lignes courtes ne sont pas un objet à axe : la table se
              replie au lieu de défiler, et ses deux titres se disent une fois
              en tête (§ 8, P12). -->
-        <div class="tile bg-surface-inset">
+        <!-- Avant le réalisé, le bloc alignait trois tirets : il n'apparaît
+             qu'une fois la séance faite, la structure disait déjà le reste (P20). -->
+        <div v-if="done" class="tile bg-surface-inset">
           <span class="label text-caption">Prescrit contre réalisé</span>
           <table class="w-full text-body">
             <thead>
