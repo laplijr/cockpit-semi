@@ -27,8 +27,8 @@ async function generate() {
 <template>
   <div class="tile bg-surface-inset">
     <div class="flex items-baseline gap-3">
-      <span class="label text-[10.5px]">Ravito et hydratation en course</span>
-      <span v-if="fuelPlan" class="mono text-[11.5px] text-text-dim">
+      <span class="label text-caption">Ravito et hydratation en course</span>
+      <span v-if="fuelPlan" class="mono text-meta text-text-dim">
         sur une projection de {{ formatDuration(fuelPlan.durationS) }}
         <template v-if="fuelPlan.tempC !== null"> · {{ fuelPlan.tempC }} °C attendus</template>
       </span>
@@ -41,25 +41,25 @@ async function generate() {
       />
     </div>
 
-    <p v-if="error" class="text-[12.5px] text-warn">{{ error }}</p>
+    <p v-if="error" class="text-meta text-warn">{{ error }}</p>
 
-    <p v-else-if="!fuelPlan" class="text-[12.5px] text-text-dim">
+    <p v-else-if="!fuelPlan" class="text-meta text-text-dim">
       Généré à J−7, ou tout de suite depuis la baguette.
     </p>
 
     <template v-else>
       <div class="fold-3 grid gap-3">
         <div class="flex flex-col">
-          <span class="label text-[10px]">Glucides</span>
-          <span class="mono text-[15px]">{{ formatRange(fuelPlan.carbsGPerHour, 'g/h') }}</span>
+          <span class="label text-caption">Glucides</span>
+          <span class="mono text-copy">{{ formatRange(fuelPlan.carbsGPerHour, 'g/h') }}</span>
         </div>
         <div class="flex flex-col">
-          <span class="label text-[10px]">Eau</span>
-          <span class="mono text-[15px]">{{ formatRange(fuelPlan.waterMlPerHour, 'ml/h') }}</span>
+          <span class="label text-caption">Eau</span>
+          <span class="mono text-copy">{{ formatRange(fuelPlan.waterMlPerHour, 'ml/h') }}</span>
         </div>
         <div class="flex flex-col">
-          <span class="label text-[10px]">Prises</span>
-          <span class="mono text-[15px]">{{ fuelPlan.intakes.length }}</span>
+          <span class="label text-caption">Prises</span>
+          <span class="mono text-copy">{{ fuelPlan.intakes.length }}</span>
         </div>
       </div>
     </template>

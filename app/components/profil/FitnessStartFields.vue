@@ -73,14 +73,14 @@ const previewLabel = computed(() => {
         :aria-pressed="value.kind === choice.kind"
         @click="value = { ...value, kind: choice.kind }"
       >
-        <span class="text-[15px]">{{ choice.label }}</span>
-        <span class="text-[13px] text-text-dim">{{ choice.hint }}</span>
+        <span class="text-copy">{{ choice.label }}</span>
+        <span class="text-body text-text-dim">{{ choice.hint }}</span>
       </button>
     </div>
 
     <div v-if="value.kind === FitnessDeclaration.Chrono" class="fold-3 grid gap-4">
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Distance</span>
+        <span class="label text-caption">Distance</span>
         <select v-model.number="value.distanceM" class="input">
           <option v-for="item in DISTANCES" :key="item.value" :value="item.value">
             {{ item.label }}
@@ -88,7 +88,7 @@ const previewLabel = computed(() => {
         </select>
       </label>
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Chrono</span>
+        <span class="label text-caption">Chrono</span>
         <input
           v-model="value.chrono"
           type="text"
@@ -98,14 +98,14 @@ const previewLabel = computed(() => {
         />
       </label>
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Date de la course</span>
+        <span class="label text-caption">Date de la course</span>
         <input v-model="value.date" type="date" class="input mono" />
       </label>
     </div>
 
     <div v-else-if="value.kind === FitnessDeclaration.EasyPace" class="fold-2 grid gap-4">
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Allure d’endurance (min:s par kilomètre)</span>
+        <span class="label text-caption">Allure d’endurance (min:s par kilomètre)</span>
         <input
           v-model="value.pace"
           type="text"
@@ -114,13 +114,13 @@ const previewLabel = computed(() => {
           placeholder="6:47"
         />
       </label>
-      <p class="text-[13px] text-text-dim">
+      <p class="text-body text-text-dim">
         Une allure tenue en endurance borne la forme par le bas : elle ne la mesure pas. Le cockpit
         l’affiche comme un plancher jusqu’au premier test.
       </p>
     </div>
 
-    <p v-if="previewLabel" class="text-[13px] text-text-dim">
+    <p v-if="previewLabel" class="text-body text-text-dim">
       <UiInfoHint term="vdot">VDOT</UiInfoHint> de départ :
       <span class="mono text-text">{{ previewLabel }}</span>
     </p>

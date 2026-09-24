@@ -67,10 +67,10 @@ onMounted(plan.ensureLoaded)
         class="tap tile-action -mx-2 flex flex-col gap-1 rounded-md border border-transparent border-t-line-soft px-2 py-3 text-left first:border-t-transparent lean:flex-row lean:items-baseline lean:gap-3"
         @click="ui.openModal('course', race.id)"
       >
-        <span class="display text-[15px] font-semibold">{{ race.name }}</span>
-        <span class="mono text-[11.5px] text-text-dim">{{ formatDate(race.date) }}</span>
-        <span class="mono text-[11.5px] text-text-dim">{{ formatDistance(race.distanceM) }}</span>
-        <span class="text-[12.5px] text-accent lean:ml-auto">Renseigner le résultat</span>
+        <span class="display text-copy font-semibold">{{ race.name }}</span>
+        <span class="mono text-meta text-text-dim">{{ formatDate(race.date) }}</span>
+        <span class="mono text-meta text-text-dim">{{ formatDistance(race.distanceM) }}</span>
+        <span class="text-meta text-accent lean:ml-auto">Renseigner le résultat</span>
       </button>
     </div>
 
@@ -79,7 +79,7 @@ onMounted(plan.ensureLoaded)
         <span class="label">Courses à venir</span>
         <button
           type="button"
-          class="btn btn-ghost ml-auto px-[10px] text-[12px] lean:h-7"
+          class="btn btn-ghost ml-auto px-[10px] text-meta lean:h-7"
           @click="ui.openModal('nouvelle-course')"
         >
           <UiAppIcon name="plus" :size="14" />
@@ -93,13 +93,13 @@ onMounted(plan.ensureLoaded)
         forme plutôt que de défiler : les autres portent des lignes courtes,
         celle-ci porte une décision par ligne.
       -->
-      <table class="hidden w-full text-[13px] lean:table">
+      <table class="hidden w-full text-body lean:table">
         <thead>
           <tr class="text-left">
             <th
               v-for="head in RACE_COLUMNS"
               :key="head.label"
-              class="label pb-2 text-[10px] font-semibold"
+              class="label pb-2 text-caption font-semibold"
             >
               <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
               <template v-else>{{ head.label }}</template>
@@ -128,8 +128,8 @@ onMounted(plan.ensureLoaded)
                       :class="PRIORITY_TONES[race.priority] ?? 'bg-line-strong'"
                     />
                   </template>
-                  <span class="label text-[10px]">Priorité {{ race.priority }}</span>
-                  <span class="text-[12.5px] leading-[1.45] text-text-dim">
+                  <span class="label text-caption">Priorité {{ race.priority }}</span>
+                  <span class="text-meta leading-[1.45] text-text-dim">
                     {{ GLOSSARY.priorite.text }}
                   </span>
                 </UiHoverBubble>
@@ -166,22 +166,22 @@ onMounted(plan.ensureLoaded)
               class="size-[7px] shrink-0 self-center rounded-full"
               :class="PRIORITY_TONES[race.priority] ?? 'bg-line-strong'"
             />
-            <span class="display text-[17px] font-semibold">{{ race.name }}</span>
-            <span class="mono ml-auto text-[11.5px] text-text-dim">
+            <span class="display text-title font-semibold">{{ race.name }}</span>
+            <span class="mono ml-auto text-meta text-text-dim">
               {{ formatDate(race.date) }}
             </span>
           </span>
 
-          <span class="flex items-baseline gap-2 text-[12.5px]">
-            <span class="label text-[10px]">Distance</span>
+          <span class="flex items-baseline gap-2 text-meta">
+            <span class="label text-caption">Distance</span>
             <span class="mono ml-auto">{{ formatDistance(race.distanceM) }}</span>
           </span>
-          <span class="flex items-baseline gap-2 text-[12.5px]">
-            <span class="label text-[10px]">Objectif → projection</span>
+          <span class="flex items-baseline gap-2 text-meta">
+            <span class="label text-caption">Objectif → projection</span>
             <RacesObjectiveCell :race="race" class="ml-auto text-right" />
           </span>
-          <span class="flex items-baseline gap-2 text-[12.5px]">
-            <span class="label text-[10px]">Confiance</span>
+          <span class="flex items-baseline gap-2 text-meta">
+            <span class="label text-caption">Confiance</span>
             <span class="mono ml-auto text-text-dim">
               {{ race.confidencePct === null ? '—' : `${race.confidencePct} %` }}
             </span>
@@ -189,7 +189,7 @@ onMounted(plan.ensureLoaded)
         </button>
 
         <UiSkeleton v-if="!races" :height="18" class="my-3" />
-        <p v-else-if="upcoming.length === 0" class="py-3 text-[13px] text-text-dim">
+        <p v-else-if="upcoming.length === 0" class="py-3 text-body text-text-dim">
           Aucune course planifiée.
         </p>
       </div>
@@ -202,7 +202,7 @@ onMounted(plan.ensureLoaded)
         <span class="label">Courses passées</span>
         <button
           type="button"
-          class="btn btn-ghost ml-auto px-[10px] text-[12px] lean:h-7"
+          class="btn btn-ghost ml-auto px-[10px] text-meta lean:h-7"
           @click="ui.openModal('course-passee')"
         >
           <UiAppIcon name="plus" :size="14" />
@@ -210,7 +210,7 @@ onMounted(plan.ensureLoaded)
         </button>
       </div>
       <UiSkeleton v-if="!races" :height="18" />
-      <p v-else-if="past.length === 0" class="text-[13px] text-text-dim">
+      <p v-else-if="past.length === 0" class="text-body text-text-dim">
         Aucune course enregistrée.
       </p>
       <div
@@ -219,11 +219,11 @@ onMounted(plan.ensureLoaded)
         class="flex flex-col gap-1 border-t border-line-soft py-[10px] first:border-t-0"
       >
         <div class="flex items-baseline gap-3">
-          <span class="display text-[17px] font-semibold">{{ race.name }}</span>
-          <span class="mono text-[11.5px] text-text-dim">{{ formatDate(race.date) }}</span>
-          <span class="mono ml-auto text-[15px]">{{ formatDuration(race.resultatS) }}</span>
+          <span class="display text-title font-semibold">{{ race.name }}</span>
+          <span class="mono text-meta text-text-dim">{{ formatDate(race.date) }}</span>
+          <span class="mono ml-auto text-copy">{{ formatDuration(race.resultatS) }}</span>
         </div>
-        <span v-if="!race.representative" class="text-[12px] text-warn">
+        <span v-if="!race.representative" class="text-meta text-warn">
           Chrono non représentatif — il ne calibre pas le VDOT.
           <template v-if="race.incident">
             Incident au km {{ race.incident.km }} : {{ race.incident.note }}.

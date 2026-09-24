@@ -39,7 +39,7 @@ async function ask() {
   <!-- Sans clé et sans repas déjà générés, la tuile n'a rien à montrer (§ 6). -->
   <div v-if="llm || data?.meals" class="tile bg-surface-inset">
     <div class="flex items-center gap-3">
-      <span class="label text-[10.5px]"
+      <span class="label text-caption"
         ><UiInfoHint term="repasDuJour">Repas du jour</UiInfoHint></span
       >
       <!-- Ouvrir le jour ne génère rien : seul ce geste appelle le modèle (§ 1). -->
@@ -52,7 +52,7 @@ async function ask() {
       />
     </div>
 
-    <p v-if="error" class="text-[12.5px] text-warn">{{ error }}</p>
+    <p v-if="error" class="text-meta text-warn">{{ error }}</p>
 
     <UiActionButton v-else-if="!data?.meals && llm" class="btn self-start" :action="ask">
       {{ asking ? 'Génération…' : 'Demander le plan de nutrition' }}
@@ -63,15 +63,15 @@ async function ask() {
       :key="`${meal.kind}-${meal.hour}`"
       class="grid grid-cols-[64px_1fr] items-baseline gap-3 border-t border-line-soft py-2 first:border-t-0"
     >
-      <span class="mono text-[12px] text-text-dim">{{ formatHour(meal.hour) }}</span>
+      <span class="mono text-meta text-text-dim">{{ formatHour(meal.hour) }}</span>
       <div class="flex flex-col gap-px">
         <span class="flex items-baseline gap-2">
-          <span class="text-[13px]">{{ meal.name }}</span>
-          <span v-if="EMPHASIS_LABELS[meal.emphasis]" class="mono text-[11px] text-text-dim">
+          <span class="text-body">{{ meal.name }}</span>
+          <span v-if="EMPHASIS_LABELS[meal.emphasis]" class="mono text-caption text-text-dim">
             {{ EMPHASIS_LABELS[meal.emphasis] }}
           </span>
         </span>
-        <span class="text-[12.5px] text-text-dim">{{ meal.description }}</span>
+        <span class="text-meta text-text-dim">{{ meal.description }}</span>
       </div>
     </div>
   </div>

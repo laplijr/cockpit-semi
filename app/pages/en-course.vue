@@ -359,7 +359,7 @@ async function record(payload: {
          donc du vide noir sous le dernier bouton (§ 8, P7.4). Le pied garde la
          zone sûre : l'action de l'écran est poussée en bas par `mt-auto`, et
          sans elle elle tombe sur la barre d'accueil. -->
-    <p v-if="briefError && !cycling && !free" class="tile text-[13px] text-warn">
+    <p v-if="briefError && !cycling && !free" class="tile text-body text-warn">
       Cette séance ne se court pas depuis le cockpit.
       <NuxtLink to="/" class="text-accent">Retour au cockpit</NuxtLink>
     </p>
@@ -369,7 +369,7 @@ async function record(payload: {
     <template v-else-if="!started">
       <NuxtLink
         to="/"
-        class="tap -ml-2 inline-flex h-11 items-center gap-2 px-2 text-[13px] text-text-dim"
+        class="tap -ml-2 inline-flex h-11 items-center gap-2 px-2 text-body text-text-dim"
       >
         <UiAppIcon name="chevron" :size="18" class="rotate-180" />
         Retour au cockpit
@@ -382,32 +382,32 @@ async function record(payload: {
           class="self-center"
           :class="cycling ? 'text-cycling' : 'text-accent'"
         />
-        <h1 class="display text-[28px] font-semibold">
+        <h1 class="display text-display-m font-semibold">
           {{ free ? 'Sortie libre' : (brief?.label ?? session?.prescription.label ?? 'Sortie') }}
         </h1>
         <span v-if="brief?.key" class="pill bg-accent/15 text-accent">clé</span>
-        <span v-if="brief" class="mono w-full text-[11.5px] text-text-dim">
+        <span v-if="brief" class="mono w-full text-meta text-text-dim">
           {{ formatLongDate(brief.date) }} · {{ formatDistance(brief.totalDistanceM) }} ·
           {{ formatMinutes(brief.totalDurationS / 60) }}
         </span>
-        <span v-else-if="free" class="mono w-full text-[11.5px] text-text-dim">
+        <span v-else-if="free" class="mono w-full text-meta text-text-dim">
           Hors plan · ni étape ni allure à tenir
         </span>
-        <span v-else-if="cycling" class="mono w-full text-[11.5px] text-text-dim">
+        <span v-else-if="cycling" class="mono w-full text-meta text-text-dim">
           {{ formatLongDate(session!.date) }} ·
           {{ formatMinutes(session!.prescription.durationMin) }}
         </span>
       </div>
 
       <div v-if="targets.length > 0" class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Étapes</span>
+        <span class="label text-caption">Étapes</span>
         <div
           v-for="(step, index) in targets"
           :key="`${step.label}-${index}`"
           class="flex items-baseline gap-3 border-t border-line-soft pt-2 first:border-t-0 first:pt-0"
         >
-          <span class="flex-1 text-[13px]">{{ step.label }}</span>
-          <span class="mono text-[12px] text-text-dim">{{ targetLine(step) }}</span>
+          <span class="flex-1 text-body">{{ step.label }}</span>
+          <span class="mono text-meta text-text-dim">{{ targetLine(step) }}</span>
         </div>
       </div>
 
@@ -424,7 +424,7 @@ async function record(payload: {
         />
         <span
           v-if="guide.length > 1"
-          class="mono -mt-1 text-[11.5px]"
+          class="mono -mt-1 text-meta"
           :class="tilesReady ? 'text-text-dim' : 'text-warn'"
         >
           <template v-if="tilesReady">Carte gardée pour le hors-réseau</template>
@@ -433,12 +433,12 @@ async function record(payload: {
       </template>
 
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Avant de partir</span>
-        <p class="text-[12.5px] text-text-dim">
+        <span class="label text-caption">Avant de partir</span>
+        <p class="text-meta text-text-dim">
           L'écran reste allumé pendant la sortie : le navigateur ne sait pas suivre le GPS en
           arrière-plan.
         </p>
-        <label class="flex min-h-11 items-center gap-[10px] text-[13px]">
+        <label class="flex min-h-11 items-center gap-[10px] text-body">
           <input v-model="tracker.announcing.value" type="checkbox" class="size-5 accent-accent" />
           Annonces vocales à chaque kilomètre et à chaque étape
         </label>
@@ -454,16 +454,16 @@ async function record(payload: {
     <!-- 2 · Acquisition : le chrono attend une position digne de ce nom. -->
     <template v-else-if="tracker.phase.value === RunPhase.Acquisition">
       <div class="flex flex-1 flex-col items-center justify-center gap-5 text-center">
-        <span class="display text-[26px] font-semibold">Recherche du signal</span>
-        <span class="mono text-[15px] text-warn">
+        <span class="display text-display-m font-semibold">Recherche du signal</span>
+        <span class="mono text-copy text-warn">
           <template v-if="tracker.accuracyM.value === null">signal absent</template>
           <template v-else>précision {{ Math.round(tracker.accuracyM.value) }} m</template>
         </span>
-        <p class="max-w-[280px] text-[12.5px] text-text-dim">
+        <p class="max-w-[280px] text-meta text-text-dim">
           Le chrono part dès que la précision passe sous {{ FIX_TOLERANCE.startAccuracyM }} m. Rien
           n'est compté avant : une dérive au départ fabriquerait de la distance qui n'existe pas.
         </p>
-        <p v-if="tracker.error.value" class="text-[13px] text-warn">{{ tracker.error.value }}</p>
+        <p v-if="tracker.error.value" class="text-body text-warn">{{ tracker.error.value }}</p>
       </div>
 
       <button type="button" class="btn btn-ghost btn-lg" @click="tracker.startAnyway">
@@ -475,25 +475,25 @@ async function record(payload: {
     <!-- 4 · Pause : chiffres figés, GPS coupé, trois issues. -->
     <template v-else-if="tracker.phase.value === RunPhase.Paused">
       <div class="flex items-center gap-3">
-        <span class="flex-1 text-[13.5px]">
+        <span class="flex-1 text-body">
           {{ brief?.label }} · étape {{ stepIndex + 1 }} / {{ targets.length }}
         </span>
         <span class="pill pill-warn">en pause</span>
       </div>
 
       <div class="flex flex-1 flex-col items-center justify-center gap-1">
-        <span class="label text-[10.5px]">Temps de la sortie</span>
-        <span class="display text-[80px] leading-none font-bold text-text-dim">
+        <span class="label text-caption">Temps de la sortie</span>
+        <span class="display text-display-xxl leading-none font-bold text-text-dim">
           {{ formatDuration(elapsedS) }}
         </span>
-        <span class="mono text-[14px] text-text-dim">
+        <span class="mono text-copy text-text-dim">
           {{ formatDistance(distanceM) }}
           <template v-if="average">
             · <template v-if="cycling">{{ formatSpeed(average) }}</template>
             <template v-else>{{ formatPace(average) }}/km</template>
           </template>
         </span>
-        <p class="mt-3 max-w-[280px] text-center text-[12.5px] text-text-dim">
+        <p class="mt-3 max-w-[280px] text-center text-meta text-text-dim">
           Le GPS est coupé : la pause ne fabrique ni distance ni dérive.
         </p>
       </div>
@@ -510,8 +510,8 @@ async function record(payload: {
     <!-- 5 · Bilan et ressenti : une seule action, et elle enregistre tout. -->
     <template v-else-if="tracker.phase.value === RunPhase.Done">
       <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 class="display text-[28px] font-semibold">Sortie terminée</h1>
-        <span class="mono w-full text-[11.5px] text-text-dim">
+        <h1 class="display text-display-m font-semibold">Sortie terminée</h1>
+        <span class="mono w-full text-meta text-text-dim">
           <template v-if="brief?.label">{{ brief.label }} · </template>
           <template v-else-if="free">Hors plan · </template>
           {{ formatDistance(distanceM) }} · {{ formatDuration(elapsedS) }}
@@ -519,7 +519,7 @@ async function record(payload: {
       </div>
 
       <div v-if="tooShort" class="tile bg-surface-inset">
-        <p class="text-[13px] text-warn">
+        <p class="text-body text-warn">
           Moins de {{ formatDistance(FIX_TOLERANCE.minRunM) }} : ce n'est pas une séance, et ça
           fausserait la charge.
         </p>
@@ -529,34 +529,32 @@ async function record(payload: {
 
       <template v-else>
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Splits</span>
+          <span class="label text-caption">Splits</span>
           <div
             v-for="split in tracker.kilometres.value"
             :key="split.km"
             class="flex items-center gap-3"
           >
-            <span class="mono w-[34px] text-[11.5px] text-text-dim">km {{ split.km }}</span>
+            <span class="mono w-[34px] text-meta text-text-dim">km {{ split.km }}</span>
             <span class="h-2 flex-1 rounded-sm bg-surface-muted">
               <span
                 class="block h-2 rounded-sm bg-accent"
                 :style="{ width: `${splitWidth(split.seconds, tracker.kilometres.value)}%` }"
               />
             </span>
-            <span class="mono w-[42px] text-right text-[12px]">{{
-              formatPace(split.seconds)
-            }}</span>
+            <span class="mono w-[42px] text-right text-meta">{{ formatPace(split.seconds) }}</span>
           </div>
-          <p v-if="tracker.kilometres.value.length === 0" class="text-[12.5px] text-text-dim">
+          <p v-if="tracker.kilometres.value.length === 0" class="text-meta text-text-dim">
             Moins d'un kilomètre.
           </p>
         </div>
 
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Trace</span>
+          <span class="label text-caption">Trace</span>
           <ClientOnly>
             <UiRouteMap :points="tracker.track.value.points" :guide="guide" :height="190" />
           </ClientOnly>
-          <span class="mono text-[12px] text-text-dim">
+          <span class="mono text-meta text-text-dim">
             {{ formatDistance(distanceM) }} · D+ environ {{ tracker.track.value.elevationGainM }} m
           </span>
         </div>
@@ -571,11 +569,9 @@ async function record(payload: {
           :submit="record"
           action="Enregistrer"
         />
-        <p v-else class="text-[13px] text-text-dim">
-          Séance introuvable : le plan n'est pas chargé.
-        </p>
+        <p v-else class="text-body text-text-dim">Séance introuvable : le plan n'est pas chargé.</p>
 
-        <p v-if="finishError" class="text-[13px] text-warn">{{ finishError }}</p>
+        <p v-if="finishError" class="text-body text-warn">{{ finishError }}</p>
       </template>
     </template>
 
@@ -600,14 +596,14 @@ async function record(payload: {
       >
         <div class="pointer-events-auto flex items-center gap-3">
           <div class="flex min-w-0 flex-1 flex-col gap-px">
-            <span class="text-[13.5px]">
+            <span class="text-body">
               <template v-if="targets.length > 0">
                 {{ brief?.label }} · étape {{ stepIndex + 1 }} / {{ targets.length }}
               </template>
               <template v-else-if="cycling">{{ session?.prescription.label }}</template>
               <template v-else>Sortie libre</template>
             </span>
-            <span class="mono truncate text-[11.5px] text-text-dim">
+            <span class="mono truncate text-meta text-text-dim">
               <template v-if="target">{{ target.label }} · {{ targetLine(target) }}</template>
             </span>
           </div>
@@ -643,11 +639,11 @@ async function record(payload: {
              prend alors presque tout l'écran. -->
         <div v-if="folded" class="pointer-events-auto flex items-baseline gap-3">
           <span
-            class="display text-[38px] leading-none font-bold"
+            class="display text-display-l leading-none font-bold"
             :class="beyond && 'text-accent'"
             >{{ headline }}</span
           >
-          <span class="mono text-[17px]" :class="offBand ? 'text-warn' : 'text-text-dim'">
+          <span class="mono text-title" :class="offBand ? 'text-warn' : 'text-text-dim'">
             <template v-if="cycling">{{ formatSpeed(tracker.pace.value) }}</template>
             <template v-else>{{ formatPace(tracker.pace.value) }}/km</template>
           </span>
@@ -665,23 +661,23 @@ async function record(payload: {
           <div class="flex flex-col items-center gap-1 pt-1">
             <!-- Sans étape à décompter — sortie libre ou vélo — le grand chiffre
                  est le temps de la sortie : c'est ce qu'on regarde (§ 8, P10.3). -->
-            <span class="label text-[10.5px]">{{ headlineLabel }}</span>
+            <span class="label text-caption">{{ headlineLabel }}</span>
             <span
-              class="display text-[72px] leading-[0.92] font-bold"
+              class="display text-display-xxl leading-[0.92] font-bold"
               :class="beyond && 'text-accent'"
               >{{ headline }}</span
             >
-            <span v-if="target" class="mono pt-1 text-[12.5px] text-text-dim">
+            <span v-if="target" class="mono pt-1 text-meta text-text-dim">
               cible {{ targetLine(target) }}
             </span>
           </div>
 
           <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-            <span class="mono text-[26px]" :class="offBand ? 'text-warn' : 'text-text'">
+            <span class="mono text-display-m" :class="offBand ? 'text-warn' : 'text-text'">
               <template v-if="cycling">{{ formatSpeed(tracker.pace.value) }}</template>
               <template v-else>{{ formatPace(tracker.pace.value) }}</template>
             </span>
-            <span v-if="!cycling" class="mono text-[12px] text-text-dim">/km</span>
+            <span v-if="!cycling" class="mono text-meta text-text-dim">/km</span>
             <span v-if="beyond" class="pill bg-ok/15 text-ok">cible atteinte</span>
             <span v-else-if="gapLine" class="pill pill-warn">{{ gapLine }}</span>
             <span v-if="tracker.lost.value" class="pill pill-warn">signal perdu</span>
@@ -690,20 +686,20 @@ async function record(payload: {
 
           <div class="flex items-end justify-between gap-2 border-t border-line-soft pt-3">
             <span class="flex flex-col gap-px">
-              <span class="mono text-[17px]">{{ formatDistance(distanceM) }}</span>
-              <span class="label text-[9.5px]">distance</span>
+              <span class="mono text-title">{{ formatDistance(distanceM) }}</span>
+              <span class="label text-caption">distance</span>
             </span>
             <span class="flex flex-col gap-px">
-              <span class="mono text-[17px]">{{ formatDuration(elapsedS) }}</span>
-              <span class="label text-[9.5px]">temps</span>
+              <span class="mono text-title">{{ formatDuration(elapsedS) }}</span>
+              <span class="label text-caption">temps</span>
             </span>
             <span class="flex flex-col gap-px text-right">
-              <span class="mono text-[17px]">
+              <span class="mono text-title">
                 <template v-if="!average">—</template>
                 <template v-else-if="cycling">{{ formatSpeed(average) }}</template>
                 <template v-else>{{ formatPace(average) }}/km</template>
               </span>
-              <span class="label text-[9.5px]">{{ cycling ? 'vitesse moy.' : 'allure moy.' }}</span>
+              <span class="label text-caption">{{ cycling ? 'vitesse moy.' : 'allure moy.' }}</span>
             </span>
             <button
               type="button"
@@ -734,7 +730,7 @@ async function record(payload: {
           aria-label="Terminer"
           :action="tracker.stop"
         />
-        <span class="text-[11.5px] text-text-dim">Terminer</span>
+        <span class="text-meta text-text-dim">Terminer</span>
       </div>
 
       <button
@@ -759,7 +755,7 @@ async function record(payload: {
         >
           <UiAppIcon name="pause" :size="26" />
         </button>
-        <span class="text-[11.5px] text-text-dim">Pause</span>
+        <span class="text-meta text-text-dim">Pause</span>
       </div>
     </template>
   </div>

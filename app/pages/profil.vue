@@ -190,7 +190,7 @@ async function logout() {
             <input type="file" accept="image/*" class="hidden" @change="onPhoto" />
             {{ form.avatar ? 'Remplacer la photo' : 'Ajouter une photo' }}
           </label>
-          <span v-if="photoError" class="text-[12px] text-warn">{{ photoError }}</span>
+          <span v-if="photoError" class="text-meta text-warn">{{ photoError }}</span>
         </div>
       </div>
 
@@ -202,19 +202,19 @@ async function logout() {
 
       <div class="fold-3 grid gap-4">
         <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">FC max (bpm)</span>
+          <span class="label text-caption">FC max (bpm)</span>
           <input v-model.number="form.maxHr" type="number" class="input mono" />
-          <span v-if="!form.maxHr && athlete?.suggestedMaxHr" class="text-[12px] text-text-dim">
+          <span v-if="!form.maxHr && athlete?.suggestedMaxHr" class="text-meta text-text-dim">
             Estimée à {{ athlete.suggestedMaxHr }} pour ton âge, tant qu'elle n'est pas mesurée.
           </span>
         </label>
         <div v-if="athlete?.age !== null" class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Âge</span>
-          <span class="mono text-[15px]">{{ athlete?.age }} ans</span>
+          <span class="label text-caption">Âge</span>
+          <span class="mono text-copy">{{ athlete?.age }} ans</span>
         </div>
         <!-- Point de départ des boucles proposées depuis une séance (§ 9, P5.5). -->
         <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Adresse de départ des sorties</span>
+          <span class="label text-caption">Adresse de départ des sorties</span>
           <input
             v-model="form.homeAddress"
             type="text"
@@ -236,16 +236,16 @@ async function logout() {
 
       <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <template v-if="fitness?.point">
-          <span class="display text-[24px] font-semibold">
+          <span class="display text-display-s font-semibold">
             {{ formatDecimal(fitness.point.vdot, 1) }}
           </span>
           <span class="pill">{{ fitness.point.isFloor ? 'plancher' : 'mesure' }}</span>
-          <span class="mono text-[11.5px] text-text-dim">
+          <span class="mono text-meta text-text-dim">
             {{ FITNESS_ORIGIN_LABELS[fitness.point.origin ?? ''] ?? fitness.point.origin }} ·
             {{ formatDateWithYear(fitness.point.date) }}
           </span>
         </template>
-        <span v-else class="text-[13px] text-text-dim">— aucun point de forme</span>
+        <span v-else class="text-body text-text-dim">— aucun point de forme</span>
       </div>
 
       <ProfilFitnessStartFields
@@ -265,7 +265,7 @@ async function logout() {
       >
         Déclarer mon niveau
       </button>
-      <p v-if="declareError" class="text-[13px] text-warn">{{ declareError }}</p>
+      <p v-if="declareError" class="text-body text-warn">{{ declareError }}</p>
     </div>
 
     <div class="tile">
@@ -287,7 +287,7 @@ async function logout() {
       />
 
       <div class="flex flex-col gap-[6px] border-t border-line-soft pt-3">
-        <span class="label text-[10.5px]">
+        <span class="label text-caption">
           <UiInfoHint term="joursFaciles">Jours qui restent faciles</UiInfoHint>
         </span>
         <ProfilWeekdayPicker v-model="form.easyDays" short />
@@ -314,20 +314,20 @@ async function logout() {
 
       <template v-if="plan.pause">
         <span class="flex items-baseline gap-3">
-          <span class="display text-[24px] font-semibold">
+          <span class="display text-display-s font-semibold">
             Jour {{ plan.pause.day }}
             <span class="text-text-dim">de pause</span>
           </span>
           <span v-if="plan.pause.zone" class="pill pill-warn ml-auto">{{ plan.pause.zone }}</span>
         </span>
-        <span class="mono text-[12px] text-text-dim">
+        <span class="mono text-meta text-text-dim">
           Ouverte le {{ formatDate(plan.pause.startDate) }} · la reprise se marque depuis le
           cockpit.
         </span>
       </template>
 
       <template v-else>
-        <span class="mono text-[12px] text-text-dim">Aucune pause en cours.</span>
+        <span class="mono text-meta text-text-dim">Aucune pause en cours.</span>
         <button type="button" class="btn btn-ghost self-start" @click="ui.openPanel('pause')">
           <UiAppIcon name="pause" />
           Déclarer une pause
@@ -341,10 +341,10 @@ async function logout() {
       <UiActionButton class="btn btn-lg w-full lean:w-auto" :disabled="!canSave" :action="save">
         Enregistrer et régénérer le plan
       </UiActionButton>
-      <span v-if="!canSave" class="text-[13px] text-text-dim">
+      <span v-if="!canSave" class="text-body text-text-dim">
         Choisis au moins {{ MIN_AVAILABLE_DAYS }} jours.
       </span>
-      <span v-else-if="saved" class="text-[13px] text-ok">Plan régénéré.</span>
+      <span v-else-if="saved" class="text-body text-ok">Plan régénéré.</span>
       <UiActionButton class="btn btn-ghost w-full lean:ml-auto lean:w-auto" :action="logout">
         Se déconnecter
       </UiActionButton>

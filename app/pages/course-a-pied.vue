@@ -18,20 +18,20 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
     <div class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">Allures de référence</span>
-        <span class="mono text-[11.5px] text-text-dim">
+        <span class="mono text-meta text-text-dim">
           {{ data?.vdotIsFloor ? 'Plancher' : 'VDOT' }}
           {{ data?.vdot?.toFixed(1).replace('.', ',') }} ·
           {{ formatDistance(data?.weeklyVolumeM ?? 0) }} cette semaine
         </span>
       </div>
       <UiAxisScroller>
-        <table class="table-axis w-full text-[13px]">
+        <table class="table-axis w-full text-body">
           <thead>
             <tr class="text-left">
               <th
                 v-for="head in ['Zone', 'Allure', 'Plage']"
                 :key="head"
-                class="label pb-2 text-[10px]"
+                class="label pb-2 text-caption"
               >
                 {{ head }}
               </th>
@@ -59,7 +59,7 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
         </table>
       </UiAxisScroller>
 
-      <p v-if="data?.vdotIsFloor" class="text-[13px] text-text-dim">
+      <p v-if="data?.vdotIsFloor" class="text-body text-text-dim">
         Estimation basse, revue au premier test 20′.
       </p>
     </div>
@@ -75,7 +75,7 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
         @click="ui.openLibrarySession('course', type.code)"
       >
         <span class="flex items-baseline gap-2">
-          <span class="display truncate text-[17px] font-semibold">
+          <span class="display truncate text-title font-semibold">
             <UiInfoHint
               v-if="glossaryTermFor(SESSION_TERMS, type.code)"
               :term="glossaryTermFor(SESSION_TERMS, type.code)!"
@@ -88,13 +88,13 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
             <template #trigger>
               <span class="block h-[6px] w-[6px] shrink-0 rounded-full bg-accent" />
             </template>
-            <span class="text-[12.5px] text-text-dim">Séance clé</span>
+            <span class="text-meta text-text-dim">Séance clé</span>
           </UiHoverBubble>
         </span>
 
-        <span class="mono text-[24px] leading-none">{{ formatPace(type.paceSecPerKm) }}/km</span>
+        <span class="mono text-display-s leading-none">{{ formatPace(type.paceSecPerKm) }}/km</span>
 
-        <span class="mono truncate text-[12px] text-text-dim">
+        <span class="mono truncate text-meta text-text-dim">
           {{ formatDistance(type.prescription.totalDistanceM) }} ·
           {{ structureOf(type.prescription.steps) }}
         </span>

@@ -21,7 +21,7 @@ function onChange(event: Event) {
 
 <template>
   <label class="flex flex-col gap-[6px]">
-    <span class="label text-[10.5px]">
+    <span class="label text-caption">
       <UiInfoHint term="profilPhysique">Profil physique</UiInfoHint>
     </span>
     <select class="input" :value="profile ?? ''" @change="onChange">
@@ -31,7 +31,7 @@ function onChange(event: Event) {
       </option>
     </select>
     <!-- Une seule ligne : les cinq descriptions ne se lisent qu'au profil choisi. -->
-    <span v-if="profile" class="text-[12px] text-text-dim">
+    <span v-if="profile" class="text-meta text-text-dim">
       {{ PROFILE_DESCRIPTIONS[profile] }} Pré-remplit
       {{ Math.round(defaultsFor(profile).startWeeklyVolumeM / 1000) }} à
       {{ Math.round(defaultsFor(profile).peakWeeklyVolumeM / 1000) }} km et

@@ -55,21 +55,21 @@ const gapKm = computed(() =>
   <div class="tile">
     <div class="flex items-baseline gap-3">
       <span class="label">Bilan de la semaine</span>
-      <span class="mono text-[11.5px] text-text-dim">
+      <span class="mono text-meta text-text-dim">
         {{ formatDate(review.weekStart) }} — {{ formatDate(review.weekEnd) }}
       </span>
-      <span class="ml-auto text-[13px] font-semibold" :class="verdict.tone">
+      <span class="ml-auto text-body font-semibold" :class="verdict.tone">
         {{ verdict.label }}
       </span>
     </div>
 
     <div class="fold-3 grid gap-4">
       <div class="flex flex-col gap-1">
-        <span class="label text-[10.5px]">Volume de course</span>
-        <span class="mono text-[22px]">
+        <span class="label text-caption">Volume de course</span>
+        <span class="mono text-display-s">
           {{ review.runM.done === null ? '—' : formatDistance(review.runM.done) }}
         </span>
-        <span class="mono text-[11.5px] text-text-dim">
+        <span class="mono text-meta text-text-dim">
           visé {{ formatDistance(review.runM.target) }}
           <template v-if="gapKm !== null">
             · {{ gapKm > 0 ? '+' : '' }}{{ formatDecimal(gapKm, 1) }} km
@@ -78,11 +78,11 @@ const gapKm = computed(() =>
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="label text-[10.5px]">Séances</span>
-        <span class="mono text-[22px]">
+        <span class="label text-caption">Séances</span>
+        <span class="mono text-display-s">
           {{ review.sessions.done }} / {{ review.sessions.planned }}
         </span>
-        <span class="mono text-[11.5px] text-text-dim">
+        <span class="mono text-meta text-text-dim">
           dont {{ review.sessions.keyDone }} / {{ review.sessions.key }} clé<template
             v-if="review.sessions.key > 1"
             >s</template
@@ -91,11 +91,11 @@ const gapKm = computed(() =>
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="label text-[10.5px]">
+        <span class="label text-caption">
           <UiInfoHint term="chargeCombinee">Charge</UiInfoHint>
         </span>
-        <span class="mono text-[22px]">{{ Math.round(review.loadUa) }}</span>
-        <span class="mono text-[11.5px] text-text-dim">
+        <span class="mono text-display-s">{{ Math.round(review.loadUa) }}</span>
+        <span class="mono text-meta text-text-dim">
           <template v-if="!review.vdotChange">forme inchangée</template>
           <template v-else>
             VDOT {{ review.vdotChange > 0 ? '+' : '' }}{{ formatDecimal(review.vdotChange, 2) }}
@@ -108,13 +108,13 @@ const gapKm = computed(() =>
       <span
         v-for="highlight in review.highlights"
         :key="highlight"
-        class="border-t border-line-soft pt-[6px] text-[13px] first:border-t-0 first:pt-0"
+        class="border-t border-line-soft pt-[6px] text-body first:border-t-0 first:pt-0"
       >
         {{ HIGHLIGHTS[highlight] }}
       </span>
     </div>
 
-    <p v-if="review.next.targetRunM !== null" class="text-[13px] text-text-dim">
+    <p v-if="review.next.targetRunM !== null" class="text-body text-text-dim">
       La semaine qui suit : {{ formatDistance(review.next.targetRunM) }} visés<template
         v-if="review.next.phase"
       >

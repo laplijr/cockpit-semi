@@ -26,7 +26,7 @@ function toggle(sport: Sport) {
 
 <template>
   <div class="flex flex-col gap-2">
-    <span class="label text-[10.5px]">Sports pratiqués</span>
+    <span class="label text-caption">Sports pratiqués</span>
     <div class="flex flex-wrap gap-2">
       <span class="btn btn-ghost border-accent bg-accent/15 text-text">
         <UiAppIcon :name="sportStyle(Sport.Running).icon" :size="15" />
@@ -49,7 +49,7 @@ function toggle(sport: Sport) {
     <!-- Le programme se choisit sous la pastille qui l'active, et nulle part
          ailleurs : sans renforcement, la question ne se pose pas (§ 5, P11.2). -->
     <div v-if="sports.includes(Sport.Strength)" class="flex flex-col gap-2 pt-1">
-      <span class="label text-[10.5px]">Renforcement</span>
+      <span class="label text-caption">Renforcement</span>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="value in INTENTS"
@@ -63,12 +63,12 @@ function toggle(sport: Sport) {
           {{ STRENGTH_INTENT_LABELS[value] }}
         </button>
       </div>
-      <p class="text-[13px] text-text-dim">
+      <p class="text-body text-text-dim">
         Pour la course : appuis et tronc, faisables sans haut du corps. Complet : le haut du corps
         en plus, deux séances de plus par semaine.
       </p>
 
-      <span class="label text-[10.5px]">Matériel disponible</span>
+      <span class="label text-caption">Matériel disponible</span>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="value in EQUIPMENTS"

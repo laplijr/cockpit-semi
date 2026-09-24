@@ -10,6 +10,6 @@ defineProps<{ title: string; text: string }>()
     </template>
 
     <template #title>{{ title }}</template>
-    <span class="text-[12.5px] leading-[1.45] text-text-dim">{{ text }}</span>
+    <span class="text-meta leading-[1.45] text-text-dim">{{ text }}</span>
   </UiHoverBubble>
 </template>

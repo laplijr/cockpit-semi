@@ -60,22 +60,22 @@ async function submit() {
         <span>Cockpit</span>
       </div>
       <template v-if="loggedIn && !created">
-        <p class="text-[14px]">
+        <p class="text-copy">
           Tu es déjà connecté en tant que
           <span class="mono">{{ user?.login }}</span
           >. Une invitation ouvre un compte, elle n'en remplace pas un : déconnecte-toi pour
           l'utiliser, ou reste où tu es.
         </p>
         <button type="button" class="btn btn-lg" @click="leave">Se déconnecter</button>
-        <NuxtLink to="/" class="text-[13px] text-text-dim">Retourner au cockpit</NuxtLink>
+        <NuxtLink to="/" class="text-body text-text-dim">Retourner au cockpit</NuxtLink>
       </template>
 
       <template v-else>
-        <p class="text-[14px]">Choisis un identifiant et un mot de passe.</p>
+        <p class="text-copy">Choisis un identifiant et un mot de passe.</p>
         <label class="flex flex-col gap-[6px]">
           <span class="label">Identifiant</span>
           <input v-model="login" type="text" class="input" autocomplete="username" />
-          <span class="text-[12px] text-text-dim">
+          <span class="text-meta text-text-dim">
             Minuscules, chiffres, point, tiret ou souligné. {{ MIN_LOGIN_LENGTH }} caractères au
             moins.
           </span>
@@ -83,11 +83,11 @@ async function submit() {
         <label class="flex flex-col gap-[6px]">
           <span class="label">Mot de passe</span>
           <input v-model="password" type="password" class="input" autocomplete="new-password" />
-          <span class="text-[12px] text-text-dim">
+          <span class="text-meta text-text-dim">
             {{ MIN_PASSWORD_LENGTH }} caractères au moins.
           </span>
         </label>
-        <span v-if="error" class="text-[13px] text-warn">{{ error }}</span>
+        <span v-if="error" class="text-body text-warn">{{ error }}</span>
         <UiActionButton
           type="submit"
           class="btn btn-lg"

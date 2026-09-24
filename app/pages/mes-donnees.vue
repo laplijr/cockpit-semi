@@ -92,8 +92,8 @@ async function removeAccount() {
     <div class="tile">
       <span class="label">Compte</span>
       <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <span class="display text-[24px] font-semibold">{{ account?.login }}</span>
-        <span v-if="account?.createdAt" class="mono text-[12px] text-text-dim">
+        <span class="display text-display-s font-semibold">{{ account?.login }}</span>
+        <span v-if="account?.createdAt" class="mono text-meta text-text-dim">
           ouvert le {{ formatDate(String(account.createdAt).slice(0, 10)) }}
         </span>
         <span v-if="account?.owner" class="pill ml-auto">compte principal</span>
@@ -102,13 +102,13 @@ async function removeAccount() {
 
     <div class="tile">
       <span class="label">Ce que le cockpit garde</span>
-      <p class="text-[13px] text-text-dim">
+      <p class="text-body text-text-dim">
         Aucune donnée d'entraînement n'est envoyée à un modèle de langage.
       </p>
       <ul class="flex flex-col gap-2">
         <li v-for="item in account?.stored ?? []" :key="item.label" class="flex flex-col gap-px">
-          <span class="text-[14px]">{{ item.label }}</span>
-          <span class="text-[12px] text-text-dim">{{ item.why }}</span>
+          <span class="text-copy">{{ item.label }}</span>
+          <span class="text-meta text-text-dim">{{ item.why }}</span>
         </li>
       </ul>
     </div>
@@ -127,10 +127,10 @@ async function removeAccount() {
             class="flex items-center gap-2 pr-2"
           >
             <UiAvatar :first-name="one.firstName" :avatar="one.avatar" :size="24" />
-            <span class="text-[13px]">{{ one.firstName ?? 'Quelqu’un' }}</span>
+            <span class="text-body">{{ one.firstName ?? 'Quelqu’un' }}</span>
           </span>
         </div>
-        <p class="text-[12px] text-text-dim">
+        <p class="text-meta text-text-dim">
           Quitter ferme la lecture et vous retire de la liste ; vos publications restent. Pour tout
           effacer, supprimez votre compte.
         </p>
@@ -140,7 +140,7 @@ async function removeAccount() {
       </template>
 
       <template v-else>
-        <span class="mono text-[12px] text-text-dim">Vous n'êtes plus dans le cercle.</span>
+        <span class="mono text-meta text-text-dim">Vous n'êtes plus dans le cercle.</span>
         <UiActionButton class="btn btn-ghost self-start" :action="() => setMembership(true)">
           Rejoindre le cercle
         </UiActionButton>
@@ -149,19 +149,19 @@ async function removeAccount() {
 
     <div class="tile">
       <span class="label">Appels externes du jour</span>
-      <p class="text-[13px] text-text-dim">
+      <p class="text-body text-text-dim">
         Au-delà du quota, la fonction attend demain ; le reste du cockpit fonctionne.
       </p>
-      <p v-if="(account?.usage ?? []).length === 0" class="mono text-[12px] text-text-dim">
+      <p v-if="(account?.usage ?? []).length === 0" class="mono text-meta text-text-dim">
         Aucun appel aujourd'hui.
       </p>
       <div
         v-for="item in account?.usage ?? []"
         :key="item.kind"
-        class="flex items-baseline gap-3 text-[13px]"
+        class="flex items-baseline gap-3 text-body"
       >
         <span>{{ CALL_LABELS[item.kind] }}</span>
-        <span class="mono ml-auto text-[12px] text-text-dim">
+        <span class="mono ml-auto text-meta text-text-dim">
           {{ item.calls }} / {{ item.quota }}
         </span>
       </div>
@@ -169,11 +169,11 @@ async function removeAccount() {
 
     <div v-if="account?.owner" class="tile">
       <span class="label">Invitations</span>
-      <p class="text-[13px] text-text-dim">Un lien ne sert qu'une fois.</p>
+      <p class="text-body text-text-dim">Un lien ne sert qu'une fois.</p>
 
       <div class="flex flex-wrap items-end gap-3">
         <label class="flex flex-1 flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Pour qui (facultatif)</span>
+          <span class="label text-caption">Pour qui (facultatif)</span>
           <input v-model="label" type="text" class="input" placeholder="Camille" />
         </label>
         <UiActionButton class="btn w-full lean:w-auto" :action="createInvitation">
@@ -188,13 +188,13 @@ async function removeAccount() {
       >
         <!-- Le sujet de la ligne est l'invitation, pas la personne : « Louise
              utilisée par… » faisait porter l'accord sur le mauvais mot. -->
-        <span class="text-[13px]">
+        <span class="text-body">
           {{ item.label ? `Pour ${item.label}` : 'Sans destinataire' }}
         </span>
-        <span v-if="item.consumedAt" class="mono text-[12px] text-ok">
+        <span v-if="item.consumedAt" class="mono text-meta text-ok">
           compte ouvert : {{ item.consumedLogin }}
         </span>
-        <span v-else class="mono text-[12px] text-text-dim">
+        <span v-else class="mono text-meta text-text-dim">
           expire le {{ formatDate(String(item.expiresAt).slice(0, 10)) }}
         </span>
         <template v-if="!item.consumedAt">
@@ -211,13 +211,13 @@ async function removeAccount() {
     <!-- Une personne qui teste doit pouvoir partir, et emporter ses données (§ 11). -->
     <div v-if="!account?.owner" class="tile" style="border-color: rgba(242, 162, 58, 0.35)">
       <span class="label">Supprimer mon compte</span>
-      <p class="text-[13px] text-text-dim">
+      <p class="text-body text-text-dim">
         Tout part : le plan, les courses, les séances, les ressentis, la charge, les propositions et
         le compte lui-même. C'est définitif et il n'y a pas de copie.
       </p>
       <div class="flex flex-wrap items-end gap-3">
         <label class="flex flex-1 flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Retape ton identifiant pour confirmer</span>
+          <span class="label text-caption">Retape ton identifiant pour confirmer</span>
           <input
             v-model="confirmation"
             type="text"
@@ -235,7 +235,7 @@ async function removeAccount() {
       </div>
     </div>
 
-    <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+    <p v-if="error" class="text-body text-warn">{{ error }}</p>
   </div>
 
   <UiPageSkeleton v-else :columns="2" :tiles="3" :lines="2" />

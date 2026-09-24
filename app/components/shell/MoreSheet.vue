@@ -46,14 +46,14 @@ onMounted(() => {
 <template>
   <div class="flex flex-col gap-4">
     <nav v-for="group in groups" :key="group.title" class="flex flex-col">
-      <span class="pb-1 text-[10px] font-semibold tracking-[0.12em] text-text-dim uppercase">{{
+      <span class="pb-1 text-caption font-semibold tracking-[0.12em] text-text-dim uppercase">{{
         group.title
       }}</span>
       <button
         v-for="item in group.items"
         :key="item.to"
         type="button"
-        class="tap flex items-center gap-3 rounded-md px-2 text-left text-[14px] text-text-dim"
+        class="tap flex items-center gap-3 rounded-md px-2 text-left text-copy text-text-dim"
         :class="[
           route.path === item.to && 'bg-surface-raised text-text',
           going === item.to && 'bg-surface-raised text-text',
@@ -79,10 +79,10 @@ onMounted(() => {
     </nav>
 
     <!-- L'état de connexion vit en pied de barre latérale : sans barre, il vit ici. -->
-    <div class="flex items-center gap-2 border-t border-line-soft pt-3 text-[13px] text-text-dim">
+    <div class="flex items-center gap-2 border-t border-line-soft pt-3 text-body text-text-dim">
       <UiAppIcon name="strava" class="text-strava" />
       <span>Strava</span>
-      <span class="mono ml-auto text-[11.5px]">non connectée</span>
+      <span class="mono ml-auto text-meta">non connectée</span>
       <span class="inline-block size-2 rounded-full bg-line-strong" />
     </div>
   </div>

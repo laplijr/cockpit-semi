@@ -111,8 +111,8 @@ async function save() {
   <div class="flex flex-col gap-4">
     <!-- Une sortie libre n'a rien de prévu : la tuile ne se rend pas. -->
     <div v-if="session" class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">Prévu</span>
-      <span class="mono text-[13px] text-text-dim">
+      <span class="label text-caption">Prévu</span>
+      <span class="mono text-body text-text-dim">
         <template v-if="isRunning">
           {{ formatDistance(session.prescription.totalDistanceM) }} ·
         </template>
@@ -121,7 +121,7 @@ async function save() {
     </div>
 
     <div v-if="isTest" class="tile" style="border-color: rgba(242, 162, 58, 0.35)">
-      <span class="label text-[10.5px]">
+      <span class="label text-caption">
         <UiInfoHint term="test20">Distance couverte en 20 minutes (m)</UiInfoHint>
       </span>
       <input
@@ -131,7 +131,7 @@ async function save() {
         class="input mono"
         placeholder="4000"
       />
-      <p class="text-[12px] text-text-dim">
+      <p class="text-meta text-text-dim">
         Cette distance devient ton VDOT courant et régénère le plan. Laisse vide si le test n'a pas
         été fait dans les conditions prévues.
       </p>
@@ -139,7 +139,7 @@ async function save() {
 
     <div class="grid gap-3" :class="isRunning ? 'fold-2' : 'grid-cols-1'">
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Durée réelle (min)</span>
+        <span class="label text-caption">Durée réelle (min)</span>
         <input
           v-model.number="form.durationMin"
           type="number"
@@ -148,7 +148,7 @@ async function save() {
         />
       </label>
       <label v-if="isRunning" class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Distance réelle (m)</span>
+        <span class="label text-caption">Distance réelle (m)</span>
         <input
           v-model.number="form.distanceM"
           type="number"
@@ -166,14 +166,14 @@ async function save() {
     />
 
     <div class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">
+      <span class="label text-caption">
         <UiInfoHint term="rpe">Effort perçu</UiInfoHint> — RPE {{ form.rpe }}
       </span>
       <input v-model.number="form.rpe" type="range" min="1" max="10" class="w-full accent-accent" />
     </div>
 
     <div class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]"><UiInfoHint term="sensations">Sensations</UiInfoHint></span>
+      <span class="label text-caption"><UiInfoHint term="sensations">Sensations</UiInfoHint></span>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="item in SENSATIONS"
@@ -189,7 +189,7 @@ async function save() {
     </div>
 
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">
+      <span class="label text-caption">
         <UiInfoHint term="sommeil">Sommeil la nuit dernière (h)</UiInfoHint>
       </span>
       <input
@@ -202,7 +202,7 @@ async function save() {
     </label>
 
     <div class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]"><UiInfoHint term="douleur">Douleur</UiInfoHint></span>
+      <span class="label text-caption"><UiInfoHint term="douleur">Douleur</UiInfoHint></span>
       <div v-if="watchZones.length > 0" class="flex flex-wrap gap-2">
         <button
           v-for="zone in watchZones"
@@ -217,7 +217,7 @@ async function save() {
       </div>
       <input v-model="form.painZone" type="text" class="input" placeholder="Aucune douleur" />
       <div v-if="form.painZone" class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Intensité — {{ form.painIntensity }} / 10</span>
+        <span class="label text-caption">Intensité — {{ form.painIntensity }} / 10</span>
         <input
           v-model.number="form.painIntensity"
           type="range"
@@ -228,7 +228,7 @@ async function save() {
       </div>
     </div>
 
-    <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+    <p v-if="error" class="text-body text-warn">{{ error }}</p>
 
     <!-- Une seule action principale, et elle reste sous le pouce : collée au
          bas de la feuille, elle ne demande pas de faire remonter le corps

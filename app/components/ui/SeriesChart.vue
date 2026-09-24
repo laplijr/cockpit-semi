@@ -47,8 +47,8 @@ const label = (value: number) => `${formatDecimal(value, props.decimals)}${props
 <template>
   <div v-if="line" class="flex flex-col gap-1">
     <div class="flex items-baseline justify-between">
-      <span class="mono text-[10.5px] text-text-dim">{{ label(points[0]!.value) }}</span>
-      <span class="mono text-[10.5px] text-text-dim">{{ label(points.at(-1)!.value) }}</span>
+      <span class="mono text-caption text-text-dim">{{ label(points[0]!.value) }}</span>
+      <span class="mono text-caption text-text-dim">{{ label(points.at(-1)!.value) }}</span>
     </div>
 
     <svg
@@ -70,12 +70,12 @@ const label = (value: number) => `${formatDecimal(value, props.decimals)}${props
     </svg>
 
     <div class="flex items-baseline justify-between">
-      <span class="mono text-[10.5px] text-text-dim">{{ formatDate(points[0]!.date) }}</span>
-      <span class="mono text-[10.5px] text-text-dim">{{ formatDate(points.at(-1)!.date) }}</span>
+      <span class="mono text-caption text-text-dim">{{ formatDate(points[0]!.date) }}</span>
+      <span class="mono text-caption text-text-dim">{{ formatDate(points.at(-1)!.date) }}</span>
     </div>
   </div>
 
-  <p v-else class="text-[12.5px] text-text-dim">
+  <p v-else class="text-meta text-text-dim">
     Une courbe demande au moins deux points : elle vient à la mesure suivante.
   </p>
 </template>

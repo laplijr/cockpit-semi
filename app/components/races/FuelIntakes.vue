@@ -43,10 +43,10 @@ const moments = computed(() => {
       >
         <span class="flex flex-col items-center gap-px px-2 text-center">
           <span v-for="intake in moment.taken" :key="intake.product" class="flex flex-col">
-            <span class="text-[12.5px] leading-[1.2]">
+            <span class="text-meta leading-[1.2]">
               {{ FUEL_PRODUCT_LABELS[intake.product] ?? intake.product }}
             </span>
-            <span class="mono text-[10.5px] text-text-dim">{{ intake.quantity }}</span>
+            <span class="mono text-caption text-text-dim">{{ intake.quantity }}</span>
           </span>
         </span>
 
@@ -59,7 +59,7 @@ const moments = computed(() => {
           />
         </span>
 
-        <span class="mono text-[10.5px] text-text-dim">
+        <span class="mono text-caption text-text-dim">
           {{ moment.minute }}′ · km {{ moment.km }}
           <template v-if="moment.optional"> · option</template>
         </span>
@@ -68,10 +68,10 @@ const moments = computed(() => {
   </UiAxisScroller>
 
   <UiAxisScroller v-else-if="intakes.length > 0">
-    <table class="table-axis w-full text-[13px]">
+    <table class="table-axis w-full text-body">
       <thead>
         <tr class="text-left">
-          <th v-for="head in ['Minute', 'Km', 'Prise']" :key="head" class="label pb-2 text-[10px]">
+          <th v-for="head in ['Minute', 'Km', 'Prise']" :key="head" class="label pb-2 text-caption">
             {{ head }}
           </th>
         </tr>
@@ -86,7 +86,7 @@ const moments = computed(() => {
           <td class="mono py-[6px] text-text-dim">{{ intake.km }}</td>
           <td class="py-[6px]">
             {{ FUEL_PRODUCT_LABELS[intake.product] ?? intake.product }} · {{ intake.quantity }}
-            <span v-if="intake.optional" class="pill ml-2 text-[10px]">optionnelle</span>
+            <span v-if="intake.optional" class="pill ml-2 text-caption">optionnelle</span>
           </td>
         </tr>
       </tbody>

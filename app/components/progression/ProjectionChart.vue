@@ -88,7 +88,7 @@ const EVENT_LABELS: Record<string, string> = {
   <div class="flex flex-col gap-1">
     <!-- L'axe se nomme, et rien de plus : le chiffre de confiance que cette
          ligne portait vit maintenant dans la bulle et dans la table (§ 9, P6.40). -->
-    <span class="label text-[9.5px]">
+    <span class="label text-caption">
       <UiInfoHint term="projection">Chrono projeté</UiInfoHint>
       <template v-if="raceName"> · {{ raceName }}</template>
     </span>
@@ -130,15 +130,15 @@ const EVENT_LABELS: Record<string, string> = {
               <span class="block size-[7px] rounded-full bg-accent" />
             </template>
 
-            <span class="label text-[10px]">{{ formatDate(point.date) }}</span>
-            <span class="mono text-[12.5px]">
+            <span class="label text-caption">{{ formatDate(point.date) }}</span>
+            <span class="mono text-meta">
               {{ formatDuration(point.projectedS) }} ± {{ formatMinutes(marginOf(point) / 60) }}
             </span>
-            <span class="mono text-[12px] text-text-dim">
+            <span class="mono text-meta text-text-dim">
               {{ formatDuration(point.lowS) }} – {{ formatDuration(point.highS) }} ·
               {{ point.confidencePct }} % de tenir l'objectif
             </span>
-            <span v-if="point.events.length > 0" class="mono text-[11.5px] text-text-dim">
+            <span v-if="point.events.length > 0" class="mono text-meta text-text-dim">
               {{ point.events.map((event) => EVENT_LABELS[event] ?? event).join(' · ') }}
             </span>
           </UiHoverBubble>
@@ -149,20 +149,20 @@ const EVENT_LABELS: Record<string, string> = {
         class="flex shrink-0 flex-col justify-between text-right"
         :style="{ height: `${height}px` }"
       >
-        <span v-for="tick in ticks" :key="tick" class="mono text-[10.5px] text-text-dim">
+        <span v-for="tick in ticks" :key="tick" class="mono text-caption text-text-dim">
           {{ formatDuration(Math.round(tick)) }}
         </span>
       </div>
     </div>
 
-    <p v-else class="text-[12.5px] text-text-dim">
+    <p v-else class="text-meta text-text-dim">
       <template v-if="points.length === 1">Une mesure : la courbe vient à la suivante.</template>
       <template v-else>Aucune course A dont l'objectif soit fixé.</template>
     </p>
 
     <div v-if="drawable" class="flex items-baseline justify-between">
-      <span class="mono text-[10.5px] text-text-dim">{{ formatDate(points[0]!.date) }}</span>
-      <span class="mono text-[10.5px] text-text-dim">{{ formatDate(points.at(-1)!.date) }}</span>
+      <span class="mono text-caption text-text-dim">{{ formatDate(points[0]!.date) }}</span>
+      <span class="mono text-caption text-text-dim">{{ formatDate(points.at(-1)!.date) }}</span>
     </div>
   </div>
 </template>

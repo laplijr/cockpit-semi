@@ -44,11 +44,11 @@ const tone = computed(() => {
       <span class="label"><UiInfoHint term="chargeCombinee">Charge combinée</UiInfoHint></span>
     </span>
 
-    <span class="display text-[56px] leading-none font-bold" :class="tone">
+    <span class="display text-display-xl leading-none font-bold" :class="tone">
       {{ data?.ratio ? data.ratio.ratio.toFixed(2).replace('.', ',') : '—' }}
     </span>
 
-    <span class="mono text-[11.5px] text-text-dim">
+    <span class="mono text-meta text-text-dim">
       {{ data?.ratio ? '7 j / 21 j' : `encore ${missingDays} j` }}
     </span>
 
@@ -66,8 +66,8 @@ const tone = computed(() => {
         :class="data.ratio.inReferenceZone ? 'bg-ok' : 'bg-warn'"
         :style="{ left: `${positionPct(data.ratio.ratio)}%` }"
       />
-      <span class="mono absolute top-0 left-0 text-[10px] text-text-dim">0,5</span>
-      <span class="mono absolute top-0 right-0 text-[10px] text-text-dim">2,0</span>
+      <span class="mono absolute top-0 left-0 text-caption text-text-dim">0,5</span>
+      <span class="mono absolute top-0 right-0 text-caption text-text-dim">2,0</span>
     </span>
   </button>
 </template>

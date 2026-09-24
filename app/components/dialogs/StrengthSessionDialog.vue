@@ -20,8 +20,8 @@ const planned = computed(() => (data.value?.plannedCodes ?? []).some((code) => c
 <template>
   <div v-if="session" class="flex flex-col gap-4">
     <div class="flex items-baseline gap-3">
-      <span class="display text-[22px] font-semibold">{{ session.label }}</span>
-      <span class="mono text-[11.5px] text-text-dim">
+      <span class="display text-display-s font-semibold">{{ session.label }}</span>
+      <span class="mono text-meta text-text-dim">
         {{ formatMinutes(session.prescription.durationMin) }} · RPE
         {{ session.prescription.expectedRpe }} · {{ session.prescription.steps.length }} ex.
       </span>
@@ -29,8 +29,8 @@ const planned = computed(() => (data.value?.plannedCodes ?? []).some((code) => c
     </div>
 
     <div class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">Ce qu'elle cherche</span>
-      <p class="text-[13px] text-text-dim">{{ session.note }}</p>
+      <span class="label text-caption">Ce qu'elle cherche</span>
+      <p class="text-body text-text-dim">{{ session.note }}</p>
     </div>
 
     <!-- Les noms seuls : séries, reps et récup se lisent dans l'exercice. -->
@@ -43,8 +43,8 @@ const planned = computed(() => (data.value?.plannedCodes ?? []).some((code) => c
         :disabled="!step.exerciseId"
         @click="step.exerciseId && ui.openExercise(step.exerciseId)"
       >
-        <span class="text-[13.5px]">{{ step.label }}</span>
-        <span v-if="step.superset" class="pill text-[10px]">
+        <span class="text-body">{{ step.label }}</span>
+        <span v-if="step.superset" class="pill text-caption">
           <UiInfoHint term="superset">superset</UiInfoHint>
         </span>
         <UiAppIcon

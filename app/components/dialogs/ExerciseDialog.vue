@@ -61,8 +61,8 @@ function rootOf(exercise: Exercise, all: Exercise[]): Exercise {
 <template>
   <div v-if="exercise" class="flex flex-col gap-4">
     <div class="flex items-baseline gap-3">
-      <span class="display text-[22px] font-semibold">{{ exercise.label }}</span>
-      <span class="mono text-[11.5px] text-text-dim">
+      <span class="display text-display-s font-semibold">{{ exercise.label }}</span>
+      <span class="mono text-meta text-text-dim">
         {{ exercise.sets }} × {{ exercise.reps }}{{ exercise.isometric ? '″' : '' }}
       </span>
       <span v-if="exercise.lowerBody" class="pill ml-auto">jambes en charge</span>
@@ -75,26 +75,24 @@ function rootOf(exercise: Exercise, all: Exercise[]): Exercise {
     </div>
 
     <div class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">Ce qu'il apporte</span>
-      <p class="text-[13px] text-text-dim">{{ exercise.why }}</p>
+      <span class="label text-caption">Ce qu'il apporte</span>
+      <p class="text-body text-text-dim">{{ exercise.why }}</p>
     </div>
 
     <div class="fold-2 grid gap-4">
       <div v-if="exercise.progression" class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Progression</span>
-        <span class="mono text-[15px]">
+        <span class="label text-caption">Progression</span>
+        <span class="mono text-copy">
           {{ exercise.progression.fromSets }} × {{ exercise.progression.fromReps }} →
           {{ exercise.progression.toSets }} × {{ exercise.progression.toReps }}
         </span>
-        <span class="text-[12px] text-text-dim">
-          sur {{ exercise.progression.weeks }} semaines
-        </span>
+        <span class="text-meta text-text-dim"> sur {{ exercise.progression.weeks }} semaines </span>
       </div>
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Ce qui a été tenu</span>
+        <span class="label text-caption">Ce qui a été tenu</span>
         <!-- Des kilos quand il y a une charge, un format sinon : au poids de
              corps, c'est le format qui progresse (§ 5, P11.3). -->
-        <span class="mono text-[20px]">
+        <span class="mono text-heading">
           <template v-if="lastLoadKg">{{ formatLoad(lastLoadKg) }}</template>
           <template v-else-if="lastReps">
             {{ lastReps }}{{ exercise.isometric ? '″' : ' rép.' }}
@@ -107,16 +105,16 @@ function rootOf(exercise: Exercise, all: Exercise[]): Exercise {
     <!-- La chaîne entière, le niveau courant marqué : ce que cet exercice
          devient avec plus ou moins de matériel (§ 5, P11.3). -->
     <div v-if="chain.length > 0" class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">Avec plus de matériel</span>
+      <span class="label text-caption">Avec plus de matériel</span>
       <div
         v-for="item in chain"
         :key="item.id"
         class="flex items-baseline gap-3 border-t border-line-soft pt-2 first:border-t-0 first:pt-0"
       >
-        <span class="mono w-[150px] shrink-0 text-[11.5px] text-text-dim">
+        <span class="mono w-[150px] shrink-0 text-meta text-text-dim">
           {{ EQUIPMENT_LABELS[(item.equipment ?? 'aucun') as StrengthEquipment] }}
         </span>
-        <span class="text-[13px]" :class="item.id === exercise.id && 'text-accent'">
+        <span class="text-body" :class="item.id === exercise.id && 'text-accent'">
           {{ item.label }}
         </span>
         <span v-if="item.id === exercise.id" class="pill ml-auto">à faire</span>

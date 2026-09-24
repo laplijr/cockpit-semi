@@ -63,7 +63,7 @@ describe('gabarit de cadran (§ 8, P6.35)', () => {
   })
 
   it('porte le chiffre à 56 px', async () => {
-    expect((await dial()).get('.display').classes()).toContain('text-[56px]')
+    expect((await dial()).get('.display').classes()).toContain('text-display-xl')
   })
 
   it('n’affiche qu’une métadonnée mono sous le chiffre', async () => {

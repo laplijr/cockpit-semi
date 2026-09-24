@@ -29,7 +29,7 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
     <div class="tile">
       <div class="flex items-baseline gap-3">
         <span class="label">Les séances vélo du plan</span>
-        <span class="mono text-[11.5px] text-text-dim">
+        <span class="mono text-meta text-text-dim">
           phase actuelle : {{ PHASE_LABELS[data?.phaseType ?? ''] ?? data?.phaseType }} ·
           {{ data?.ridesThisWeek }} sortie{{ (data?.ridesThisWeek ?? 0) > 1 ? 's' : '' }} cette
           semaine · spécifique : ≤ {{ Math.round((data?.maxLoadShare ?? 0) * 100) }} % de la charge
@@ -59,7 +59,7 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
         @click="ui.openLibrarySession('velo', type.code)"
       >
         <span class="flex items-baseline gap-2">
-          <span class="display truncate text-[17px] font-semibold">
+          <span class="display truncate text-title font-semibold">
             <UiInfoHint
               v-if="glossaryTermFor(SESSION_TERMS, type.code)"
               :term="glossaryTermFor(SESSION_TERMS, type.code)!"
@@ -71,9 +71,9 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
           <span v-if="type.onPainOnly" class="pill pill-warn ml-auto shrink-0">sur douleur</span>
         </span>
 
-        <span class="mono text-[24px] leading-none">{{ type.ftpRange }}</span>
+        <span class="mono text-display-s leading-none">{{ type.ftpRange }}</span>
 
-        <span class="mono truncate text-[12px] text-text-dim">
+        <span class="mono truncate text-meta text-text-dim">
           {{ formatMinutes(type.minDurationMin) }} – {{ formatMinutes(type.maxDurationMin) }} ·
           {{ structureOf(type.prescription.steps) }}
         </span>
@@ -90,7 +90,7 @@ function structureOf(steps: { label: string; repeats?: number }[]): string {
         <span
           v-for="rule in CONVERSION_RULES"
           :key="rule.when"
-          class="flex items-baseline gap-2 border-t border-line-soft py-[7px] text-[13px]"
+          class="flex items-baseline gap-2 border-t border-line-soft py-[7px] text-body"
         >
           <span class="text-text-dim">{{ rule.when }}</span>
           <span class="mono ml-auto shrink-0">→ {{ rule.then }}</span>

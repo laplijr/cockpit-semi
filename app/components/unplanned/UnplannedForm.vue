@@ -98,7 +98,7 @@ onMounted(async () => {
 <template>
   <div class="flex flex-col gap-4">
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Ce qui s'est passé</span>
+      <span class="label text-caption">Ce qui s'est passé</span>
       <textarea
         ref="field"
         v-model="text"
@@ -108,7 +108,7 @@ onMounted(async () => {
       />
     </label>
 
-    <p class="text-[12px] text-text-dim">
+    <p class="text-meta text-text-dim">
       Seules la date du jour et tes séances prévues accompagnent ce texte.
     </p>
 
@@ -120,7 +120,7 @@ onMounted(async () => {
 
     <template v-if="events.length > 0">
       <div class="flex flex-col gap-2">
-        <span class="label text-[10.5px]">Ce que le cockpit a compris</span>
+        <span class="label text-caption">Ce que le cockpit a compris</span>
 
         <div v-for="(item, index) in events" :key="index" class="tile gap-2 bg-surface-inset py-3">
           <div class="flex items-baseline gap-2">
@@ -129,7 +129,7 @@ onMounted(async () => {
               :size="15"
               :class="isActivity(item) ? sportStyle(item.sport).tone : 'text-warn'"
             />
-            <span class="display text-[16px] font-semibold">{{ item.label }}</span>
+            <span class="display text-title font-semibold">{{ item.label }}</span>
             <button
               type="button"
               class="tap ml-auto inline-flex items-center justify-center text-text-dim hover:text-text"
@@ -142,11 +142,11 @@ onMounted(async () => {
 
           <div v-if="isActivity(item)" class="grid grid-cols-1 gap-2 lean:grid-cols-3">
             <label class="flex flex-col gap-[4px]">
-              <span class="label text-[10px]">Date</span>
+              <span class="label text-caption">Date</span>
               <input v-model="item.date" type="date" class="input mono" />
             </label>
             <label class="flex flex-col gap-[4px]">
-              <span class="label text-[10px]">Durée (min)</span>
+              <span class="label text-caption">Durée (min)</span>
               <input
                 v-model.number="item.durationMin"
                 type="number"
@@ -156,7 +156,7 @@ onMounted(async () => {
               />
             </label>
             <label class="flex flex-col gap-[4px]">
-              <span class="label text-[10px]">RPE</span>
+              <span class="label text-caption">RPE</span>
               <input
                 v-model.number="item.rpeEstimate"
                 type="number"
@@ -170,15 +170,15 @@ onMounted(async () => {
 
           <div v-else class="grid grid-cols-1 gap-2 lean:grid-cols-3">
             <label class="flex flex-col gap-[4px]">
-              <span class="label text-[10px]">Du</span>
+              <span class="label text-caption">Du</span>
               <input v-model="item.from" type="date" class="input mono" />
             </label>
             <label class="flex flex-col gap-[4px]">
-              <span class="label text-[10px]">Au</span>
+              <span class="label text-caption">Au</span>
               <input v-model="item.to" type="date" class="input mono" />
             </label>
             <label class="flex flex-col gap-[4px]">
-              <span class="label text-[10px]">Portée</span>
+              <span class="label text-caption">Portée</span>
               <select v-model="item.scope" class="input">
                 <option v-for="(label, value) in SCOPE_LABELS" :key="value" :value="value">
                   {{ label }}
@@ -192,6 +192,6 @@ onMounted(async () => {
       <UiActionButton class="btn btn-lg" :action="confirm">Confirmer</UiActionButton>
     </template>
 
-    <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+    <p v-if="error" class="text-body text-warn">{{ error }}</p>
   </div>
 </template>

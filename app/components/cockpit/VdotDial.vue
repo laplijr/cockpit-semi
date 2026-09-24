@@ -47,13 +47,13 @@ const line = computed(() => {
 
     <!-- Une estimation basse se lit à la couleur du chiffre : la pastille sort (§ 8, P6.35). -->
     <span
-      class="display text-[56px] leading-none font-bold"
+      class="display text-display-xl leading-none font-bold"
       :class="{ 'text-warn': isFloor, 'text-text-dim': vdot === null }"
     >
       {{ vdot === null ? '—' : vdot.toFixed(1).replace('.', ',') }}
     </span>
 
-    <span class="mono text-[11.5px] text-text-dim">
+    <span class="mono text-meta text-text-dim">
       {{ points.length }} point{{ points.length > 1 ? 's' : '' }}
     </span>
 

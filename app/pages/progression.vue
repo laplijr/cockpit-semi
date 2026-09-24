@@ -134,13 +134,13 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         <span class="label"><UiInfoHint term="vdot">Forme mesurée</UiInfoHint></span>
 
         <span
-          class="display text-[56px] leading-none font-bold"
+          class="display text-display-xl leading-none font-bold"
           :class="{ 'text-warn': lastVdot?.isFloor, 'text-text-dim': !lastVdot }"
         >
           {{ lastVdot ? lastVdot.vdot.toFixed(1).replace('.', ',') : '—' }}
         </span>
 
-        <span class="mono text-[11.5px] text-text-dim">
+        <span class="mono text-meta text-text-dim">
           {{ data?.vdot.length ?? 0 }} point{{ (data?.vdot.length ?? 0) > 1 ? 's' : '' }} ·
           {{ lastVdot?.isFloor ? 'plancher' : 'mesure' }}
         </span>
@@ -172,13 +172,13 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         <span class="label"><UiInfoHint term="adherence">Adhérence</UiInfoHint></span>
 
         <span
-          class="display text-[56px] leading-none font-bold"
+          class="display text-display-xl leading-none font-bold"
           :class="data?.adherence === null && 'text-text-dim'"
         >
           {{ data?.adherence === null ? '—' : `${data?.adherence} %` }}
         </span>
 
-        <span class="mono text-[11.5px] text-text-dim">des séances prévues</span>
+        <span class="mono text-meta text-text-dim">des séances prévues</span>
 
         <!-- L'échelle situe le chiffre : 0 à 100 %, repère à la valeur. -->
         <span class="relative block h-[14px]">
@@ -197,13 +197,13 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         </span>
 
         <span
-          class="display text-[56px] leading-none font-bold"
+          class="display text-display-xl leading-none font-bold"
           :class="data?.acceptanceRate === null && 'text-text-dim'"
         >
           {{ data?.acceptanceRate === null ? '—' : `${data?.acceptanceRate} %` }}
         </span>
 
-        <span class="mono text-[11.5px] text-text-dim">des décisions prises</span>
+        <span class="mono text-meta text-text-dim">des décisions prises</span>
 
         <span class="relative block h-[14px]">
           <span class="absolute inset-x-0 top-[6px] h-[3px] rounded-sm bg-accent-track" />
@@ -228,7 +228,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         <button
           v-if="(data?.vdot.length ?? 0) > recentVdot.length"
           type="button"
-          class="tap mono ml-auto inline-flex items-center justify-end text-[11.5px] text-accent"
+          class="tap mono ml-auto inline-flex items-center justify-end text-meta text-accent"
           @click="ui.openDial('vdot')"
         >
           voir les {{ data?.vdot.length }} points
@@ -241,10 +241,10 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       />
 
       <UiAxisScroller>
-        <table class="table-axis w-full text-[13px]">
+        <table class="table-axis w-full text-body">
           <thead>
             <tr class="text-left">
-              <th v-for="head in VDOT_COLUMNS" :key="head.label" class="label pb-2 text-[10px]">
+              <th v-for="head in VDOT_COLUMNS" :key="head.label" class="label pb-2 text-caption">
                 <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
                 <template v-else>{{ head.label }}</template>
               </th>
@@ -284,7 +284,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
               <span
                 v-for="(week, index) in visibleWeeks"
                 :key="week.index"
-                class="mono flex-1 text-center text-[10px] text-text-dim"
+                class="mono flex-1 text-center text-caption text-text-dim"
               >
                 <template v-if="index % WEEK_LABEL_EVERY === 0">S{{ week.index }}</template>
               </span>
@@ -298,7 +298,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       <div class="tile">
         <span class="label"><UiInfoHint term="record">Records</UiInfoHint></span>
 
-        <p v-if="(data?.records.length ?? 0) === 0" class="text-[13px] text-text-dim">
+        <p v-if="(data?.records.length ?? 0) === 0" class="text-body text-text-dim">
           Aucun chrono représentatif.
         </p>
 
@@ -307,19 +307,19 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
           :key="record.distance"
           class="flex items-baseline gap-3 border-t border-line-soft py-[6px] first:border-t-0"
         >
-          <span class="text-[13px]">{{ record.distance }}</span>
-          <span class="mono text-[15px]">{{ formatDuration(record.timeS) }}</span>
+          <span class="text-body">{{ record.distance }}</span>
+          <span class="mono text-copy">{{ formatDuration(record.timeS) }}</span>
           <UiHoverBubble :label="`Équivalences au VDOT de ce record`" class="ml-auto">
             <template #trigger>
-              <span class="mono text-[11.5px] text-text-dim">
+              <span class="mono text-meta text-text-dim">
                 {{ formatDate(record.date) }} · VDOT {{ formatDecimal(record.vdot, 1) }}
               </span>
             </template>
-            <span class="label text-[10px]">{{ record.name }}</span>
+            <span class="label text-caption">{{ record.name }}</span>
             <span
               v-for="equivalent in record.equivalents"
               :key="equivalent.distance"
-              class="mono text-[12px] text-text-dim"
+              class="mono text-meta text-text-dim"
             >
               {{ equivalent.distance }} · {{ formatDuration(equivalent.timeS) }}
             </span>
@@ -330,33 +330,33 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       <div class="tile">
         <div class="flex items-baseline gap-3">
           <span class="label">Depuis la reprise</span>
-          <span v-if="data?.resumedOn" class="mono text-[11.5px] text-text-dim">
+          <span v-if="data?.resumedOn" class="mono text-meta text-text-dim">
             {{ formatDate(data.resumedOn) }}
           </span>
         </div>
 
         <div class="grid gap-3" :class="hasElevation ? 'fold-4' : 'fold-3'">
           <div class="flex flex-col">
-            <span class="label text-[10px]">Kilomètres</span>
-            <span class="mono text-[17px]">{{ formatDistance(counters?.runM ?? 0) }}</span>
-            <span class="mono text-[10.5px] text-text-dim"
+            <span class="label text-caption">Kilomètres</span>
+            <span class="mono text-title">{{ formatDistance(counters?.runM ?? 0) }}</span>
+            <span class="mono text-caption text-text-dim"
               >{{ counters?.sessions ?? 0 }} séances</span
             >
           </div>
           <div v-if="hasElevation" class="flex flex-col">
-            <span class="label text-[10px]">Dénivelé</span>
-            <span class="mono text-[17px]">{{ counters?.elevationGainM }} m</span>
-            <span class="mono text-[10.5px] text-text-dim">cumulé</span>
+            <span class="label text-caption">Dénivelé</span>
+            <span class="mono text-title">{{ counters?.elevationGainM }} m</span>
+            <span class="mono text-caption text-text-dim">cumulé</span>
           </div>
           <div class="flex flex-col">
-            <span class="label text-[10px]">Sorties longues</span>
-            <span class="mono text-[17px]">{{ counters?.longRuns ?? 0 }}</span>
-            <span class="mono text-[10.5px] text-text-dim">depuis la reprise</span>
+            <span class="label text-caption">Sorties longues</span>
+            <span class="mono text-title">{{ counters?.longRuns ?? 0 }}</span>
+            <span class="mono text-caption text-text-dim">depuis la reprise</span>
           </div>
           <div class="flex flex-col">
-            <span class="label text-[10px]"><UiInfoHint term="serie">Série</UiInfoHint></span>
-            <span class="mono text-[17px]">{{ counters?.streak ?? 0 }}</span>
-            <span class="mono text-[10.5px] text-text-dim">
+            <span class="label text-caption"><UiInfoHint term="serie">Série</UiInfoHint></span>
+            <span class="mono text-title">{{ counters?.streak ?? 0 }}</span>
+            <span class="mono text-caption text-text-dim">
               semaine{{ (counters?.streak ?? 0) > 1 ? 's' : '' }} tenue{{
                 (counters?.streak ?? 0) > 1 ? 's' : ''
               }}
@@ -379,22 +379,22 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       <div class="grid grid-cols-1 gap-4 lean:grid-cols-[1fr_1.2fr] lean:gap-6">
         <div class="fold-3 grid gap-3 self-start">
           <div class="flex flex-col">
-            <span class="label text-[10px]">Sommeil moyen</span>
-            <span class="mono text-[17px]">
+            <span class="label text-caption">Sommeil moyen</span>
+            <span class="mono text-title">
               {{
                 data?.recovery.sleepMeanH === null
                   ? '—'
                   : `${formatDecimal(data?.recovery.sleepMeanH, 1)} h`
               }}
             </span>
-            <span class="mono text-[10.5px] text-text-dim">
+            <span class="mono text-caption text-text-dim">
               {{ data?.recovery.samples.nights }} nuits
             </span>
           </div>
           <div class="flex flex-col">
-            <span class="label text-[10px]">Nuits courtes</span>
+            <span class="label text-caption">Nuits courtes</span>
             <span
-              class="mono text-[17px]"
+              class="mono text-title"
               :class="(data?.recovery.shortNightShare ?? 0) > 0.25 && 'text-warn'"
             >
               {{
@@ -403,25 +403,25 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
                   : `${Math.round((data?.recovery.shortNightShare ?? 0) * 100)} %`
               }}
             </span>
-            <span class="mono text-[10.5px] text-text-dim">
+            <span class="mono text-caption text-text-dim">
               {{ data?.recovery.shortNights }} sous 6 h
             </span>
           </div>
           <div class="flex flex-col">
-            <span class="label text-[10px]">Jours sans rien</span>
-            <span class="mono text-[17px]">
+            <span class="label text-caption">Jours sans rien</span>
+            <span class="mono text-title">
               {{ formatDecimal(data?.recovery.restDaysPerWeek, 1) }}
             </span>
-            <span class="mono text-[10.5px] text-text-dim">par semaine</span>
+            <span class="mono text-caption text-text-dim">par semaine</span>
           </div>
         </div>
 
         <div class="flex flex-col border-l border-line-soft pl-6">
-          <span class="label text-[10px]">
+          <span class="label text-caption">
             <UiInfoHint term="calibration">Écart de RPE par séance</UiInfoHint>
           </span>
 
-          <p v-if="(data?.rpeCalibration.length ?? 0) === 0" class="text-[13px] text-text-dim">
+          <p v-if="(data?.rpeCalibration.length ?? 0) === 0" class="text-body text-text-dim">
             Aucun ressenti sur la période.
           </p>
 
@@ -430,14 +430,11 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
             :key="row.code"
             class="flex items-baseline gap-3 border-t border-line-soft py-[5px] first:border-t-0"
           >
-            <span class="text-[13px]">{{ SESSION_LABELS[row.code] ?? row.code }}</span>
-            <span
-              class="mono ml-auto text-[13px]"
-              :class="Math.abs(row.bias) >= 0.5 && 'text-warn'"
-            >
+            <span class="text-body">{{ SESSION_LABELS[row.code] ?? row.code }}</span>
+            <span class="mono ml-auto text-body" :class="Math.abs(row.bias) >= 0.5 && 'text-warn'">
               {{ row.bias > 0 ? '+' : '' }}{{ formatDecimal(row.bias) }}
             </span>
-            <span class="mono w-[70px] text-right text-[11.5px] text-text-dim">
+            <span class="mono w-[84px] text-right text-meta whitespace-nowrap text-text-dim">
               {{ row.samples }} séance{{ row.samples > 1 ? 's' : '' }}
             </span>
           </div>
@@ -454,7 +451,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
       <div class="flex items-baseline gap-3">
         <span class="label">Ce que le cockpit avait prévu</span>
 
-        <span v-if="data?.forecastOverall" class="mono ml-auto text-[11.5px] text-text-dim">
+        <span v-if="data?.forecastOverall" class="mono ml-auto text-meta text-text-dim">
           <UiInfoHint term="biais">
             biais {{ signedVdot(data.forecastOverall.biasVdot) }} VDOT
           </UiInfoHint>
@@ -465,7 +462,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         </span>
       </div>
 
-      <p v-if="forecasts.total === 0" class="text-[13px] text-text-dim">
+      <p v-if="forecasts.total === 0" class="text-body text-text-dim">
         Aucune échéance passée : la première comparaison tombera au prochain test.
       </p>
 
@@ -476,12 +473,12 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
             :key="verdict.horizon"
             class="flex flex-col"
           >
-            <span class="label text-[10px]">
+            <span class="label text-caption">
               <UiInfoHint term="horizon">{{ HORIZON_LABELS[verdict.horizon] }}</UiInfoHint>
             </span>
 
             <span
-              class="mono text-[17px]"
+              class="mono text-title"
               :class="
                 verdict.accuracy === undefined
                   ? 'text-text-dim'
@@ -492,7 +489,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
               <template v-else>{{ signedVdot(verdict.accuracy.biasVdot) }} VDOT</template>
             </span>
 
-            <span class="mono text-[10.5px] text-text-dim">
+            <span class="mono text-caption text-text-dim">
               <template v-if="verdict.accuracy === undefined">
                 moins de trois comparaisons
               </template>
@@ -508,13 +505,13 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
         </div>
 
         <UiAxisScroller>
-          <table class="table-axis w-full text-[13px]">
+          <table class="table-axis w-full text-body">
             <thead>
               <tr class="text-left">
                 <th
                   v-for="head in FORECAST_COLUMNS"
                   :key="head.label"
-                  class="label pb-2 text-[10px]"
+                  class="label pb-2 text-caption"
                 >
                   <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
                   <template v-else>{{ head.label }}</template>
@@ -526,13 +523,13 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
                 <td class="mono py-[6px] text-text-dim">{{ formatDate(row.issuedDate) }}</td>
                 <td class="py-[6px]">
                   {{ row.label }}
-                  <span class="mono ml-1 text-[11px] text-text-dim">
+                  <span class="mono ml-1 text-caption text-text-dim">
                     {{ formatDate(row.targetDate) }}
                   </span>
                 </td>
                 <td class="mono py-[6px]">
                   {{ vdotText(row.projectedVdot) }}
-                  <span class="text-[11px] text-text-dim">
+                  <span class="text-caption text-text-dim">
                     {{ vdotText(row.lowVdot) }}–{{ vdotText(row.highVdot) }}
                   </span>
                 </td>
@@ -563,7 +560,7 @@ const hasElevation = computed(() => (counters.value?.elevationGainM ?? 0) > 0)
           :key="series.exerciseId"
           class="flex flex-col gap-1"
         >
-          <span class="text-[12.5px]">{{ series.label }}</span>
+          <span class="text-meta">{{ series.label }}</span>
           <UiSeriesChart
             :points="series.points.map((point) => ({ date: point.date, value: point.loadKg }))"
             :height="72"

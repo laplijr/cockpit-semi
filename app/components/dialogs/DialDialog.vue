@@ -87,40 +87,40 @@ const title = computed(
 
 <template>
   <div class="flex flex-col gap-4">
-    <span class="display text-[22px] font-semibold">{{ title }}</span>
+    <span class="display text-display-s font-semibold">{{ title }}</span>
 
     <template v-if="dial === 'charge'">
       <div class="fold-3 grid gap-4">
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Ratio 7 j / 21 j</span>
-          <span class="display text-[32px] font-bold">
+          <span class="label text-caption">Ratio 7 j / 21 j</span>
+          <span class="display text-display-m font-bold">
             {{ load?.ratio ? load.ratio.ratio.toFixed(2).replace('.', ',') : '—' }}
           </span>
-          <span class="mono text-[12px] text-text-dim">
+          <span class="mono text-meta text-text-dim">
             repère {{ load?.reference.low }}–{{ load?.reference.high }}
           </span>
         </div>
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Sept derniers jours</span>
-          <span class="mono text-[20px]">{{ load?.ratio?.acute ?? '—' }} UA</span>
+          <span class="label text-caption">Sept derniers jours</span>
+          <span class="mono text-heading">{{ load?.ratio?.acute ?? '—' }} UA</span>
         </div>
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Vingt-et-un jours précédents</span>
-          <span class="mono text-[20px]">{{ load?.ratio?.chronic ?? '—' }} UA</span>
+          <span class="label text-caption">Vingt-et-un jours précédents</span>
+          <span class="mono text-heading">{{ load?.ratio?.chronic ?? '—' }} UA</span>
         </div>
       </div>
 
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Répartition de la semaine</span>
+        <span class="label text-caption">Répartition de la semaine</span>
         <div class="fold-4 grid gap-4">
           <div v-for="sport in SPORTS" :key="sport.key" class="flex flex-col">
-            <span class="label text-[10px]">{{ sport.label }}</span>
-            <span class="mono text-[17px]">{{ load?.weekBySport[sport.key] ?? 0 }} UA</span>
+            <span class="label text-caption">{{ sport.label }}</span>
+            <span class="mono text-title">{{ load?.weekBySport[sport.key] ?? 0 }} UA</span>
           </div>
         </div>
       </div>
 
-      <p class="text-[13px] text-text-dim">
+      <p class="text-body text-text-dim">
         La charge se compte en unités arbitraires : RPE × durée en minutes, pour tous les sports. Le
         ratio compare les sept derniers jours à la moyenne des vingt-et-un précédents, sans
         recouvrement. C'est un repère, jamais une décision à lui seul.
@@ -131,30 +131,30 @@ const title = computed(
     <template v-else-if="dial === 'forme'">
       <div class="fold-2 grid gap-4">
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Score</span>
-          <span class="display text-[32px] font-bold">{{ readiness?.score ?? '—' }}</span>
+          <span class="label text-caption">Score</span>
+          <span class="display text-display-m font-bold">{{ readiness?.score ?? '—' }}</span>
         </div>
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Causes</span>
+          <span class="label text-caption">Causes</span>
           <span
             v-for="cause in readiness?.causes ?? []"
             :key="cause"
-            class="text-[13px] text-text-dim"
+            class="text-body text-text-dim"
           >
             {{ cause }}
           </span>
-          <span v-if="!readiness?.causes.length" class="text-[13px] text-text-dim">
+          <span v-if="!readiness?.causes.length" class="text-body text-text-dim">
             Aucun signal particulier.
           </span>
         </div>
       </div>
 
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Pour demain</span>
-        <p class="text-[13px] text-text-dim">{{ readiness?.suggestion }}</p>
+        <span class="label text-caption">Pour demain</span>
+        <p class="text-body text-text-dim">{{ readiness?.suggestion }}</p>
       </div>
 
-      <p class="text-[13px] text-text-dim">
+      <p class="text-body text-text-dim">
         Le score pèse le sommeil déclaré pour 35 %, l'écart de RPE des trois dernières séances pour
         30 %, les sensations pour 20 % et le ratio de charge pour 15 %. Prêt au-dessus de 65,
         vigilance entre 40 et 64, repos en dessous.
@@ -164,17 +164,17 @@ const title = computed(
     <template v-else-if="dial === 'vdot'">
       <div class="fold-2 grid gap-4">
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Valeur courante</span>
-          <span class="display text-[32px] font-bold">
+          <span class="label text-caption">Valeur courante</span>
+          <span class="display text-display-m font-bold">
             {{ vdot === null ? '—' : vdot.toFixed(1).replace('.', ',') }}
           </span>
-          <span v-if="library?.vdotIsFloor" class="text-[12px] text-text-dim">
+          <span v-if="library?.vdotIsFloor" class="text-meta text-text-dim">
             Plancher déduit du meilleur segment continu, pas une mesure.
           </span>
         </div>
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Prochain test 20′</span>
-          <span class="mono text-[17px]">
+          <span class="label text-caption">Prochain test 20′</span>
+          <span class="mono text-title">
             <template v-if="plan.nextTestWeek">
               semaine {{ plan.nextTestWeek.index }}
               <template v-if="!plan.awaitingResumption">
@@ -186,7 +186,7 @@ const title = computed(
         </div>
       </div>
 
-      <p v-if="lastForecast" class="text-[13px] text-text-dim">
+      <p v-if="lastForecast" class="text-body text-text-dim">
         Dernière prévision confrontée : {{ lastForecast.label }} du
         {{ formatDate(lastForecast.targetDate) }}, annoncé à
         {{ vdotText(lastForecast.projectedVdot) }} et réalisé à
@@ -195,14 +195,14 @@ const title = computed(
       </p>
 
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Allures d'entraînement</span>
+        <span class="label text-caption">Allures d'entraînement</span>
         <div class="grid grid-cols-5 gap-3">
           <div v-for="zone in library?.zones ?? []" :key="zone.key" class="flex flex-col">
-            <span class="label text-[10px]">{{ zone.label }}</span>
-            <span class="mono text-[15px]">{{ formatPace(zone.paceSecPerKm) }}</span>
+            <span class="label text-caption">{{ zone.label }}</span>
+            <span class="mono text-copy">{{ formatPace(zone.paceSecPerKm) }}</span>
           </div>
         </div>
-        <span class="mono text-[12px] text-text-dim">
+        <span class="mono text-meta text-text-dim">
           Allure semi : {{ formatPace(library?.halfPaceSecPerKm) }}/km
         </span>
       </div>
@@ -210,15 +210,15 @@ const title = computed(
       <!-- L'historique complet : Progression n'en montre que les trois derniers
            points, le détail vit ici (§ 8, P6.35). -->
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Tous les points de forme</span>
+        <span class="label text-caption">Tous les points de forme</span>
         <UiAxisScroller>
-          <table class="table-axis w-full text-[13px]">
+          <table class="table-axis w-full text-body">
             <thead>
               <tr class="text-left">
                 <th
                   v-for="head in ['Date', 'Origine', 'VDOT', 'Projection semi']"
                   :key="head"
-                  class="label pb-2 text-[10px]"
+                  class="label pb-2 text-caption"
                 >
                   {{ head }}
                 </th>
@@ -255,27 +255,27 @@ const title = computed(
     <template v-else-if="dial === 'adherence'">
       <div class="fold-2 grid gap-4">
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Séances prévues réalisées</span>
-          <span class="display text-[32px] font-bold">
+          <span class="label text-caption">Séances prévues réalisées</span>
+          <span class="display text-display-m font-bold">
             {{ progression?.adherence === null ? '—' : `${progression?.adherence} %` }}
           </span>
         </div>
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Séances clés sur la période</span>
-          <span class="mono text-[20px]">{{ progression?.keySessions.length ?? 0 }}</span>
+          <span class="label text-caption">Séances clés sur la période</span>
+          <span class="mono text-heading">{{ progression?.keySessions.length ?? 0 }}</span>
         </div>
       </div>
 
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Journal des séances clés</span>
+        <span class="label text-caption">Journal des séances clés</span>
         <UiAxisScroller>
-          <table class="table-axis w-full text-[13px]">
+          <table class="table-axis w-full text-body">
             <thead>
               <tr class="text-left">
                 <th
                   v-for="head in KEY_SESSION_COLUMNS"
                   :key="head.label"
-                  class="label pb-2 text-[10px]"
+                  class="label pb-2 text-caption"
                 >
                   <UiInfoHint v-if="head.term" :term="head.term">{{ head.label }}</UiInfoHint>
                   <template v-else>{{ head.label }}</template>
@@ -324,30 +324,30 @@ const title = computed(
     <template v-else-if="dial === 'course-a' && raceA">
       <div class="fold-3 grid gap-4">
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">{{ raceA.name }}</span>
-          <span class="display text-[32px] font-bold text-accent">
+          <span class="label text-caption">{{ raceA.name }}</span>
+          <span class="display text-display-m font-bold text-accent">
             J−{{ daysUntil(raceA.date, plan.today) }}
           </span>
-          <span class="mono text-[12px] text-text-dim">{{ formatLongDate(raceA.date) }}</span>
+          <span class="mono text-meta text-text-dim">{{ formatLongDate(raceA.date) }}</span>
         </div>
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Objectif</span>
-          <span class="mono text-[20px]">
+          <span class="label text-caption">Objectif</span>
+          <span class="mono text-heading">
             <template v-if="raceA.objectiveToSet">à fixer</template>
             <template v-else-if="raceA.objectiveMode === 'record'">
               {{ formatDuration(raceA.recordS) }}
             </template>
             <template v-else>{{ formatDuration(raceA.objectifS) }}</template>
           </span>
-          <span v-if="raceA.objectiveMode === 'record'" class="text-[12px] text-text-dim">
+          <span v-if="raceA.objectiveMode === 'record'" class="text-meta text-text-dim">
             record · {{ raceA.recordName }} ·
             {{ raceA.recordDate ? formatDate(raceA.recordDate) : '—' }}
           </span>
         </div>
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Projection</span>
-          <span class="mono text-[20px]">{{ formatDuration(raceA.projectionS) }}</span>
-          <span class="mono text-[12px] text-text-dim">
+          <span class="label text-caption">Projection</span>
+          <span class="mono text-heading">{{ formatDuration(raceA.projectionS) }}</span>
+          <span class="mono text-meta text-text-dim">
             {{ formatDuration(raceA.projectionLowS) }} – {{ formatDuration(raceA.projectionHighS) }}
           </span>
         </div>
@@ -355,11 +355,11 @@ const title = computed(
 
       <div class="fold-3 grid gap-4">
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Confiance</span>
-          <span class="mono text-[20px]">
+          <span class="label text-caption">Confiance</span>
+          <span class="mono text-heading">
             {{ raceA.confidencePct === null ? '—' : `${raceA.confidencePct} %` }}
           </span>
-          <span class="text-[12px] text-text-dim">
+          <span class="text-meta text-text-dim">
             <template v-if="raceA.confidencePct === null">
               Sans objectif ni référence à battre, il n'y a rien à estimer.
             </template>
@@ -370,18 +370,18 @@ const title = computed(
           </span>
         </div>
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Dénivelé attendu</span>
-          <span class="mono text-[20px]">
+          <span class="label text-caption">Dénivelé attendu</span>
+          <span class="mono text-heading">
             {{ raceA.elevationGainM === null ? '—' : `${raceA.elevationGainM} m` }}
           </span>
-          <span class="text-[12px] text-text-dim">une demi-seconde par mètre</span>
+          <span class="text-meta text-text-dim">une demi-seconde par mètre</span>
         </div>
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Température attendue</span>
-          <span class="mono text-[20px]">
+          <span class="label text-caption">Température attendue</span>
+          <span class="mono text-heading">
             {{ raceA.expectedTempC === null ? '—' : `${raceA.expectedTempC} °C` }}
           </span>
-          <span class="text-[12px] text-text-dim">1,5 % par degré au-dessus de 18</span>
+          <span class="text-meta text-text-dim">1,5 % par degré au-dessus de 18</span>
         </div>
       </div>
 
@@ -390,19 +390,19 @@ const title = computed(
         v-if="raceA.objectiveMode === 'temps' && !raceA.objectiveToSet"
         class="tile bg-surface-inset"
       >
-        <span class="label text-[10.5px]">Les trois niveaux</span>
+        <span class="label text-caption">Les trois niveaux</span>
         <div class="fold-3 grid gap-4">
           <div v-for="level in OBJECTIVE_LEVELS" :key="level.label" class="flex flex-col">
-            <span class="label text-[10px]">{{ level.label }}</span>
-            <span class="mono text-[17px]">{{ formatDuration(raceA[level.field]) }}</span>
-            <span class="mono text-[12px] text-text-dim">
+            <span class="label text-caption">{{ level.label }}</span>
+            <span class="mono text-title">{{ formatDuration(raceA[level.field]) }}</span>
+            <span class="mono text-meta text-text-dim">
               {{ raceA[level.confidence] === null ? '—' : `${raceA[level.confidence]} %` }}
             </span>
           </div>
         </div>
       </div>
 
-      <p class="text-[13px] text-text-dim">
+      <p class="text-body text-text-dim">
         La projection part de ton VDOT du jour, y ajoute le gain attendu d'ici la course —
         {{ formatDecimal(progression?.gainPerBlock, 2) }} VDOT par tranche de huit semaines
         d'entraînement, rien pour les semaines en pause — puis corrige du dénivelé et de la chaleur.

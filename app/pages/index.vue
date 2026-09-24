@@ -126,7 +126,7 @@ async function onResume() {
         </div>
 
         <div class="border-t border-line-soft pt-3">
-          <span class="label text-[10.5px]">Demain</span>
+          <span class="label text-caption">Demain</span>
           <div class="flex items-center gap-3 px-2 py-[10px]">
             <UiSkeleton variant="block" :height="18" width="18px" class="rounded-sm" />
             <div class="flex flex-1 flex-col gap-px">
@@ -142,16 +142,16 @@ async function onResume() {
           <span class="label">Aujourd'hui</span>
           <!-- La semaine est déjà dans la barre du haut et dans la tuile
                Semaine : elle ne se redit pas ici (§ 8, P6.35). -->
-          <span class="mono text-[11.5px] text-text-dim">{{ formatLongDate(plan.today) }}</span>
+          <span class="mono text-meta text-text-dim">{{ formatLongDate(plan.today) }}</span>
         </div>
 
         <template v-if="plan.awaitingResumption">
-          <p class="text-[13px] text-text-dim">
+          <p class="text-body text-text-dim">
             Plan calculé mais non daté : les séances arrivent à la reprise.
           </p>
         </template>
         <template v-else-if="plan.pause">
-          <p class="text-[13px] text-text-dim">
+          <p class="text-body text-text-dim">
             Aucune séance de course tant que la pause est ouverte.
           </p>
         </template>
@@ -162,7 +162,7 @@ async function onResume() {
             :session="session"
           />
         </template>
-        <p v-else class="text-[13px] text-text-dim">Repos aujourd'hui.</p>
+        <p v-else class="text-body text-text-dim">Repos aujourd'hui.</p>
 
         <!-- Demain tient sur une ligne : icône de sport, nom, deux chiffres,
              et le conseil nutrition en pastille (§ 8, P6.35). -->
@@ -170,7 +170,7 @@ async function onResume() {
           v-if="plan.tomorrowSessions.length > 0"
           class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line-soft pt-3"
         >
-          <span class="label text-[10.5px]">Demain</span>
+          <span class="label text-caption">Demain</span>
           <span
             v-for="session in plan.tomorrowSessions"
             :key="session.id"
@@ -182,8 +182,8 @@ async function onResume() {
               :class="sportStyle(session.sport).tone"
               :label="SPORT_LABELS[session.sport] ?? session.sport"
             />
-            <span class="text-[13px]">{{ SESSION_LABELS[session.code] ?? session.code }}</span>
-            <span class="mono text-[12px] text-text-dim">
+            <span class="text-body">{{ SESSION_LABELS[session.code] ?? session.code }}</span>
+            <span class="mono text-meta text-text-dim">
               <template v-if="session.prescription.totalDistanceM > 0">
                 {{ formatDistance(session.prescription.totalDistanceM) }} ·
               </template>

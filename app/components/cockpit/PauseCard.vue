@@ -27,16 +27,16 @@ async function resume() {
     <div class="flex items-center gap-2">
       <UiAppIcon name="pause" class="text-warn" />
       <span class="label">Pause en cours · jour {{ pause.day }}</span>
-      <span class="mono ml-auto text-[11.5px] text-text-dim">
+      <span class="mono ml-auto text-meta text-text-dim">
         depuis le {{ formatDate(pause.startDate) }}
       </span>
     </div>
 
-    <p v-if="pause.notes" class="text-[13px] text-text-dim">{{ pause.notes }}</p>
+    <p v-if="pause.notes" class="text-body text-text-dim">{{ pause.notes }}</p>
 
     <div class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Autorisé</span>
-      <ul class="flex flex-col gap-1 text-[13px]">
+      <span class="label text-caption">Autorisé</span>
+      <ul class="flex flex-col gap-1 text-body">
         <li v-for="item in allowanceRows(pause)" :key="item.label" class="flex items-center gap-2">
           <UiAppIcon
             :name="item.allowed ? 'check' : 'close'"
@@ -49,15 +49,15 @@ async function resume() {
       <p
         v-for="condition in pause.allowances.conditions ?? []"
         :key="condition"
-        class="text-[12px] text-text-dim"
+        class="text-meta text-text-dim"
       >
         {{ condition }}
       </p>
     </div>
 
     <div v-if="pause.watchZones.length > 0" class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">À surveiller à la reprise</span>
-      <span class="text-[13px] text-text-dim">{{ pause.watchZones.join(' · ') }}</span>
+      <span class="label text-caption">À surveiller à la reprise</span>
+      <span class="text-body text-text-dim">{{ pause.watchZones.join(' · ') }}</span>
     </div>
 
     <div>

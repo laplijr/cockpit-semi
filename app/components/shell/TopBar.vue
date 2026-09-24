@@ -38,19 +38,19 @@ async function go(path: string) {
     class="flex h-(--spacing-topbar) items-center gap-3 border-b border-line-soft px-4 lean:gap-4 lean:px-6"
   >
     <!-- Téléphone : le titre de la page. Au-delà, l'espace qui centre le champ. -->
-    <h1 class="heading min-w-0 flex-1 truncate text-[18px] lean:hidden">{{ pageTitle }}</h1>
+    <h1 class="heading min-w-0 flex-1 truncate text-title lean:hidden">{{ pageTitle }}</h1>
     <div class="hidden flex-1 lean:block" />
 
     <!-- Sans clé, l'Imprévu n'existe pas : la coque n'en garde aucune trace (§ 6). -->
     <button
       v-if="llm"
       type="button"
-      class="hidden h-9 w-[440px] items-center gap-[10px] rounded-md border border-line bg-surface-inset px-3 text-[13px] text-text-dim hover:border-line-strong lean:flex"
+      class="hidden h-9 w-[440px] items-center gap-[10px] rounded-md border border-line bg-surface-inset px-3 text-body text-text-dim hover:border-line-strong lean:flex"
       @click="ui.openPanel('imprevu')"
     >
       <UiAppIcon name="pen" class="text-icon" />
       <span>Signaler un imprévu ou une indisponibilité</span>
-      <span class="mono ml-auto rounded-sm border border-line px-[5px] py-px text-[11px]">⌘K</span>
+      <span class="mono ml-auto rounded-sm border border-line px-[5px] py-px text-caption">⌘K</span>
     </button>
 
     <!--
@@ -78,7 +78,7 @@ async function go(path: string) {
         <UiAppIcon name="bell" />
         <span
           v-if="proposals.pendingCount > 0"
-          class="badge absolute -top-2 -right-[10px] h-4 min-w-4 text-[10px]"
+          class="badge absolute -top-2 -right-[10px] h-4 min-w-4 text-caption"
         >
           {{ proposals.pendingCount }}
         </span>
@@ -114,21 +114,21 @@ async function go(path: string) {
               <div
                 class="border border-line border-l-[3px] border-l-accent bg-surface-inset px-[10px] py-2"
               >
-                <div class="mono text-[10px] tracking-[0.06em] text-text-dim uppercase">
+                <div class="mono text-caption tracking-[0.06em] text-text-dim uppercase">
                   {{ today }}
                 </div>
                 <template v-if="weekLine">
-                  <div class="text-[13px] font-medium">Semaine {{ weekLine.index }}</div>
-                  <div class="text-[11px] text-accent">{{ weekLine.phase }}</div>
+                  <div class="text-body font-medium">Semaine {{ weekLine.index }}</div>
+                  <div class="text-caption text-accent">{{ weekLine.phase }}</div>
                 </template>
-                <div v-else class="text-[11px] text-text-dim">Aucun plan actif</div>
+                <div v-else class="text-caption text-text-dim">Aucun plan actif</div>
               </div>
             </div>
 
             <div class="flex flex-col border-t border-line py-1">
               <button
                 type="button"
-                class="flex items-center gap-2 px-3 py-2 text-left text-[13px] text-text-dim hover:bg-surface-muted hover:text-text"
+                class="flex items-center gap-2 px-3 py-2 text-left text-body text-text-dim hover:bg-surface-muted hover:text-text"
                 role="menuitem"
                 @click="go('/profil')"
               >
@@ -137,7 +137,7 @@ async function go(path: string) {
               </button>
               <button
                 type="button"
-                class="flex items-center gap-2 px-3 py-2 text-left text-[13px] text-text-dim hover:bg-surface-muted hover:text-text"
+                class="flex items-center gap-2 px-3 py-2 text-left text-body text-text-dim hover:bg-surface-muted hover:text-text"
                 role="menuitem"
                 @click="go('/connexions')"
               >

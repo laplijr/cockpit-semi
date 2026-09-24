@@ -122,29 +122,29 @@ function drag(event: PointerEvent) {
         <span class="label"><UiInfoHint term="courseA">Cap</UiInfoHint></span>
 
         <template v-if="target">
-          <span class="display text-[38px] leading-none font-bold text-accent">
-            {{ weeksToTarget }} <span class="text-[17px] font-semibold">sem.</span>
+          <span class="display text-display-l leading-none font-bold text-accent">
+            {{ weeksToTarget }} <span class="text-title font-semibold">sem.</span>
           </span>
-          <span class="truncate text-[13px]">{{ target.name }}</span>
-          <span class="mono text-[11.5px] whitespace-nowrap text-text-dim">
+          <span class="truncate text-body">{{ target.name }}</span>
+          <span class="mono text-meta whitespace-nowrap text-text-dim">
             {{ formatDateWithYear(target.date) }} · J−{{ daysUntil(target.date, today) }}
           </span>
         </template>
 
         <template v-else-if="currentSegment">
-          <span class="display text-[38px] leading-none font-bold">
+          <span class="display text-display-l leading-none font-bold">
             {{ currentSegment.weekInPhase }}
-            <span class="text-[17px] font-semibold">/ {{ currentSegment.phaseWeeks }}</span>
+            <span class="text-title font-semibold">/ {{ currentSegment.phaseWeeks }}</span>
           </span>
-          <span class="mono text-[11.5px] text-text-dim">
+          <span class="mono text-meta text-text-dim">
             {{ PHASE_LABELS[currentSegment.type] ?? currentSegment.type }}
           </span>
-          <span class="mono text-[11.5px] text-text-dim">aucune course A à venir</span>
+          <span class="mono text-meta text-text-dim">aucune course A à venir</span>
         </template>
 
         <template v-else>
-          <span class="display text-[38px] leading-none font-bold text-text-dim">—</span>
-          <span class="mono text-[11.5px] text-text-dim">en attente de la reprise</span>
+          <span class="display text-display-l leading-none font-bold text-text-dim">—</span>
+          <span class="mono text-meta text-text-dim">en attente de la reprise</span>
         </template>
       </div>
 
@@ -170,7 +170,7 @@ function drag(event: PointerEvent) {
                   v-for="segment in view.segments"
                   :key="segment.id"
                   type="button"
-                  class="flex h-[22px] items-center justify-center overflow-hidden rounded-[2px] px-2 text-[10.5px] whitespace-nowrap hover:brightness-125"
+                  class="flex h-[22px] items-center justify-center overflow-hidden rounded-[2px] px-2 text-caption whitespace-nowrap hover:brightness-125"
                   :class="
                     segment.current ? 'bg-accent text-on-accent' : 'bg-surface-raised text-text-dim'
                   "
@@ -192,7 +192,7 @@ function drag(event: PointerEvent) {
                 <div
                   v-for="(column, index) in view.columns"
                   :key="column.index"
-                  class="mono flex min-w-0 flex-1 flex-col items-center pt-1 text-[10px] text-text-dim"
+                  class="mono flex min-w-0 flex-1 flex-col items-center pt-1 text-caption text-text-dim"
                 >
                   <span class="h-[12px] leading-[12px]" :class="column.current && 'text-accent'">
                     S{{ column.index }}
@@ -201,7 +201,7 @@ function drag(event: PointerEvent) {
                   <!-- Chaque rangée garde sa hauteur, pleine ou vide : sans quoi
                      la tuile grandirait et rapetisserait au fil du curseur, et
                      une course remonterait à la place d'une date (§ 8). -->
-                  <span class="h-[12px] truncate text-[9.5px] leading-[12px]">
+                  <span class="h-[12px] truncate text-caption leading-[12px]">
                     <template v-if="column.startDate && index % DATE_EVERY === 0">
                       {{ formatDate(column.startDate) }}
                     </template>
@@ -211,7 +211,7 @@ function drag(event: PointerEvent) {
                     <button
                       v-if="column.race"
                       type="button"
-                      class="pill tile-action max-w-full text-[10px]"
+                      class="pill tile-action max-w-full text-caption"
                       :class="column.race.priority === 'A' && 'bg-accent/15 text-accent'"
                       @click="ui.openModal('course', column.race.id)"
                     >
@@ -222,7 +222,7 @@ function drag(event: PointerEvent) {
                       <template #trigger>
                         <span class="block size-[6px] rounded-full bg-text-dim" />
                       </template>
-                      <span class="text-[12.5px] text-text-dim">Test 20′ cette semaine</span>
+                      <span class="text-meta text-text-dim">Test 20′ cette semaine</span>
                     </UiHoverBubble>
                   </span>
                 </div>

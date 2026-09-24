@@ -54,7 +54,7 @@ function figureOf(session: PlanSession): string {
       isToday ? 'border-accent/45 bg-surface-raised' : 'border-line-soft bg-surface-inset',
     ]"
   >
-    <span class="label text-[10px]">{{ label }}</span>
+    <span class="label text-caption">{{ label }}</span>
 
     <!-- Le jour d'une course porte la course, et non le repos que le générateur
          y pose : c'est le seul jour de la semaine qui ne s'entraîne pas et qui
@@ -71,12 +71,12 @@ function figureOf(session: PlanSession): string {
       <span class="flex items-center gap-[6px]">
         <UiAppIcon name="flag" :size="13" class="text-accent" label="Course" />
         <span
-          class="display line-clamp-2 min-w-0 text-[15px] leading-[1.15] font-semibold text-accent lean:block lean:truncate lean:leading-normal"
+          class="display line-clamp-2 min-w-0 text-copy leading-[1.15] font-semibold text-accent lean:block lean:truncate lean:leading-normal"
         >
           {{ race.name }}
         </span>
       </span>
-      <span class="mono pl-[19px] text-[11px] text-text-dim">
+      <span class="mono pl-[19px] text-caption text-text-dim">
         {{ formatDistance(race.distanceM) }}
       </span>
     </div>
@@ -105,7 +105,7 @@ function figureOf(session: PlanSession): string {
              rogné : c'est lui qu'on vient lire dans une colonne de jour
              (§ 8, P7.4). Au-dessus, la troncature d'origine. -->
         <span
-          class="display line-clamp-2 min-w-0 text-[15px] leading-[1.15] font-semibold lean:block lean:truncate lean:leading-normal"
+          class="display line-clamp-2 min-w-0 text-copy leading-[1.15] font-semibold lean:block lean:truncate lean:leading-normal"
           :class="['sautee', 'annulee'].includes(session.status) && 'text-text-dim line-through'"
         >
           {{ SESSION_LABELS[session.code] ?? session.code }}
@@ -117,10 +117,10 @@ function figureOf(session: PlanSession): string {
           <template #trigger>
             <span class="block h-[6px] w-[6px] shrink-0 rounded-full bg-accent" />
           </template>
-          <span class="text-[12.5px] text-text-dim">Séance clé</span>
+          <span class="text-meta text-text-dim">Séance clé</span>
         </UiHoverBubble>
       </span>
-      <span class="mono flex items-center gap-1 pl-[19px] text-[11px] text-text-dim">
+      <span class="mono flex items-center gap-1 pl-[19px] text-caption text-text-dim">
         {{ figureOf(session) }}
         <!-- « · faite » devient une coche : le mot ne s'écrit plus (§ 8, P6.35). -->
         <UiAppIcon
@@ -137,7 +137,7 @@ function figureOf(session: PlanSession): string {
     <button
       v-if="sessions.length === 0 && !race"
       type="button"
-      class="tile-action -mx-1 flex-1 rounded-sm border border-transparent px-1 text-left text-[12px] text-text-dim"
+      class="tile-action -mx-1 flex-1 rounded-sm border border-transparent px-1 text-left text-meta text-text-dim"
       @click="ui.openDay(date)"
     >
       repos

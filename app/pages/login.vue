@@ -45,7 +45,7 @@ async function submit() {
         <span class="label">Mot de passe</span>
         <input v-model="password" type="password" class="input" autocomplete="current-password" />
       </label>
-      <span v-if="error" class="text-[13px] text-warn">{{ error }}</span>
+      <span v-if="error" class="text-body text-warn">{{ error }}</span>
       <UiActionButton
         type="submit"
         class="btn btn-lg"
@@ -55,7 +55,7 @@ async function submit() {
       >
         Entrer
       </UiActionButton>
-      <p class="text-[12px] text-text-dim">
+      <p class="text-meta text-text-dim">
         Pas de mot de passe oublié : le cockpit est fermé, une nouvelle invitation le remplace.
       </p>
     </form>

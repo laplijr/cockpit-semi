@@ -79,11 +79,11 @@ const figures = computed(() => {
 <template>
   <div class="flex flex-col gap-4">
     <div class="flex items-baseline gap-3">
-      <span class="display text-[22px] font-semibold">
+      <span class="display text-display-s font-semibold">
         <UiInfoHint v-if="term" :term="term">{{ label }}</UiInfoHint>
         <template v-else>{{ label }}</template>
       </span>
-      <span class="mono text-[11.5px] text-text-dim">RPE {{ expectedRpe }}</span>
+      <span class="mono text-meta text-text-dim">RPE {{ expectedRpe }}</span>
       <span v-if="runType?.key" class="pill ml-auto bg-accent/15 text-accent">
         <UiInfoHint term="seanceCle">séance clé</UiInfoHint>
       </span>
@@ -92,22 +92,22 @@ const figures = computed(() => {
 
     <div class="fold-4 grid gap-4">
       <div v-for="figure in figures" :key="figure.key" class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">{{ figure.label }}</span>
-        <span class="mono text-[17px]">{{ figure.value }}</span>
+        <span class="label text-caption">{{ figure.label }}</span>
+        <span class="mono text-title">{{ figure.value }}</span>
       </div>
     </div>
 
     <div v-if="rideType?.note" class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">Ce qu'elle cherche</span>
-      <p class="text-[13px] text-text-dim">{{ rideType.note }}</p>
+      <span class="label text-caption">Ce qu'elle cherche</span>
+      <p class="text-body text-text-dim">{{ rideType.note }}</p>
     </div>
 
     <div class="flex flex-col">
-      <span class="label text-[10.5px]">Structure</span>
+      <span class="label text-caption">Structure</span>
       <span
         v-for="step in steps"
         :key="step.label"
-        class="mono border-t border-line-soft py-[7px] text-[12.5px]"
+        class="mono border-t border-line-soft py-[7px] text-meta"
       >
         {{ step.repeats ? `${step.repeats} × ` : '' }}{{ step.label }}
         <template v-if="step.distanceM"> · {{ formatDistance(step.distanceM) }}</template>

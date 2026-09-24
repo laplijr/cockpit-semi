@@ -39,11 +39,11 @@ const SEGMENTS = [
       <span class="label"><UiInfoHint term="formeDuJour">Forme du jour</UiInfoHint></span>
     </span>
 
-    <span class="display text-[56px] leading-none font-bold" :class="tone">
+    <span class="display text-display-xl leading-none font-bold" :class="tone">
       {{ data?.score ?? '—' }}
     </span>
 
-    <span class="mono text-[11.5px] text-text-dim">sur 100</span>
+    <span class="mono text-meta text-text-dim">sur 100</span>
 
     <!-- L'échelle situe le chiffre : trois segments et le repère du score. -->
     <span class="relative block h-[14px]">

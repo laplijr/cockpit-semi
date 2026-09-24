@@ -60,7 +60,7 @@ function daysOf(week: { id: number; startDate: string }) {
     <div v-for="week in block" :key="week.id" class="tile">
       <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span class="label whitespace-nowrap">Semaine {{ week.index }}</span>
-        <span class="mono text-[11.5px] text-text-dim">
+        <span class="mono text-meta text-text-dim">
           <template v-if="!plan.awaitingResumption">
             {{ formatDate(week.startDate) }} – {{ formatDate(week.endDate) }} ·
           </template>
@@ -91,10 +91,10 @@ function daysOf(week: { id: number; startDate: string }) {
 
     <div v-if="plan.awaitingResumption" class="tile border-dashed">
       <span class="label">En attente de la reprise</span>
-      <p class="text-[13px] text-text-dim">Séances datées à la reprise.</p>
+      <p class="text-body text-text-dim">Séances datées à la reprise.</p>
     </div>
 
-    <p v-else-if="block.length === 0" class="text-[13px] text-text-dim">
+    <p v-else-if="block.length === 0" class="text-body text-text-dim">
       Aucun plan actif. Ajoute une course depuis Courses.
     </p>
   </div>

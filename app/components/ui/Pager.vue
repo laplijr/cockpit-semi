@@ -15,7 +15,7 @@ const to = computed(() => Math.min(page.value * props.perPage, props.total))
 
 <template>
   <div v-if="pageCount > 1" class="flex items-center gap-3 border-t border-line-soft pt-2">
-    <span class="mono text-[11.5px] text-text-dim">{{ from }}–{{ to }} sur {{ total }}</span>
+    <span class="mono text-meta text-text-dim">{{ from }}–{{ to }} sur {{ total }}</span>
 
     <div class="ml-auto flex items-center gap-2">
       <button
@@ -28,7 +28,7 @@ const to = computed(() => Math.min(page.value * props.perPage, props.total))
         <UiAppIcon name="chevron" :size="14" class="rotate-180" />
       </button>
 
-      <span class="mono text-[11.5px] text-text-dim">{{ page }} / {{ pageCount }}</span>
+      <span class="mono text-meta text-text-dim">{{ page }} / {{ pageCount }}</span>
 
       <button
         type="button"

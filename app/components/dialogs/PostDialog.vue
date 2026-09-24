@@ -92,8 +92,8 @@ async function withdraw() {
       <div class="flex items-center gap-[10px]">
         <UiAvatar :first-name="data.author?.firstName" :avatar="data.author?.avatar" :size="32" />
         <span class="flex flex-col leading-[1.25]">
-          <span class="text-[14px] font-semibold">{{ data.author?.firstName ?? 'Quelqu’un' }}</span>
-          <span class="mono text-[11.5px] text-text-dim">{{ formatDate(data.post.date) }}</span>
+          <span class="text-copy font-semibold">{{ data.author?.firstName ?? 'Quelqu’un' }}</span>
+          <span class="mono text-meta text-text-dim">{{ formatDate(data.post.date) }}</span>
         </span>
         <span class="pill ml-auto" :class="data.post.source === 'course' ? 'pill-race' : ''">
           {{
@@ -104,7 +104,7 @@ async function withdraw() {
         </span>
       </div>
 
-      <span v-if="data.post.label" class="display text-[20px] font-semibold">
+      <span v-if="data.post.label" class="display text-heading font-semibold">
         {{ data.post.label }}
       </span>
 
@@ -112,22 +112,22 @@ async function withdraw() {
            donnait une tête de fenêtre haute de trois écrans (§ 8, P13). -->
       <div class="flex flex-wrap gap-x-8 gap-y-2 lean:grid lean:grid-cols-3 lean:gap-3">
         <span v-if="data.post.distanceM" class="flex flex-col gap-[3px]">
-          <span class="label text-[10.5px]">Distance</span>
-          <span class="mono text-[20px]">{{ formatDistance(data.post.distanceM) }}</span>
+          <span class="label text-caption">Distance</span>
+          <span class="mono text-heading">{{ formatDistance(data.post.distanceM) }}</span>
         </span>
         <span class="flex flex-col gap-[3px]">
-          <span class="label text-[10.5px]">Durée</span>
-          <span class="mono text-[20px]">{{ formatMinutes(data.post.durationMin) }}</span>
+          <span class="label text-caption">Durée</span>
+          <span class="mono text-heading">{{ formatMinutes(data.post.durationMin) }}</span>
         </span>
         <span v-if="pace" class="flex flex-col gap-[3px]">
-          <span class="label text-[10.5px]">Allure</span>
-          <span class="mono text-[20px]">
-            {{ formatPace(pace) }}<span class="text-[13px] text-text-dim">/km</span>
+          <span class="label text-caption">Allure</span>
+          <span class="mono text-heading">
+            {{ formatPace(pace) }}<span class="text-body text-text-dim">/km</span>
           </span>
         </span>
       </div>
 
-      <p v-if="data.post.note" class="text-[14px]">« {{ data.post.note }} »</p>
+      <p v-if="data.post.note" class="text-copy">« {{ data.post.note }} »</p>
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
@@ -140,13 +140,13 @@ async function withdraw() {
       >
         Bravo
       </UiActionButton>
-      <span class="text-[13px] text-text-dim">{{ bravoText }}</span>
+      <span class="text-body text-text-dim">{{ bravoText }}</span>
     </div>
 
     <div class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">Commentaires</span>
+      <span class="label text-caption">Commentaires</span>
 
-      <p v-if="data.comments.length === 0" class="text-[13px] text-text-dim">
+      <p v-if="data.comments.length === 0" class="text-body text-text-dim">
         Aucun commentaire pour l'instant.
       </p>
 
@@ -158,14 +158,14 @@ async function withdraw() {
         />
         <div class="flex min-w-0 flex-1 flex-col gap-[3px]">
           <span class="flex items-baseline gap-2">
-            <span class="text-[13px] font-semibold">
+            <span class="text-body font-semibold">
               {{ authorsById.get(item.athleteId)?.firstName ?? 'Quelqu’un' }}
             </span>
-            <span class="mono text-[11.5px] text-text-dim">
+            <span class="mono text-meta text-text-dim">
               {{ formatDate(String(item.createdAt).slice(0, 10)) }}
             </span>
           </span>
-          <p class="text-[13.5px]">{{ item.text }}</p>
+          <p class="text-body">{{ item.text }}</p>
         </div>
         <!-- Une micro-action ne prend pas le cadre d'une action principale :
              au pouce elle est une icône de 44 px sans bordure, et reprend son
@@ -174,7 +174,7 @@ async function withdraw() {
              texte de trois lignes de vide (§ 8, P16). -->
         <UiActionButton
           v-if="item.removable"
-          class="btn btn-ghost ml-auto shrink-0 self-start border-transparent px-0 text-[12px] lean:h-[26px] lean:border-line lean:px-[9px]"
+          class="btn btn-ghost ml-auto shrink-0 self-start border-transparent px-0 text-meta lean:h-[26px] lean:border-line lean:px-[9px]"
           icon="trash"
           :icon-size="15"
           aria-label="Retirer le commentaire"
@@ -207,7 +207,7 @@ async function withdraw() {
         />
       </div>
 
-      <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+      <p v-if="error" class="text-body text-warn">{{ error }}</p>
     </div>
 
     <div v-if="mine" class="flex items-center gap-3">

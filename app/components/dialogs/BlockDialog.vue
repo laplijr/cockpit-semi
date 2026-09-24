@@ -56,10 +56,10 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
   <!-- Un bloc est en lecture seule : il ne se modifie pas, il se pilote par ses courses (§ 8). -->
   <div v-if="phase" class="flex flex-col gap-4">
     <div class="flex items-baseline gap-3">
-      <span class="display text-[22px] font-semibold">
+      <span class="display text-display-s font-semibold">
         {{ PHASE_LABELS[phase.type] ?? phase.type }}
       </span>
-      <span class="mono text-[11.5px] text-text-dim">
+      <span class="mono text-meta text-text-dim">
         semaines {{ phase.startWeek }} à {{ phase.endWeek }} · {{ weeks.length }} semaines
         <template v-if="dated && weeks.length > 0">
           · {{ formatDate(weeks[0]!.startDate) }} – {{ formatDate(weeks.at(-1)!.endDate) }}
@@ -67,12 +67,12 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
       </span>
     </div>
 
-    <p class="text-[13px] text-text-dim">{{ PHASE_PURPOSE[phase.type as PhaseType] }}</p>
+    <p class="text-body text-text-dim">{{ PHASE_PURPOSE[phase.type as PhaseType] }}</p>
 
     <div class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">Volume visé, semaine par semaine</span>
+      <span class="label text-caption">Volume visé, semaine par semaine</span>
       <UiAxisScroller>
-        <table class="table-axis w-full text-[13px]">
+        <table class="table-axis w-full text-body">
           <tbody>
             <tr
               v-for="week in weeks"
@@ -92,10 +92,10 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
               </td>
               <td class="mono py-[6px] w-20 text-right">{{ formatDistance(week.targetRunM) }}</td>
               <td class="py-[6px] w-28 text-right">
-                <span v-if="week.light" class="pill text-[10px]">
+                <span v-if="week.light" class="pill text-caption">
                   <UiInfoHint term="semaineAllegee">allégée</UiInfoHint>
                 </span>
-                <span v-if="week.test" class="pill text-[10px]">
+                <span v-if="week.test" class="pill text-caption">
                   <UiInfoHint term="test20">test</UiInfoHint>
                 </span>
               </td>
@@ -107,42 +107,42 @@ const maxVolume = computed(() => Math.max(1, ...weeks.value.map((week) => week.t
 
     <div class="fold-3 grid gap-4">
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]"
+        <span class="label text-caption"
           ><UiInfoHint term="seanceCle">Séances clés</UiInfoHint></span
         >
-        <span v-for="item in keySessions" :key="item.code" class="text-[13px] text-text-dim">
+        <span v-for="item in keySessions" :key="item.code" class="text-body text-text-dim">
           {{ SESSION_LABELS[item.code] ?? item.code }}
           <span class="mono text-text-dim">× {{ item.count }}</span>
         </span>
-        <span v-if="keySessions.length === 0" class="text-[13px] text-text-dim">
+        <span v-if="keySessions.length === 0" class="text-body text-text-dim">
           Aucune séance clé dans ce bloc.
         </span>
       </div>
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Vélo</span>
-        <span class="mono text-[17px]">{{ formatMinutes(cycling.total) }}</span>
-        <span class="text-[12px] text-text-dim">
+        <span class="label text-caption">Vélo</span>
+        <span class="mono text-title">{{ formatMinutes(cycling.total) }}</span>
+        <span class="text-meta text-text-dim">
           sur tout le bloc · {{ formatMinutes(cycling.peak) }} au plus fort
         </span>
       </div>
       <div class="tile bg-surface-inset">
-        <span class="label text-[10.5px]">Renforcement</span>
-        <span class="mono text-[17px]">{{ strength.total }} séances</span>
-        <span class="text-[12px] text-text-dim">
+        <span class="label text-caption">Renforcement</span>
+        <span class="mono text-title">{{ strength.total }} séances</span>
+        <span class="text-meta text-text-dim">
           sur tout le bloc · {{ strength.peak }} par semaine au plus fort
         </span>
       </div>
     </div>
 
     <div v-if="closingRace" class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">La course qui termine le bloc</span>
+      <span class="label text-caption">La course qui termine le bloc</span>
       <button
         type="button"
         class="tap tile-action -mx-2 flex items-baseline gap-3 rounded-sm px-2 py-1 text-left"
         @click="ui.openModal('course', closingRace.id)"
       >
-        <span class="display text-[17px] font-semibold">{{ closingRace.name }}</span>
-        <span class="mono text-[12px] text-text-dim">
+        <span class="display text-title font-semibold">{{ closingRace.name }}</span>
+        <span class="mono text-meta text-text-dim">
           {{ formatDateWithYear(closingRace.date) }} · {{ formatDistance(closingRace.distanceM) }} ·
           priorité {{ closingRace.priority }}
         </span>

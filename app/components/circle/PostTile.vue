@@ -46,28 +46,28 @@ const bravoText = computed(() => {
   >
     <div class="flex items-center gap-[9px]">
       <UiAvatar :first-name="author?.firstName" :avatar="author?.avatar" :size="28" />
-      <span class="text-[13.5px] font-semibold">{{ author?.firstName ?? 'Quelqu’un' }}</span>
+      <span class="text-body font-semibold">{{ author?.firstName ?? 'Quelqu’un' }}</span>
       <span class="pill ml-auto" :class="post.source === 'course' ? 'pill-race' : ''">
         <UiAppIcon :name="icon" :size="12" />
         {{ nature }}
       </span>
     </div>
 
-    <span v-if="post.label" class="display truncate text-[19px] font-semibold">
+    <span v-if="post.label" class="display truncate text-heading font-semibold">
       {{ post.label }}
     </span>
 
-    <div class="mono flex items-baseline gap-3 text-[15px]">
+    <div class="mono flex items-baseline gap-3 text-copy">
       <span v-if="post.distanceM">{{ formatDistance(post.distanceM) }}</span>
       <span>{{ formatMinutes(post.durationMin) }}</span>
-      <span v-if="pace" class="text-[13px] text-text-dim">{{ formatPace(pace) }}/km</span>
+      <span v-if="pace" class="text-body text-text-dim">{{ formatPace(pace) }}/km</span>
     </div>
 
-    <p v-if="post.note" class="line-clamp-2 text-[13px] text-text-dim">« {{ post.note }} »</p>
+    <p v-if="post.note" class="line-clamp-2 text-body text-text-dim">« {{ post.note }} »</p>
 
     <div class="mt-auto flex items-center gap-[10px]">
       <UiActionButton
-        class="btn btn-ghost px-[9px] text-[12.5px] lean:h-[26px]"
+        class="btn btn-ghost px-[9px] text-meta lean:h-[26px]"
         :class="post.mine ? 'border-accent-deep bg-accent-track text-accent' : ''"
         icon="bravo"
         :icon-size="14"
@@ -77,9 +77,9 @@ const bravoText = computed(() => {
         Bravo
       </UiActionButton>
 
-      <span v-if="bravoText" class="truncate text-[12.5px] text-text-dim">{{ bravoText }}</span>
+      <span v-if="bravoText" class="truncate text-meta text-text-dim">{{ bravoText }}</span>
 
-      <span v-if="post.comments" class="ml-auto flex items-center gap-[6px] text-[12.5px]">
+      <span v-if="post.comments" class="ml-auto flex items-center gap-[6px] text-meta">
         <UiAppIcon name="chat" :size="14" />
         {{ post.comments }}
       </span>

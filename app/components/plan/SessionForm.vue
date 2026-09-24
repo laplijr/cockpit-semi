@@ -106,7 +106,7 @@ async function save() {
   <div class="flex flex-col gap-3">
     <div class="grid fold-3 gap-3">
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Sport</span>
+        <span class="label text-caption">Sport</span>
         <select v-model="form.sport" class="input">
           <option value="course">Course à pied</option>
           <option value="velo">Vélo</option>
@@ -114,7 +114,7 @@ async function save() {
       </label>
 
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Type</span>
+        <span class="label text-caption">Type</span>
         <select v-model="form.code" class="input">
           <option v-for="code in codes" :key="code" :value="code">
             {{ SESSION_LABELS[code] ?? code }}
@@ -123,7 +123,7 @@ async function save() {
       </label>
 
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Durée (min)</span>
+        <span class="label text-caption">Durée (min)</span>
         <input
           v-model.number="form.durationMin"
           type="number"
@@ -134,32 +134,32 @@ async function save() {
     </div>
 
     <label v-if="form.sport === 'course'" class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Ou une distance (km)</span>
+      <span class="label text-caption">Ou une distance (km)</span>
       <input v-model.number="form.distanceKm" type="number" step="0.1" min="0" class="input mono" />
-      <span class="text-[12px] text-text-dim">
+      <span class="text-meta text-text-dim">
         Laissée vide, la durée est lue en distance à ton allure d'endurance.
       </span>
     </label>
 
     <!-- Ce que ça coûte : le moteur dit, Ronan décide (§ 1, P6.43). -->
     <div v-if="impact" class="tile gap-2 bg-surface-inset py-3">
-      <span class="label text-[10.5px]">Ce que ça change pour la semaine</span>
+      <span class="label text-caption">Ce que ça change pour la semaine</span>
       <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span class="mono text-[13px] text-text-dim line-through">
+        <span class="mono text-body text-text-dim line-through">
           {{ formatDistance(impact.runBeforeM) }}
         </span>
-        <span class="mono text-[13px] text-accent">{{ formatDistance(impact.runAfterM) }}</span>
-        <span class="mono text-[11.5px] text-text-dim">
+        <span class="mono text-body text-accent">{{ formatDistance(impact.runAfterM) }}</span>
+        <span class="mono text-meta text-text-dim">
           de course, pour {{ formatDistance(impact.targetRunM) }} visés
         </span>
       </div>
-      <span v-for="notice in impact.notices" :key="notice.code" class="text-[12px] text-warn">
+      <span v-for="notice in impact.notices" :key="notice.code" class="text-meta text-warn">
         {{ notice.text }}
       </span>
     </div>
 
-    <p v-else-if="preview && !preview.ok" class="text-[13px] text-warn">{{ preview.refusal }}</p>
-    <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+    <p v-else-if="preview && !preview.ok" class="text-body text-warn">{{ preview.refusal }}</p>
+    <p v-if="error" class="text-body text-warn">{{ error }}</p>
 
     <!-- Fantôme : la fenêtre garde le retour de séance comme action principale (§ 8). -->
     <UiActionButton class="btn btn-ghost self-stretch lean:self-start" :action="save">

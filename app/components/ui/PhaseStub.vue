@@ -8,6 +8,6 @@ defineProps<{ phase: string }>()
       <UiAppIcon name="warn" class="text-warn" />
       <span class="label">Livré en {{ phase }}</span>
     </div>
-    <p class="text-[13px] text-text-dim"><slot /></p>
+    <p class="text-body text-text-dim"><slot /></p>
   </div>
 </template>

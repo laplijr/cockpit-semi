@@ -230,7 +230,7 @@ onBeforeUnmount(() => {
           }"
         />
 
-        <span v-if="$slots.title" class="label text-[10px]"><slot name="title" /></span>
+        <span v-if="$slots.title" class="label text-caption"><slot name="title" /></span>
         <slot />
       </span>
     </Teleport>

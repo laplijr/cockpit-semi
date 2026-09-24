@@ -120,10 +120,8 @@ async function anotherLoop() {
   <!-- Sans clé et sans boucle déjà tracée, la tuile n'a rien à montrer (§ 9). -->
   <div v-if="routing || variant" class="tile bg-surface-inset">
     <div class="flex flex-wrap items-baseline gap-x-3">
-      <span class="label text-[10.5px]">Itinéraire</span>
-      <span class="mono text-[11.5px] text-text-dim">
-        boucle de {{ formatDistance(distanceM) }}
-      </span>
+      <span class="label text-caption">Itinéraire</span>
+      <span class="mono text-meta text-text-dim"> boucle de {{ formatDistance(distanceM) }} </span>
     </div>
 
     <template v-if="routing">
@@ -158,11 +156,11 @@ async function anotherLoop() {
         v-else
         class="flex min-h-11 items-center gap-[10px] rounded-md border border-line-soft bg-surface px-3 lean:min-h-8"
       >
-        <span class="label shrink-0 text-[10px]">Départ</span>
-        <span class="mono min-w-0 flex-1 truncate text-[12.5px]">{{ origin }}</span>
+        <span class="label shrink-0 text-caption">Départ</span>
+        <span class="mono min-w-0 flex-1 truncate text-meta">{{ origin }}</span>
         <button
           type="button"
-          class="tap -mr-1 inline-flex shrink-0 items-center gap-[6px] text-[12.5px] font-medium text-text-dim hover:text-text"
+          class="tap -mr-1 inline-flex shrink-0 items-center gap-[6px] text-meta font-medium text-text-dim hover:text-text"
           @click="changing = true"
         >
           <UiAppIcon name="pen" :size="14" />
@@ -171,9 +169,9 @@ async function anotherLoop() {
       </div>
     </template>
 
-    <p v-if="error" class="text-[12px] text-warn">{{ error }}</p>
+    <p v-if="error" class="text-meta text-warn">{{ error }}</p>
 
-    <p v-else-if="!variant" class="text-[12px] text-text-dim">
+    <p v-else-if="!variant" class="text-meta text-text-dim">
       Aucune boucle proposée. L'adresse du profil est reprise par défaut.
     </p>
 
@@ -188,12 +186,12 @@ async function anotherLoop() {
 
       <div class="flex flex-col gap-2 lean:flex-row lean:items-center lean:gap-4">
         <div class="flex min-w-0 flex-1 flex-col gap-px">
-          <span class="mono flex items-baseline gap-2 text-[13px]">
+          <span class="mono flex items-baseline gap-2 text-body">
             {{ formatDistance(variant.distanceM) }} · D+ {{ variant.elevationGainM }} m
-            <span v-if="hilly" class="pill pill-warn text-[10px]">vallonnée</span>
+            <span v-if="hilly" class="pill pill-warn text-caption">vallonnée</span>
           </span>
           <!-- Le service vise la distance sans la tenir : l'écart se dit. -->
-          <span class="mono text-[11.5px]" :class="offTarget ? 'text-warn' : 'text-text-dim'">
+          <span class="mono text-meta" :class="offTarget ? 'text-warn' : 'text-text-dim'">
             {{ gapLabel }} · {{ variant.turns }} virages
           </span>
         </div>

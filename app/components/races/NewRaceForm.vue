@@ -128,15 +128,15 @@ async function save() {
       class="flex flex-col gap-[6px] lean:grid lean:grid-cols-2 lean:grid-rows-[auto_auto_auto_auto_auto_auto] lean:gap-x-3 lean:gap-y-[6px]"
     >
       <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
-        <span class="label text-[10.5px]">Nom</span>
+        <span class="label text-caption">Nom</span>
         <input v-model="form.name" type="text" class="input" placeholder="Semi de Paris" />
       </label>
       <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
-        <span class="label text-[10.5px]">Date</span>
+        <span class="label text-caption">Date</span>
         <input v-model="form.date" type="date" class="input mono" :min="plan.today" />
       </label>
       <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
-        <span class="label text-[10.5px]">Distance</span>
+        <span class="label text-caption">Distance</span>
         <select v-model.number="form.distanceM" class="input">
           <option v-for="option in DISTANCES" :key="option.value" :value="option.value">
             {{ option.label }}
@@ -144,7 +144,7 @@ async function save() {
         </select>
       </label>
       <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
-        <span class="label text-[10.5px]">Priorité</span>
+        <span class="label text-caption">Priorité</span>
         <select v-model="form.priority" class="input">
           <option value="A">A — course principale</option>
           <option value="B">B — course secondaire</option>
@@ -152,7 +152,7 @@ async function save() {
         </select>
       </label>
       <label class="flex flex-col gap-[6px] lean:row-span-2 lean:grid lean:grid-rows-subgrid">
-        <span class="label text-[10.5px]">D+ (m)</span>
+        <span class="label text-caption">D+ (m)</span>
         <input v-model.number="form.elevationGainM" type="number" class="input mono" />
       </label>
       <span class="hidden lean:block" />
@@ -167,7 +167,7 @@ async function save() {
 
     <!-- Une date passée ne se refuse pas : elle renvoie vers l'autre porte,
          celle d'une course déjà courue (§ 9, P7.5). -->
-    <p v-if="isPast" class="text-[13px] text-text-dim">
+    <p v-if="isPast" class="text-body text-text-dim">
       Cette date est passée. Une course déjà courue s'enregistre ailleurs, avec son chrono :
       <button type="button" class="text-accent underline" @click="ui.openModal('course-passee')">
         enregistrer une course déjà courue
@@ -175,7 +175,7 @@ async function save() {
       .
     </p>
 
-    <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+    <p v-if="error" class="text-body text-warn">{{ error }}</p>
 
     <div class="flex items-center gap-3">
       <UiActionButton class="btn btn-lg" :disabled="!canSave" :action="save">

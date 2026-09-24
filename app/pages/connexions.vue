@@ -61,7 +61,7 @@ function onPick(event: Event) {
         <span class="label">Strava</span>
         <span class="pill ml-auto">non connectée</span>
       </div>
-      <p class="text-[13px] text-text-dim">
+      <p class="text-body text-text-dim">
         L'accès à l'API Strava est passé derrière l'abonnement payant. Le cockpit n'a donc aucune
         connexion automatique : le réalisé se saisit à la main, ou s'importe depuis un fichier.
       </p>
@@ -73,15 +73,15 @@ function onPick(event: Event) {
         <span class="label">Garmin</span>
         <span class="pill ml-auto">par câble</span>
       </div>
-      <p class="text-[13px] text-text-dim">
+      <p class="text-body text-text-dim">
         La Training API de Garmin publierait les séances structurées dans le calendrier de la
         montre, mais le programme développeur est réservé aux personnes morales et les approbations
         sont suspendues. Reste le câble, qui ne dépend d'aucune politique commerciale : branchée en
         USB, la montre se monte comme un disque.
       </p>
       <div class="flex flex-col gap-1 border-t border-line-soft pt-2">
-        <span class="label text-[10px]">Les deux sens du pont</span>
-        <ul class="flex flex-col gap-1 text-[13px] text-text-dim">
+        <span class="label text-caption">Les deux sens du pont</span>
+        <ul class="flex flex-col gap-1 text-body text-text-dim">
           <li>
             La séance part depuis son dialog, en un fichier à déposer dans
             <span class="mono">GARMIN/NEWFILES/</span>.
@@ -108,7 +108,7 @@ function onPick(event: Event) {
         <!-- Une zone de dépôt n'a pas de sens sans câble ni glisser-déposer :
              sous la rupture il ne reste que le bouton, et une ligne qui dit
              d'où le pont se fait (§ 8, P6.8). -->
-        <span class="hidden text-[13px] text-text-dim lean:inline">
+        <span class="hidden text-body text-text-dim lean:inline">
           Déposez ici les fichiers <span class="mono">.fit</span> de la montre, ou
         </span>
 
@@ -122,23 +122,23 @@ function onPick(event: Event) {
           {{ pending ? 'Import en cours…' : 'Choisir des fichiers' }}
         </button>
 
-        <span class="mono text-[11.5px] text-text-dim lean:hidden">
+        <span class="mono text-meta text-text-dim lean:hidden">
           Le pont montre se fait depuis un ordinateur, câble branché.
         </span>
-        <span class="mono hidden text-[11.5px] text-text-dim lean:inline">
+        <span class="mono hidden text-meta text-text-dim lean:inline">
           Un fichier déjà importé est reconnu et ignoré.
         </span>
 
         <input ref="picker" type="file" accept=".fit" multiple class="hidden" @change="onPick" />
       </div>
 
-      <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+      <p v-if="error" class="text-body text-warn">{{ error }}</p>
 
       <!-- Le compte rendu, ligne par ligne : c'est lui qui dit ce qui est entré. -->
       <template v-if="report">
         <div class="flex items-baseline gap-3 border-t border-line-soft pt-2">
-          <span class="label text-[10px]">Compte rendu</span>
-          <span class="mono text-[11.5px] text-text-dim">
+          <span class="label text-caption">Compte rendu</span>
+          <span class="mono text-meta text-text-dim">
             {{ report.linked }} rattachée{{ report.linked > 1 ? 's' : '' }} ·
             {{ report.unplanned }} hors plan · {{ report.duplicates }} déjà connue{{
               report.duplicates > 1 ? 's' : ''
@@ -150,11 +150,11 @@ function onPick(event: Event) {
         <div
           v-for="line in report.lines"
           :key="line.file"
-          class="flex items-baseline gap-3 border-t border-line-soft py-[6px] text-[13px] first:border-t-0"
+          class="flex items-baseline gap-3 border-t border-line-soft py-[6px] text-body first:border-t-0"
         >
           <span class="mono min-w-0 flex-1 truncate text-text-dim">{{ line.file }}</span>
 
-          <span v-if="line.date" class="mono text-[11.5px] text-text-dim">
+          <span v-if="line.date" class="mono text-meta text-text-dim">
             {{ formatDate(line.date) }}
             <template v-if="line.distanceM"> · {{ formatDistance(line.distanceM) }}</template>
           </span>
@@ -173,16 +173,16 @@ function onPick(event: Event) {
           </span>
         </div>
 
-        <p class="text-[13px] text-text-dim">
+        <p class="text-body text-text-dim">
           L'import remplit le réalisé, pas le ressenti : le RPE est déduit de la fréquence
           cardiaque, les sensations et le sommeil restent à saisir dans le retour de séance.
         </p>
       </template>
 
       <div class="flex flex-col gap-1 border-t border-line-soft pt-2">
-        <span class="label text-[10px]">Dernier import</span>
+        <span class="label text-caption">Dernier import</span>
         <UiSkeleton v-if="!data" :height="20" width="120px" />
-        <span v-else class="mono text-[15px]">
+        <span v-else class="mono text-copy">
           {{ data.lastImportedDate ? formatDate(data.lastImportedDate) : 'aucun' }}
         </span>
       </div>

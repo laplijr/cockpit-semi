@@ -64,7 +64,7 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
       class="flex flex-col gap-[6px] lean:grid lean:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lean:grid-rows-[auto_auto_auto] lean:gap-x-3 lean:gap-y-[6px]"
     >
       <label class="flex flex-col gap-[6px] lean:row-span-3 lean:grid lean:grid-rows-subgrid">
-        <span class="label text-[10.5px]"><UiInfoHint term="objectif">Objectif</UiInfoHint></span>
+        <span class="label text-caption"><UiInfoHint term="objectif">Objectif</UiInfoHint></span>
         <select v-model="mode" class="input">
           <option value="temps">Chrono cible</option>
           <!-- Un mode indisponible dit pourquoi là où il se choisit, pas en note de bas de page. -->
@@ -81,7 +81,7 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
           :key="level.key"
           class="flex flex-col gap-[6px] lean:row-span-3 lean:grid lean:grid-rows-subgrid"
         >
-          <span class="label text-[10.5px]">
+          <span class="label text-caption">
             {{ level.label }}
             <span
               v-if="replaced && replaced[level.key] !== null"
@@ -96,7 +96,7 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
             class="input mono"
             :placeholder="level.key === 'realisticS' ? '1:38:00' : ''"
           />
-          <span class="text-[11.5px] text-text-dim">{{ level.hint }}</span>
+          <span class="text-meta text-text-dim">{{ level.hint }}</span>
         </label>
 
         <!-- Action secondaire, jamais un bouton plein à côté d'« Enregistrer » (§ 8). -->
@@ -119,16 +119,16 @@ const misordered = computed(() => mode.value === 'temps' && !levelsAreOrdered(le
         v-else
         class="flex flex-col gap-[6px] lean:col-span-4 lean:row-span-3 lean:grid lean:grid-rows-subgrid"
       >
-        <span class="label text-[10.5px]">Référence à battre</span>
-        <span class="mono self-center text-[15px]">{{ formatDuration(recordS) }}</span>
-        <span class="text-[11.5px] text-text-dim">
+        <span class="label text-caption">Référence à battre</span>
+        <span class="mono self-center text-copy">{{ formatDuration(recordS) }}</span>
+        <span class="text-meta text-text-dim">
           Ton meilleur résultat représentatif sur la distance. La confiance devient la probabilité
           de faire mieux.
         </span>
       </div>
     </div>
 
-    <p v-if="misordered" class="text-[12px] text-warn">
+    <p v-if="misordered" class="text-meta text-warn">
       Ambition, réaliste et plancher vont du plus rapide au plus lent.
     </p>
   </div>

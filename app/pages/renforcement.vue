@@ -45,7 +45,7 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
         <span class="label">
           <UiInfoHint term="phaseMuscu">Le renforcement suit les phases du plan course</UiInfoHint>
         </span>
-        <span class="mono text-[11.5px] text-text-dim">
+        <span class="mono text-meta text-text-dim">
           {{ PHASE_LABELS[data?.phaseType ?? ''] ?? data?.phaseType }} ·
           {{ data?.strengthPhaseLabel }} · semaine {{ data?.weekInPhase }}
         </span>
@@ -67,7 +67,7 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
         @click="ui.openStrengthSession(item.code)"
       >
         <span class="flex items-baseline gap-2">
-          <span class="display truncate text-[17px] font-semibold">{{ item.label }}</span>
+          <span class="display truncate text-title font-semibold">{{ item.label }}</span>
           <UiHoverBubble
             v-if="planned.has(item.code)"
             label="Prévue cette semaine"
@@ -77,10 +77,10 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
             <template #trigger>
               <span class="block h-[6px] w-[6px] shrink-0 rounded-full bg-accent" />
             </template>
-            <span class="text-[12.5px] text-text-dim">Prévue cette semaine</span>
+            <span class="text-meta text-text-dim">Prévue cette semaine</span>
           </UiHoverBubble>
         </span>
-        <span class="mono text-[12px] text-text-dim">
+        <span class="mono text-meta text-text-dim">
           {{ formatMinutes(item.prescription.durationMin) }} · RPE
           {{ item.prescription.expectedRpe }} · {{ item.prescription.steps.length }} ex.
         </span>
@@ -103,9 +103,9 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
         >
           <span class="flex items-baseline gap-2">
             <UiNoteHint :title="exercise.label" :text="exercise.why">
-              <span class="text-[13px]">{{ exercise.label }}</span>
+              <span class="text-body">{{ exercise.label }}</span>
             </UiNoteHint>
-            <span class="mono text-[12px] text-text-dim">
+            <span class="mono text-meta text-text-dim">
               {{ exercise.sets }} × {{ exercise.reps }}{{ exercise.isometric ? '″' : '' }}
             </span>
           </span>
@@ -116,11 +116,11 @@ const loads = usePagedList(() => loadRows.value, PER_PAGE)
     <div class="tile">
       <span class="label"><UiInfoHint term="chargeMuscu">Ce qui a été tenu</UiInfoHint></span>
 
-      <div v-if="loads.total === 0" class="text-[13px] text-text-dim">Aucune série saisie.</div>
+      <div v-if="loads.total === 0" class="text-body text-text-dim">Aucune série saisie.</div>
 
       <template v-else>
         <UiAxisScroller>
-          <table class="table-axis w-full text-[13px]">
+          <table class="table-axis w-full text-body">
             <tbody>
               <tr
                 v-for="row in loads.items"

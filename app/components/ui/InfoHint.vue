@@ -17,6 +17,6 @@ const entry = computed(() => GLOSSARY[props.term])
     </template>
 
     <template #title>{{ entry.title }}</template>
-    <span class="text-[12.5px] leading-[1.45] text-text-dim">{{ entry.text }}</span>
+    <span class="text-meta leading-[1.45] text-text-dim">{{ entry.text }}</span>
   </UiHoverBubble>
 </template>

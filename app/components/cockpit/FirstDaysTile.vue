@@ -16,10 +16,10 @@ defineProps<{ pending: PendingInstrument[] }>()
     <span class="label">Les premiers jours</span>
 
     <ul class="flex flex-col gap-[6px]">
-      <li v-for="item in pending" :key="item.label" class="flex items-baseline gap-2 text-[13px]">
+      <li v-for="item in pending" :key="item.label" class="flex items-baseline gap-2 text-body">
         <span class="mt-[6px] size-[5px] shrink-0 rounded-full bg-line-strong" />
         <span>{{ item.label }}</span>
-        <span class="mono ml-auto text-[11.5px] text-text-dim">{{ item.when }}</span>
+        <span class="mono ml-auto text-meta text-text-dim">{{ item.when }}</span>
       </li>
     </ul>
   </div>

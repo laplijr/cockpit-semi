@@ -96,13 +96,13 @@ async function apply() {
     <!-- Le compteur est le chiffre de la tuile : il dit d'un coup combien de
          décisions attendent (§ 8, P6.35). -->
     <span
-      class="display text-[38px] leading-none font-bold"
+      class="display text-display-l leading-none font-bold"
       :class="proposals.pendingCount === 0 && 'text-text-dim'"
     >
       {{ proposals.pendingCount }}
     </span>
 
-    <p v-if="proposals.pendingCount === 0" class="text-[13px] text-text-dim">Rien à décider.</p>
+    <p v-if="proposals.pendingCount === 0" class="text-body text-text-dim">Rien à décider.</p>
 
     <!-- Une ligne = une cible en trois mots et son delta. Le titre complet et
          l'identifiant de règle passent au survol. -->
@@ -134,24 +134,21 @@ async function apply() {
           <!-- Le titre complet et l'identifiant de règle passent au survol. -->
           <UiHoverBubble :label="titleOf(group)" size="lg" trigger-class="min-w-0">
             <template #trigger>
-              <span class="explicable truncate text-[13.5px]">{{ targetOf(group) }}</span>
+              <span class="explicable truncate text-body">{{ targetOf(group) }}</span>
             </template>
             <template #title>{{ titleOf(group) }}</template>
-            <span class="mono text-[11.5px] text-text-dim">{{ group.ruleId }}</span>
+            <span class="mono text-meta text-text-dim">{{ group.ruleId }}</span>
           </UiHoverBubble>
         </span>
 
         <!-- Le delta est un texte du moteur, parfois long : il tronque de son
              côté plutôt que d'écraser la cible (§ 8, P6.35). -->
-        <span
-          v-if="group.before && group.after"
-          class="mono truncate text-[12.5px] wide:text-right"
-        >
+        <span v-if="group.before && group.after" class="mono truncate text-meta wide:text-right">
           <span class="text-text-dim line-through">{{ group.before }}</span>
           <span class="mx-1 text-text-dim">→</span>
           <span>{{ group.after }}</span>
         </span>
-        <span v-else class="mono truncate text-[12.5px] text-text-dim wide:text-right">
+        <span v-else class="mono truncate text-meta text-text-dim wide:text-right">
           {{ group.ids.length }} ajustements
         </span>
       </button>
@@ -160,7 +157,7 @@ async function apply() {
     <NuxtLink
       v-if="hidden > 0"
       to="/propositions"
-      class="tap mono inline-flex items-center text-[12px] text-text-dim hover:text-text"
+      class="tap mono inline-flex items-center text-meta text-text-dim hover:text-text"
     >
       {{ hidden === 1 ? '+ 1 autre' : `+ ${hidden} autres` }}
     </NuxtLink>

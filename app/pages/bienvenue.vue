@@ -178,20 +178,20 @@ async function onRaceCreated() {
             :class="item <= step ? 'bg-accent' : 'bg-line'"
           />
         </div>
-        <h1 class="display text-[24px] font-semibold">{{ STEP_TITLES[step] }}</h1>
+        <h1 class="display text-display-s font-semibold">{{ STEP_TITLES[step] }}</h1>
       </header>
 
       <template v-if="step === OnboardingStep.Welcome">
         <div class="tile">
-          <p class="text-[14px]">
+          <p class="text-copy">
             Ce cockpit construit ton plan de course à pied, semaine par semaine, et le recale sur ce
             que tu fais vraiment. Il ne t'impose rien : il propose, tu décides.
           </p>
-          <p class="text-[14px]">
+          <p class="text-copy">
             Il est fait pour la course à pied. Le vélo et le renforcement y tiennent le rôle de
             séances de soutien, posées autour des courses et jamais à leur place.
           </p>
-          <p class="text-[14px]">
+          <p class="text-copy">
             Six questions suffisent pour démarrer. Trois demandent une réponse, les autres se
             passent et se complètent plus tard dans Profil.
           </p>
@@ -225,16 +225,16 @@ async function onRaceCreated() {
             <span
               v-for="race in races ?? []"
               :key="race.id"
-              class="flex items-baseline gap-3 text-[14px]"
+              class="flex items-baseline gap-3 text-copy"
             >
               <span>{{ race.name }}</span>
-              <span class="mono text-[12px] text-text-dim">{{ formatDate(race.date) }}</span>
-              <span class="mono ml-auto text-[12px] text-text-dim">
+              <span class="mono text-meta text-text-dim">{{ formatDate(race.date) }}</span>
+              <span class="mono ml-auto text-meta text-text-dim">
                 {{ formatDistance(race.distanceM) }}
               </span>
             </span>
           </template>
-          <p v-else class="text-[13px] text-text-dim">
+          <p v-else class="text-body text-text-dim">
             Sans course, le plan tourne en cycle d'entretien.
           </p>
           <button
@@ -272,7 +272,7 @@ async function onRaceCreated() {
         </div>
       </template>
 
-      <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+      <p v-if="error" class="text-body text-warn">{{ error }}</p>
 
       <div class="flex items-center gap-3">
         <button
@@ -290,7 +290,7 @@ async function onRaceCreated() {
 
       <p
         v-if="step === OnboardingStep.Schedule && form.availableDays.length < MIN_AVAILABLE_DAYS"
-        class="text-[13px] text-text-dim"
+        class="text-body text-text-dim"
       >
         Choisis au moins {{ MIN_AVAILABLE_DAYS }} jours.
       </p>

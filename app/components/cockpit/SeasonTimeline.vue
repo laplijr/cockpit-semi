@@ -89,7 +89,7 @@ const LEVEL_H = 15
   <div v-else-if="layout.segments.length > 0" class="tile">
     <div class="flex items-baseline gap-3">
       <span class="label">Cap</span>
-      <span class="mono text-[11.5px] text-text-dim">{{ caption }}</span>
+      <span class="mono text-meta text-text-dim">{{ caption }}</span>
     </div>
 
     <!-- Les courses sont des repères sur la barre de phases : la liste de
@@ -104,7 +104,7 @@ const LEVEL_H = 15
           <div
             v-for="(segment, index) in layout.segments"
             :key="segment.id"
-            class="flex items-center justify-center border-r border-ink text-[10px] whitespace-nowrap"
+            class="flex items-center justify-center border-r border-ink text-caption whitespace-nowrap"
             :class="
               segment.current
                 ? 'bg-accent text-on-accent'
@@ -134,11 +134,11 @@ const LEVEL_H = 15
           >
             <UiHoverBubble :label="`${mark.race.name}, le ${formatDate(mark.race.date)}`" size="sm">
               <template #trigger>
-                <span class="mono text-[10px] whitespace-nowrap text-text-dim">
+                <span class="mono text-caption whitespace-nowrap text-text-dim">
                   {{ mark.race.name }} · J−{{ mark.daysUntil }}
                 </span>
               </template>
-              <span class="text-[12.5px] text-text-dim">
+              <span class="text-meta text-text-dim">
                 {{ mark.race.name }} · {{ formatDate(mark.race.date) }}
               </span>
             </UiHoverBubble>
@@ -158,11 +158,7 @@ const LEVEL_H = 15
       class="flex flex-wrap gap-x-5 gap-y-1"
       :class="!crowded && 'lean:hidden'"
     >
-      <span
-        v-for="mark in layout.races"
-        :key="mark.race.id"
-        class="mono text-[11.5px] text-text-dim"
-      >
+      <span v-for="mark in layout.races" :key="mark.race.id" class="mono text-meta text-text-dim">
         {{ mark.race.name }} · {{ formatDate(mark.race.date) }} · J−{{ mark.daysUntil }}
       </span>
     </div>

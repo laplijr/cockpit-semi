@@ -81,7 +81,7 @@ const runHref = computed(() => {
       <!-- `truncate` rogne l'overflow : sans interligne, les jambages du nom
            sont coupés en haut et en bas (§ 8, P6.35). -->
       <span
-        class="display min-w-0 flex-1 truncate text-[26px] leading-[1.15] font-semibold lean:text-[38px]"
+        class="display min-w-0 flex-1 truncate text-display-m leading-[1.15] font-semibold lean:text-display-l"
       >
         {{ label }}
       </span>
@@ -96,9 +96,9 @@ const runHref = computed(() => {
           :key="figure.key"
           class="flex flex-col items-start lean:items-end"
         >
-          <span class="mono text-[17px]">{{ figure.value }}</span>
-          <span class="label text-[9.5px]">{{ figure.label }}</span>
-          <span v-if="figure.planned" class="mono text-[10.5px] text-text-dim">
+          <span class="mono text-title">{{ figure.value }}</span>
+          <span class="label text-caption">{{ figure.label }}</span>
+          <span v-if="figure.planned" class="mono text-caption text-text-dim">
             prévu {{ figure.planned }}
           </span>
         </span>

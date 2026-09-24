@@ -59,7 +59,7 @@ async function search() {
 <template>
   <div class="flex flex-col gap-3">
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Rechercher la course</span>
+      <span class="label text-caption">Rechercher la course</span>
       <input
         v-model="query"
         type="text"
@@ -75,8 +75,8 @@ async function search() {
       </UiActionButton>
     </div>
 
-    <p class="text-[12px] text-text-dim">Seul le nom tapé quitte le serveur.</p>
-    <p v-if="pending" class="text-[12px] text-text-dim">
+    <p class="text-meta text-text-dim">Seul le nom tapé quitte le serveur.</p>
+    <p v-if="pending" class="text-meta text-text-dim">
       La recherche lit plusieurs sources : compte jusqu'à deux minutes.
     </p>
 
@@ -87,12 +87,12 @@ async function search() {
         class="flex flex-col gap-px border-t border-line-soft pt-2 first:border-t-0 first:pt-0"
       >
         <span class="flex items-baseline gap-2">
-          <span class="label text-[10px]">{{ label }}</span>
-          <span v-if="fields[key]" class="pill ml-auto text-[10px]">
+          <span class="label text-caption">{{ label }}</span>
+          <span v-if="fields[key]" class="pill ml-auto text-caption">
             {{ STATUS_LABELS[fields[key]!.status] ?? fields[key]!.status }}
           </span>
         </span>
-        <span class="mono text-[13px]">{{ fields[key]?.value ?? '—' }}</span>
+        <span class="mono text-body">{{ fields[key]?.value ?? '—' }}</span>
         <span v-if="fields[key]?.sources.length" class="flex flex-wrap gap-2">
           <a
             v-for="source in fields[key]!.sources"
@@ -100,7 +100,7 @@ async function search() {
             :href="source"
             target="_blank"
             rel="noreferrer"
-            class="text-[11.5px] text-text-dim underline hover:text-text"
+            class="text-meta text-text-dim underline hover:text-text"
           >
             {{ hostOf(source) }}
           </a>
@@ -108,6 +108,6 @@ async function search() {
       </div>
     </div>
 
-    <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+    <p v-if="error" class="text-body text-warn">{{ error }}</p>
   </div>
 </template>

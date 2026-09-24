@@ -43,7 +43,7 @@ async function hide() {
 <template>
   <div v-if="athlete.inCircle && published" class="tile bg-surface-inset">
     <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-      <span class="flex items-center gap-2 text-[13px]">
+      <span class="flex items-center gap-2 text-body">
         <UiAppIcon name="people" :size="15" class="text-text-dim" />
         Vue par le cercle
         <span class="text-text-dim">· {{ audience }}</span>
@@ -55,11 +55,11 @@ async function hide() {
       Une fonctionnalité qui montre moins qu'on ne le craint doit le dire
       elle-même (P7.2) : ce qui traverse le mur, et ce qui ne le traverse pas.
     -->
-    <p class="text-[12px] text-text-dim">
+    <p class="text-meta text-text-dim">
       Les autres voient la nature de la séance, sa distance et sa durée. Ni le ressenti, ni la
       douleur, ni l'itinéraire.
     </p>
 
-    <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+    <p v-if="error" class="text-body text-warn">{{ error }}</p>
   </div>
 </template>

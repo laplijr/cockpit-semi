@@ -7,15 +7,15 @@ const weightKg = defineModel<number | null>('weightKg', { required: true })
 <template>
   <div class="fold-3 grid gap-4">
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Prénom</span>
+      <span class="label text-caption">Prénom</span>
       <input v-model="firstName" type="text" class="input" placeholder="Ronan" />
     </label>
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Date de naissance</span>
+      <span class="label text-caption">Date de naissance</span>
       <input v-model="birthDate" type="date" class="input mono" />
     </label>
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Poids (kg)</span>
+      <span class="label text-caption">Poids (kg)</span>
       <input v-model.number="weightKg" type="number" step="0.1" class="input mono" />
     </label>
   </div>

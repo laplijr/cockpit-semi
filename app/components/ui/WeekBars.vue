@@ -119,25 +119,25 @@ function formatSignedDistance(meters: number): string {
           {{ formatDate(week.endDate) }}
         </template>
 
-        <span class="flex flex-wrap items-baseline gap-2 text-[12.5px] text-text-dim">
+        <span class="flex flex-wrap items-baseline gap-2 text-meta text-text-dim">
           {{ PHASE_LABELS[week.phaseType] ?? week.phaseType }}
-          <span v-if="week.light" class="pill text-[10px]">allégée</span>
-          <span v-if="week.test" class="pill text-[10px]">test</span>
-          <span v-if="week.comebackRatio !== null" class="pill text-[10px]">
+          <span v-if="week.light" class="pill text-caption">allégée</span>
+          <span v-if="week.test" class="pill text-caption">test</span>
+          <span v-if="week.comebackRatio !== null" class="pill text-caption">
             reprise {{ Math.round(week.comebackRatio * 100) }} %
           </span>
         </span>
 
         <!-- La pastille reprend la couleur exacte de la barre : c'est la bulle
              qui porte la légende, elle n'est plus un supplément (§ 9, P6.39). -->
-        <span class="mono flex items-start gap-2 text-[12.5px]">
+        <span class="mono flex items-start gap-2 text-meta">
           <span class="mt-[4px] size-[9px] shrink-0 rounded-[2px] border border-accent/70" />
           <span>{{ formatDistance(week.targetRunM) }} visés</span>
         </span>
 
         <span
           v-if="week.summary && week.summary.actualRunM !== null"
-          class="mono flex items-start gap-2 text-[12.5px]"
+          class="mono flex items-start gap-2 text-meta"
         >
           <span class="mt-[4px] size-[9px] shrink-0 rounded-[2px] bg-accent/70" />
           <span>
@@ -149,7 +149,7 @@ function formatSignedDistance(meters: number): string {
 
         <span
           v-if="week.summary && week.summary.loadUa > 0"
-          class="mono flex items-start gap-2 text-[12px] text-text-dim"
+          class="mono flex items-start gap-2 text-meta text-text-dim"
         >
           <span class="mt-[4px] size-[9px] shrink-0 rounded-[2px] bg-ok/45" />
           <span>
@@ -158,14 +158,14 @@ function formatSignedDistance(meters: number): string {
           </span>
         </span>
 
-        <span v-if="week.summary" class="mono text-[12px] text-text-dim">
+        <span v-if="week.summary" class="mono text-meta text-text-dim">
           {{ week.summary.sessionsDone }} séance{{
             week.summary.sessionsDone > 1 ? 's' : ''
           }}
           faite{{ week.summary.sessionsDone > 1 ? 's' : '' }} sur
           {{ week.summary.sessionsPlanned }}
         </span>
-        <span v-else class="text-[12px] text-text-dim">Semaine à venir, rien d'enregistré.</span>
+        <span v-else class="text-meta text-text-dim">Semaine à venir, rien d'enregistré.</span>
       </UiHoverBubble>
     </div>
 

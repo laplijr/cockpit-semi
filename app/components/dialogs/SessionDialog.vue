@@ -233,20 +233,20 @@ const plannedMinutes = computed(() => {
   <!-- Un jour sans séance : il n'a ni structure ni ressenti, seulement ses repas. -->
   <div v-if="!session && day" class="flex flex-col gap-4">
     <div class="flex items-baseline gap-3">
-      <span class="display text-[22px] font-semibold">Repos</span>
-      <span class="mono text-[11.5px] text-text-dim">{{ formatLongDate(day) }}</span>
+      <span class="display text-display-s font-semibold">Repos</span>
+      <span class="mono text-meta text-text-dim">{{ formatLongDate(day) }}</span>
       <span v-if="manualDay" class="pill ml-auto">posé à la main</span>
     </div>
 
     <!-- Une sortie qui n'était pas prévue se lance d'ici, et d'ici seulement :
          l'écran principal ne gagne pas une action de plus (§ 8, P10.3). -->
     <div v-if="day === plan.today" class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">Sortir quand même</span>
+      <span class="label text-caption">Sortir quand même</span>
       <NuxtLink to="/en-course" class="btn btn-ghost self-stretch lean:self-start">
         <UiAppIcon name="run" :size="15" />
         Courir sans séance prévue
       </NuxtLink>
-      <span class="text-[12px] text-text-dim">
+      <span class="text-meta text-text-dim">
         La sortie se rattache à une séance du jour si elle lui ressemble, sinon elle compte hors
         plan.
       </span>
@@ -254,7 +254,7 @@ const plannedMinutes = computed(() => {
 
     <!-- Une journée vide n'avait aucun moyen de recevoir une séance (§ 9, P6.43). -->
     <div v-if="day >= plan.today" class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">Ajouter une séance</span>
+      <span class="label text-caption">Ajouter une séance</span>
 
       <PlanSessionForm v-if="adding" :date="day" @saved="emit('saved')" />
       <button
@@ -274,7 +274,7 @@ const plannedMinutes = computed(() => {
       >
         Rendre la journée au moteur
       </UiActionButton>
-      <p v-if="editError" class="text-[13px] text-warn">{{ editError }}</p>
+      <p v-if="editError" class="text-body text-warn">{{ editError }}</p>
     </div>
 
     <NutritionDayMealPlan :date="day" />
@@ -287,10 +287,10 @@ const plannedMinutes = computed(() => {
         :size="18"
         :class="sportStyle(session.sport).tone"
       />
-      <span class="display text-[22px] font-semibold">
+      <span class="display text-display-s font-semibold">
         {{ SESSION_LABELS[session.code] ?? session.code }}
       </span>
-      <span class="mono text-[11.5px] text-text-dim">
+      <span class="mono text-meta text-text-dim">
         {{ formatLongDate(session.date) }} · {{ role }}
         <template v-if="week"> · semaine {{ week.index }}</template>
       </span>
@@ -319,9 +319,9 @@ const plannedMinutes = computed(() => {
          seule fonction les rend, la fenêtre n'en recalcule aucun (§ 8, P11.1). -->
     <div class="flex flex-wrap gap-x-8 gap-y-2">
       <span v-for="figure in figures" :key="figure.key" class="flex flex-col items-start">
-        <span class="mono text-[17px]">{{ figure.value }}</span>
-        <span class="label text-[9.5px]">{{ figure.label }}</span>
-        <span v-if="figure.planned" class="mono text-[10.5px] text-text-dim">
+        <span class="mono text-title">{{ figure.value }}</span>
+        <span class="label text-caption">{{ figure.label }}</span>
+        <span v-if="figure.planned" class="mono text-caption text-text-dim">
           prévu {{ figure.planned }}
         </span>
       </span>
@@ -332,27 +332,27 @@ const plannedMinutes = computed(() => {
     <div class="grid grid-cols-1 gap-4 lean:grid-cols-[1.3fr_1fr] lean:gap-6">
       <div class="flex flex-col gap-4">
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Structure</span>
+          <span class="label text-caption">Structure</span>
           <div
             v-for="step in session.prescription.steps"
             :key="step.label"
             class="flex flex-col gap-px border-t border-line-soft pt-2 first:border-t-0 first:pt-0"
           >
             <span class="flex items-baseline gap-2">
-              <span class="text-[13px]">
+              <span class="text-body">
                 <template v-if="step.repeats && !step.exerciseId">{{ step.repeats }} × </template>
                 {{ step.label }}
               </span>
-              <span v-if="step.repeats && step.reps" class="mono text-[12px] text-text-dim">
+              <span v-if="step.repeats && step.reps" class="mono text-meta text-text-dim">
                 {{ step.repeats }} × {{ step.reps }}{{ step.isometric ? '″' : ''
                 }}{{ step.unilateral ? '/côté' : '' }}
               </span>
-              <span v-if="step.superset" class="pill text-[10px]">superset</span>
-              <span v-if="step.intensity" class="pill ml-auto text-[10.5px]">
+              <span v-if="step.superset" class="pill text-caption">superset</span>
+              <span v-if="step.intensity" class="pill ml-auto text-caption">
                 {{ step.intensity }}
               </span>
             </span>
-            <span class="mono text-[12px] text-text-dim">
+            <span class="mono text-meta text-text-dim">
               <template v-if="step.distanceM">{{ formatDistance(step.distanceM) }}</template>
               <template v-if="step.durationS && !step.reps">
                 · {{ formatSeconds(step.durationS) }}
@@ -386,18 +386,18 @@ const plannedMinutes = computed(() => {
               </template>
             </span>
             <!-- Un remplacement se dit sous l'exercice qu'on fait, pas ailleurs. -->
-            <span v-if="step.replacesLabel" class="text-[12px] text-text-dim">
+            <span v-if="step.replacesLabel" class="text-meta text-text-dim">
               Remplace {{ step.replacesLabel }} : le matériel qu'il demande n'est pas déclaré.
             </span>
-            <span v-if="step.note" class="text-[12px] text-text-dim">{{ step.note }}</span>
+            <span v-if="step.note" class="text-meta text-text-dim">{{ step.note }}</span>
           </div>
         </div>
 
         <!-- Ce qu'une séance sans charge n'obtient pas, dit une fois et ici
              seulement : la fenêtre de la séance, nulle part ailleurs (P11.3). -->
         <div v-if="session.sport === 'muscu' && bodyweight" class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Ce que cette séance ne fait pas</span>
-          <p class="text-[13px] text-text-dim">
+          <span class="label text-caption">Ce que cette séance ne fait pas</span>
+          <p class="text-body text-text-dim">
             Sans charge externe, pas de force maximale : c'est elle qui fait gagner en économie de
             course. Ce qui reste acquis, et c'est le principal, c'est la réduction du risque de
             blessure.
@@ -407,7 +407,7 @@ const plannedMinutes = computed(() => {
         <!-- Une journée peut recevoir une séance de plus, vide ou non (P6.43).
              Sur une séance faite, c'est de la saisie : elle passe par la porte. -->
         <div v-if="session.date >= plan.today && !reading" class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Ajouter une séance ce jour-là</span>
+          <span class="label text-caption">Ajouter une séance ce jour-là</span>
 
           <PlanSessionForm v-if="adding" :date="session.date" @saved="emit('saved')" />
           <button
@@ -427,7 +427,7 @@ const plannedMinutes = computed(() => {
           coûte, il ne l'interdit pas (§ 1, P6.43).
         -->
         <div v-if="editable" class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Changer cette séance</span>
+          <span class="label text-caption">Changer cette séance</span>
 
           <PlanSessionForm
             v-if="editing"
@@ -453,7 +453,7 @@ const plannedMinutes = computed(() => {
           >
             Rendre la journée au moteur
           </UiActionButton>
-          <p v-if="editError" class="text-[13px] text-warn">{{ editError }}</p>
+          <p v-if="editError" class="text-body text-warn">{{ editError }}</p>
         </div>
 
         <!--
@@ -463,21 +463,21 @@ const plannedMinutes = computed(() => {
           principale de la fenêtre (§ 8, P6.42).
         -->
         <div v-if="canSwap" class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Si tu ne peux pas la faire</span>
+          <span class="label text-caption">Si tu ne peux pas la faire</span>
 
           <template v-if="replacement">
             <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span class="mono text-[13px] text-text-dim line-through">
+              <span class="mono text-body text-text-dim line-through">
                 {{ session.prescription.label }} · {{ formatMinutes(plannedMinutes) }}
               </span>
-              <span class="mono text-[13px] text-accent">
+              <span class="mono text-body text-accent">
                 Endurance fondamentale ·
                 {{ formatDistance(replacement.prescription.totalDistanceM) }} ·
                 {{ formatMinutes(prescribedMinutes(replacement.prescription)) }}
               </span>
             </div>
 
-            <span class="text-[12px] text-text-dim">{{ givebackText }}</span>
+            <span class="text-meta text-text-dim">{{ givebackText }}</span>
 
             <UiActionButton
               class="btn btn-ghost self-stretch lean:self-start"
@@ -489,9 +489,9 @@ const plannedMinutes = computed(() => {
             </UiActionButton>
           </template>
 
-          <span v-else-if="swap" class="text-[12px] text-text-dim">{{ swap.refusal }}</span>
+          <span v-else-if="swap" class="text-meta text-text-dim">{{ swap.refusal }}</span>
 
-          <p v-if="swapError" class="text-[13px] text-warn">{{ swapError }}</p>
+          <p v-if="swapError" class="text-body text-warn">{{ swapError }}</p>
         </div>
 
         <!--
@@ -500,7 +500,7 @@ const plannedMinutes = computed(() => {
           (§ 8, P6.7).
         -->
         <div v-if="session.sport === 'course' && !done" class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Sur la montre</span>
+          <span class="label text-caption">Sur la montre</span>
 
           <a
             :href="`/api/sessions/${session.id}/workout.fit`"
@@ -511,7 +511,7 @@ const plannedMinutes = computed(() => {
             Télécharger pour la montre
           </a>
 
-          <span class="mono text-[11.5px] text-text-dim">
+          <span class="mono text-meta text-text-dim">
             Montre branchée en USB, fichier déposé dans
             <span class="text-text">GARMIN/NEWFILES/</span>
           </span>
@@ -524,13 +524,13 @@ const plannedMinutes = computed(() => {
              replie au lieu de défiler, et ses deux titres se disent une fois
              en tête (§ 8, P12). -->
         <div class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Prescrit contre réalisé</span>
-          <table class="w-full text-[13px]">
+          <span class="label text-caption">Prescrit contre réalisé</span>
+          <table class="w-full text-body">
             <thead>
               <tr>
-                <th class="label pb-1 text-left text-[10px] font-semibold"></th>
-                <th class="label pb-1 text-right text-[10px] font-semibold">Prévu</th>
-                <th class="label pb-1 text-right text-[10px] font-semibold">Réalisé</th>
+                <th class="label pb-1 text-left text-caption font-semibold"></th>
+                <th class="label pb-1 text-right text-caption font-semibold">Prévu</th>
+                <th class="label pb-1 text-right text-caption font-semibold">Réalisé</th>
               </tr>
             </thead>
             <tbody>
@@ -571,7 +571,7 @@ const plannedMinutes = computed(() => {
         <!-- Ce qui a été couru, quand la sortie est partie du cockpit (P10.1).
              Sans trace, le bloc n'existe pas : il ne propose rien à la place. -->
         <div v-if="done && track?.track" class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Trace</span>
+          <span class="label text-caption">Trace</span>
           <!-- Leaflet ne se rend que dans un navigateur (§ 8, P5.5). -->
           <ClientOnly>
             <UiRouteMap :points="track.track.points" :height="220" />
@@ -591,14 +591,14 @@ const plannedMinutes = computed(() => {
         <NutritionDayMealPlan v-if="day" :date="day" />
 
         <div v-if="history.length > 0" class="tile bg-surface-inset">
-          <span class="label text-[10.5px]">Les fois d'avant</span>
+          <span class="label text-caption">Les fois d'avant</span>
           <div
             v-for="item in history"
             :key="item.id"
             class="flex items-baseline gap-3 border-t border-line-soft pt-2 first:border-t-0 first:pt-0"
           >
-            <span class="mono text-[12px] text-text-dim">{{ formatDate(item.date) }}</span>
-            <span class="mono text-[12.5px]">
+            <span class="mono text-meta text-text-dim">{{ formatDate(item.date) }}</span>
+            <span class="mono text-meta">
               <template v-if="item.prescription.totalDistanceM > 0">
                 {{ formatDistance(item.actualDistanceM ?? item.prescription.totalDistanceM) }}
               </template>
@@ -618,7 +618,7 @@ const plannedMinutes = computed(() => {
         v-if="!reading"
         class="border-t border-line-soft pt-4 lean:border-t-0 lean:border-l lean:pt-0 lean:pl-6"
       >
-        <span class="label text-[10.5px]">{{
+        <span class="label text-caption">{{
           done ? 'Corriger le réalisé' : 'Retour de séance'
         }}</span>
         <FeedbackForm

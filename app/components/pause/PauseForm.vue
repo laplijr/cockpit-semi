@@ -72,7 +72,7 @@ async function declare() {
   <div class="flex flex-col gap-4">
     <div class="grid grid-cols-2 gap-3">
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Type</span>
+        <span class="label text-caption">Type</span>
         <select v-model="form.type" class="input">
           <option v-for="item in TYPES" :key="item.value" :value="item.value">
             {{ item.label }}
@@ -80,13 +80,13 @@ async function declare() {
         </select>
       </label>
       <label class="flex flex-col gap-[6px]">
-        <span class="label text-[10.5px]">Zone</span>
+        <span class="label text-caption">Zone</span>
         <input v-model="form.zone" type="text" class="input" placeholder="genou droit" />
       </label>
     </div>
 
     <div class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Douleur — {{ form.painLevel }} / 10</span>
+      <span class="label text-caption">Douleur — {{ form.painLevel }} / 10</span>
       <input
         v-model.number="form.painLevel"
         type="range"
@@ -97,17 +97,17 @@ async function declare() {
     </div>
 
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Reprise estimée</span>
+      <span class="label text-caption">Reprise estimée</span>
       <input v-model="form.estimatedEndDate" type="date" class="input mono" />
-      <span class="text-[12px] text-text-dim"> Vide : le plan repart en semaines non datées. </span>
+      <span class="text-meta text-text-dim"> Vide : le plan repart en semaines non datées. </span>
     </label>
 
     <div class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Autorisé pendant la pause</span>
+      <span class="label text-caption">Autorisé pendant la pause</span>
       <label
         v-for="(label, key) in ALLOWANCE_LABELS"
         :key="key"
-        class="flex items-center gap-2 text-[13px]"
+        class="flex items-center gap-2 text-body"
       >
         <input v-model="form.allowances[key]" type="checkbox" class="accent-accent" />
         <span>{{ label }}</span>
@@ -115,7 +115,7 @@ async function declare() {
     </div>
 
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Condition</span>
+      <span class="label text-caption">Condition</span>
       <input
         v-model="form.condition"
         type="text"
@@ -125,11 +125,11 @@ async function declare() {
     </label>
 
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Note</span>
+      <span class="label text-caption">Note</span>
       <input v-model="form.notes" type="text" class="input" placeholder="Ongle de pied cassé" />
     </label>
 
-    <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+    <p v-if="error" class="text-body text-warn">{{ error }}</p>
 
     <UiActionButton class="btn btn-lg" :action="declare">
       {{ pending ? 'Régénération du plan…' : 'Déclarer la pause et régénérer le plan' }}

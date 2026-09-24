@@ -37,12 +37,12 @@ const { unread } = useCircleUnread()
         />
         <span
           v-if="item.to === '/propositions' && proposals.pendingCount > 0"
-          class="badge absolute -top-1 -right-[10px] h-4 min-w-4 text-[10px]"
+          class="badge absolute -top-1 -right-[10px] h-4 min-w-4 text-caption"
         >
           {{ proposals.pendingCount }}
         </span>
       </span>
-      <span class="text-[10.5px]" :class="route.path === item.to && 'font-semibold'">
+      <span class="text-caption" :class="route.path === item.to && 'font-semibold'">
         {{ item.label }}
       </span>
     </NuxtLink>
@@ -62,7 +62,7 @@ const { unread } = useCircleUnread()
           class="absolute -top-1 -right-[7px] size-[7px] rounded-full bg-accent"
         />
       </span>
-      <span class="text-[10.5px]">Plus</span>
+      <span class="text-caption">Plus</span>
     </button>
   </nav>
 </template>

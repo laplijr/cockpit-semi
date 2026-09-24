@@ -39,7 +39,7 @@ const sheet = useSheetDrag(() => emit('close'))
       <div class="flex items-start gap-3 px-[18px] lean:p-0">
         <div class="flex min-w-0 flex-col gap-1">
           <h2 class="heading">{{ title }}</h2>
-          <span v-if="subtitle" class="mono text-[11.5px] text-text-dim">{{ subtitle }}</span>
+          <span v-if="subtitle" class="mono text-meta text-text-dim">{{ subtitle }}</span>
         </div>
         <button
           type="button"

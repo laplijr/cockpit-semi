@@ -45,12 +45,12 @@ async function decide(id: number, status: string) {
       <div class="flex items-baseline gap-3">
         <span class="label"><UiInfoHint term="habitude">À décider</UiInfoHint></span>
         <!-- Un paramètre de lecture, pas une définition : combien attendent (§ 8, P6.35). -->
-        <span class="mono text-[11.5px] text-text-dim">
+        <span class="mono text-meta text-text-dim">
           {{ pending.length }} détectée{{ pending.length > 1 ? 's' : '' }}
         </span>
       </div>
 
-      <p v-if="pending.length === 0" class="text-[13px] text-text-dim">Aucune habitude détectée.</p>
+      <p v-if="pending.length === 0" class="text-body text-text-dim">Aucune habitude détectée.</p>
 
       <!--
         Accepter et refuser sont les deux faces d'une même décision : deux
@@ -64,8 +64,8 @@ async function decide(id: number, status: string) {
         class="flex flex-col gap-2 border-t border-line-soft py-3 first:border-t-0 lean:flex-row lean:items-center lean:gap-4"
       >
         <div class="flex min-w-0 flex-1 flex-col gap-px">
-          <span class="text-[13.5px]">{{ item.statement }}</span>
-          <span class="mono text-[11.5px] text-text-dim">
+          <span class="text-body">{{ item.statement }}</span>
+          <span class="mono text-meta text-text-dim">
             {{ HABIT_LABELS[item.type] ?? item.type }} · {{ item.matched }} cas sur
             {{ item.total }} · confiance {{ Math.round(item.confidence * 100) }} %
           </span>
@@ -96,7 +96,7 @@ async function decide(id: number, status: string) {
       <div class="tile">
         <span class="label"><UiInfoHint term="regleApprise">Règles personnelles</UiInfoHint></span>
 
-        <p v-if="applied.length === 0" class="text-[13px] text-text-dim">Aucune règle apprise.</p>
+        <p v-if="applied.length === 0" class="text-body text-text-dim">Aucune règle apprise.</p>
 
         <div
           v-for="item in appliedPage.items"
@@ -104,8 +104,8 @@ async function decide(id: number, status: string) {
           class="flex items-center gap-3 border-t border-line-soft py-2 first:border-t-0"
         >
           <div class="flex min-w-0 flex-1 flex-col gap-px">
-            <span class="text-[13px]">{{ item.statement }}</span>
-            <span class="mono text-[11.5px] text-text-dim">
+            <span class="text-body">{{ item.statement }}</span>
+            <span class="mono text-meta text-text-dim">
               {{ item.matched }} / {{ item.total }} · confiance
               {{ Math.round(item.confidence * 100) }} %
             </span>
@@ -125,50 +125,50 @@ async function decide(id: number, status: string) {
       <div class="tile">
         <div class="flex items-baseline gap-3">
           <span class="label"><UiInfoHint term="calibration">Calibration</UiInfoHint></span>
-          <span v-if="latest" class="mono text-[11.5px] text-text-dim">
+          <span v-if="latest" class="mono text-meta text-text-dim">
             semaine du {{ formatDate(latest.date) }}
           </span>
         </div>
 
-        <p v-if="!latest" class="text-[13px] text-text-dim">Aucune mesure de calibration.</p>
+        <p v-if="!latest" class="text-body text-text-dim">Aucune mesure de calibration.</p>
 
         <template v-else>
           <div class="fold-3 grid gap-3">
             <div class="flex flex-col">
-              <span class="label text-[10px]">Écart de RPE</span>
-              <span class="mono text-[17px]" :class="latest.rpeError > 0.5 && 'text-warn'">
+              <span class="label text-caption">Écart de RPE</span>
+              <span class="mono text-title" :class="latest.rpeError > 0.5 && 'text-warn'">
                 {{ latest.rpeError > 0 ? '+' : '' }}{{ formatDecimal(latest.rpeError) }}
               </span>
-              <span class="mono text-[10.5px] text-text-dim">
+              <span class="mono text-caption text-text-dim">
                 {{ latest.samples.rpe }} séances
               </span>
             </div>
             <div class="flex flex-col">
-              <span class="label text-[10px]">Acceptation</span>
-              <span class="mono text-[17px]">
+              <span class="label text-caption">Acceptation</span>
+              <span class="mono text-title">
                 {{
                   latest.acceptanceRate === null
                     ? '—'
                     : `${Math.round(latest.acceptanceRate * 100)} %`
                 }}
               </span>
-              <span class="mono text-[10.5px] text-text-dim">
+              <span class="mono text-caption text-text-dim">
                 {{ latest.samples.decisions }} décisions
               </span>
             </div>
             <div class="flex flex-col">
-              <span class="label text-[10px]">Projection</span>
-              <span class="mono text-[17px]">
+              <span class="label text-caption">Projection</span>
+              <span class="mono text-title">
                 {{ formatDecimal(latest.projectionGap) }}
               </span>
-              <span class="mono text-[10.5px] text-text-dim">
+              <span class="mono text-caption text-text-dim">
                 {{ latest.samples.tests }} test{{ latest.samples.tests > 1 ? 's' : '' }}
               </span>
             </div>
           </div>
 
           <UiAxisScroller v-if="previous.length > 0">
-            <table class="table-axis w-full text-[12.5px]">
+            <table class="table-axis w-full text-meta">
               <tbody>
                 <tr v-for="week in previous" :key="week.date" class="border-t border-line-soft">
                   <td class="mono py-[5px] text-text-dim">{{ formatDate(week.date) }}</td>
@@ -197,7 +197,7 @@ async function decide(id: number, status: string) {
         :key="item.id"
         class="flex items-center gap-3 border-t border-line-soft py-2 first:border-t-0"
       >
-        <span class="min-w-0 flex-1 text-[13px] text-text-dim">{{ item.statement }}</span>
+        <span class="min-w-0 flex-1 text-body text-text-dim">{{ item.statement }}</span>
         <UiActionButton
           class="btn btn-ghost ml-auto shrink-0"
           :pending="busy === item.id"

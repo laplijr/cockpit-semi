@@ -70,7 +70,7 @@ const postsOfDay = (date: string) => circle.posts.filter((post) => post.date ===
             v-for="from in axis"
             :key="from"
             type="button"
-            class="pill-tap mono shrink-0 rounded-[4px] px-[10px] text-[12px] whitespace-nowrap lean:h-[26px]"
+            class="pill-tap mono shrink-0 rounded-[4px] px-[10px] text-meta whitespace-nowrap lean:h-[26px]"
             :class="
               from === view?.week.from
                 ? 'bg-accent font-semibold text-on-accent'
@@ -97,7 +97,7 @@ const postsOfDay = (date: string) => circle.posts.filter((post) => post.date ===
             :class="index > 0 ? '-ml-[7px]' : ''"
           />
         </div>
-        <span class="text-[12.5px] text-text-dim">
+        <span class="text-meta text-text-dim">
           {{ circle.members.length }} membre{{ circle.members.length > 1 ? 's' : '' }}
         </span>
       </div>
@@ -109,7 +109,7 @@ const postsOfDay = (date: string) => circle.posts.filter((post) => post.date ===
           <span class="label">
             {{ day === view?.today ? 'Aujourd’hui' : formatDate(day) }}
           </span>
-          <span v-if="day === view?.today" class="mono text-[11px] text-text-dim">
+          <span v-if="day === view?.today" class="mono text-caption text-text-dim">
             {{ formatDate(day) }}
           </span>
         </div>
@@ -127,10 +127,10 @@ const postsOfDay = (date: string) => circle.posts.filter((post) => post.date ===
 
     <!-- Un vide se dit, il ne se comble pas : aucun encouragement (§ 1 principe 9). -->
     <div v-if="circle.posts.length === 0" class="tile">
-      <span class="mono text-[12px] text-text-dim">
+      <span class="mono text-meta text-text-dim">
         {{ view ? rangeLabel(view.week.from) : '' }}
       </span>
-      <span class="text-[14px] text-text-dim">Personne n’a publié cette semaine.</span>
+      <span class="text-copy text-text-dim">Personne n’a publié cette semaine.</span>
     </div>
   </div>
 

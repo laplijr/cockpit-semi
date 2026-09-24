@@ -26,7 +26,7 @@ const { unread } = useCircleUnread()
 
     <nav v-for="group in groups" :key="group.title" class="flex flex-col gap-[2px]">
       <span
-        class="hidden px-[10px] pb-[6px] text-[10px] font-semibold tracking-[0.12em] text-text-dim uppercase wide:block"
+        class="hidden px-[10px] pb-[6px] text-caption font-semibold tracking-[0.12em] text-text-dim uppercase wide:block"
       >
         {{ group.title }}
       </span>
@@ -35,7 +35,7 @@ const { unread } = useCircleUnread()
         :key="item.to"
         :to="item.to"
         :aria-label="item.label"
-        class="group relative flex h-[34px] items-center justify-center gap-[10px] rounded-md text-[13.5px] text-text-dim hover:bg-surface-raised wide:justify-start wide:px-[10px]"
+        class="group relative flex h-[34px] items-center justify-center gap-[10px] rounded-md text-body text-text-dim hover:bg-surface-raised wide:justify-start wide:px-[10px]"
         :class="route.path === item.to && 'bg-surface-raised text-text'"
       >
         <UiAppIcon
@@ -53,7 +53,7 @@ const { unread } = useCircleUnread()
 
         <!-- Sans intitulé à l'écran, la bulle le rend au survol et au focus. -->
         <span
-          class="bubble pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 px-2 py-1 text-[12px] whitespace-nowrap text-text opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 wide:hidden"
+          class="bubble pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 px-2 py-1 text-meta whitespace-nowrap text-text opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 wide:hidden"
         >
           {{ item.label }}
         </span>
@@ -66,7 +66,7 @@ const { unread } = useCircleUnread()
         <span class="hidden wide:inline">Strava</span>
         <span class="ml-auto hidden size-2 rounded-full bg-line-strong wide:inline-block" />
       </div>
-      <span class="mono hidden text-[11px] text-text-dim wide:inline">non connectée</span>
+      <span class="mono hidden text-caption text-text-dim wide:inline">non connectée</span>
     </div>
   </aside>
 </template>

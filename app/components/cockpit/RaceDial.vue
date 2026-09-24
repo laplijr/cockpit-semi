@@ -52,11 +52,13 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
       >
     </span>
 
-    <span class="display text-[56px] leading-none font-bold text-accent">J−{{ countdown }}</span>
+    <span class="display text-display-xl leading-none font-bold text-accent"
+      >J−{{ countdown }}</span
+    >
 
     <!-- Une seule métadonnée : l'objectif et sa projection. La confiance est
          l'échelle, la date se lit dans le décompte (§ 8, P6.35). -->
-    <span class="mono text-[11.5px] text-text-dim">
+    <span class="mono text-meta text-text-dim">
       <template v-if="race.objectiveToSet">objectif à fixer</template>
       <template v-else-if="race.objectiveMode === 'record'">
         record {{ formatDuration(race.recordS) }} →
@@ -90,11 +92,11 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
       <span class="label"><UiInfoHint term="courseA">Course A</UiInfoHint></span>
     </div>
 
-    <span class="display text-[56px] leading-none font-bold text-text-dim">—</span>
+    <span class="display text-display-xl leading-none font-bold text-text-dim">—</span>
 
     <div class="flex items-baseline gap-4">
-      <span class="mono text-[11.5px] text-text-dim">aucune course à venir</span>
-      <NuxtLink to="/courses" class="mono ml-auto text-[11.5px] text-accent">en ajouter</NuxtLink>
+      <span class="mono text-meta text-text-dim">aucune course à venir</span>
+      <NuxtLink to="/courses" class="mono ml-auto text-meta text-accent">en ajouter</NuxtLink>
     </div>
 
     <div class="relative h-[10px]">

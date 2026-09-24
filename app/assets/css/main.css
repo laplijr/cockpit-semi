@@ -18,6 +18,10 @@
 
   --color-text: #f3efe8;
   --color-text-dim: #b3aca1;
+  /*
+   * Sous 4,5:1 sur `surface` (3,7:1 et 2,9:1) : filets et décorations
+   * seulement, jamais un mot (P20). Le texte secondaire est `text-dim`.
+   */
   --color-text-muted: #7d766c;
   --color-text-faint: #6d665c;
   --color-icon: #8f877b;
@@ -41,6 +45,24 @@
    */
   --z-index-map: 1001;
 
+  /*
+   * L'échelle typographique (P20) : six pas de texte et cinq pas d'affichage
+   * pour les chiffres, et aucune taille écrite en dur dans un composant. Le
+   * plus petit pas est le plancher : 11 px au-dessus de `lean`, 12 px en
+   * dessous, redéfini plus bas.
+   */
+  --text-caption: 11px;
+  --text-meta: 12px;
+  --text-body: 13px;
+  --text-copy: 14px;
+  --text-title: 17px;
+  --text-heading: 20px;
+  --text-display-s: 22px;
+  --text-display-m: 28px;
+  --text-display-l: 38px;
+  --text-display-xl: 56px;
+  --text-display-xxl: 80px;
+
   --spacing-sidebar: 232px;
   --spacing-topbar: 56px;
   --spacing-shell: 1440px;
@@ -62,6 +84,13 @@
 @layer base {
   html {
     color-scheme: dark;
+  }
+
+  /* Au pouce, rien ne se lit sous 12 px (P20). */
+  @media (width < theme(--breakpoint-lean)) {
+    :root {
+      --text-caption: 12px;
+    }
   }
 
   body {
@@ -146,7 +175,7 @@
   }
 
   .label {
-    font-size: 11px;
+    font-size: var(--text-caption);
     color: var(--color-text-dim);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -242,7 +271,7 @@
   }
 
   .input::placeholder {
-    color: var(--color-text-muted);
+    color: var(--color-text-dim);
   }
 
   .pill {
@@ -251,7 +280,7 @@
     height: 22px;
     padding: 0 8px;
     border-radius: 4px;
-    font-size: 11.5px;
+    font-size: var(--text-meta);
     font-weight: 500;
     white-space: nowrap;
     background: var(--color-surface-muted);
@@ -465,7 +494,7 @@
     border-radius: 9px;
     background: var(--color-accent);
     color: var(--color-on-accent);
-    font-size: 11px;
+    font-size: var(--text-caption);
     font-weight: 600;
     display: inline-flex;
     align-items: center;

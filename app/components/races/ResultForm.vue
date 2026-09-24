@@ -118,36 +118,36 @@ async function save() {
 <template>
   <div class="flex flex-col gap-4">
     <div class="tile bg-surface-inset">
-      <span class="label text-[10.5px]">Ce qui était visé</span>
+      <span class="label text-caption">Ce qui était visé</span>
       <div class="grid fold-3 gap-4">
         <div class="flex flex-col">
-          <span class="label text-[10px]">Distance</span>
-          <span class="mono text-[17px]">{{ formatDistance(distanceM) }}</span>
+          <span class="label text-caption">Distance</span>
+          <span class="mono text-title">{{ formatDistance(distanceM) }}</span>
         </div>
         <div class="flex flex-col">
-          <span class="label text-[10px]">Objectif</span>
-          <span class="mono text-[17px]">{{ formatDuration(objectifS) }}</span>
+          <span class="label text-caption">Objectif</span>
+          <span class="mono text-title">{{ formatDuration(objectifS) }}</span>
         </div>
         <div class="flex flex-col">
-          <span class="label text-[10px]">Projection</span>
-          <span class="mono text-[17px]">{{ formatDuration(projectionS) }}</span>
+          <span class="label text-caption">Projection</span>
+          <span class="mono text-title">{{ formatDuration(projectionS) }}</span>
         </div>
       </div>
     </div>
 
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Chrono réalisé</span>
+      <span class="label text-caption">Chrono réalisé</span>
       <input v-model="form.chrono" type="text" class="input mono" placeholder="1:52:30" />
-      <span v-if="resultatS > 0" class="mono text-[12px] text-text-dim">
+      <span v-if="resultatS > 0" class="mono text-meta text-text-dim">
         {{ formatDuration(resultatS) }}
       </span>
     </label>
 
-    <label class="flex items-center gap-2 text-[13px]">
+    <label class="flex items-center gap-2 text-body">
       <input v-model="form.representative" type="checkbox" class="accent-accent" />
       <span>Ce chrono reflète ma forme</span>
     </label>
-    <span class="text-[12px] text-text-dim">
+    <span class="text-meta text-text-dim">
       Décoche si la course a été faussée par un incident : le chrono est conservé, mais il ne
       calibre pas le VDOT.
     </span>
@@ -155,15 +155,15 @@ async function save() {
     <template v-if="!form.representative">
       <div class="grid fold-3 gap-3">
         <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Incident au km</span>
+          <span class="label text-caption">Incident au km</span>
           <input v-model.number="form.incidentKm" type="number" min="0" class="input mono" />
         </label>
         <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Nature</span>
+          <span class="label text-caption">Nature</span>
           <input v-model="form.incidentType" type="text" class="input" placeholder="blessure" />
         </label>
         <label class="flex flex-col gap-[6px]">
-          <span class="label text-[10.5px]">Détail</span>
+          <span class="label text-caption">Détail</span>
           <input
             v-model="form.incidentNote"
             type="text"
@@ -175,10 +175,10 @@ async function save() {
 
       <div class="flex flex-col gap-[6px]">
         <div class="flex items-center gap-3">
-          <span class="label text-[10.5px]">Segments</span>
+          <span class="label text-caption">Segments</span>
           <button
             type="button"
-            class="btn btn-ghost ml-auto px-[10px] text-[12px] lean:h-7"
+            class="btn btn-ghost ml-auto px-[10px] text-meta lean:h-7"
             @click="addSegment"
           >
             <UiAppIcon name="plus" :size="14" />
@@ -187,15 +187,15 @@ async function save() {
         </div>
         <div v-for="(segment, index) in form.segments" :key="index" class="grid fold-4 gap-3">
           <label class="flex flex-col gap-[6px]">
-            <span class="label text-[10px]">Du km</span>
+            <span class="label text-caption">Du km</span>
             <input v-model.number="segment.kmDebut" type="number" min="0" class="input mono" />
           </label>
           <label class="flex flex-col gap-[6px]">
-            <span class="label text-[10px]">Au km</span>
+            <span class="label text-caption">Au km</span>
             <input v-model.number="segment.kmFin" type="number" min="0" class="input mono" />
           </label>
           <label class="flex flex-col gap-[6px]">
-            <span class="label text-[10px]">Mode</span>
+            <span class="label text-caption">Mode</span>
             <select v-model="segment.mode" class="input">
               <option v-for="mode in SEGMENT_MODES" :key="mode.value" :value="mode.value">
                 {{ mode.label }}
@@ -203,11 +203,11 @@ async function save() {
             </select>
           </label>
           <label class="flex flex-col gap-[6px]">
-            <span class="label text-[10px]">Allure (min:s / km)</span>
+            <span class="label text-caption">Allure (min:s / km)</span>
             <input v-model="segment.allure" type="text" class="input mono" placeholder="5:30" />
           </label>
         </div>
-        <span v-if="teachesNothing" class="text-[12px] text-warn">
+        <span v-if="teachesNothing" class="text-meta text-warn">
           Sans portion courue d'au moins {{ MIN_FLOOR_SEGMENT_KM }} km, ce chrono n'apprend rien au
           moteur : la course sera enregistrée sans toucher au VDOT.
         </span>
@@ -215,7 +215,7 @@ async function save() {
     </template>
 
     <label class="flex flex-col gap-[6px]">
-      <span class="label text-[10.5px]">Note</span>
+      <span class="label text-caption">Note</span>
       <input
         v-model="form.notes"
         type="text"
@@ -224,7 +224,7 @@ async function save() {
       />
     </label>
 
-    <p v-if="error" class="text-[13px] text-warn">{{ error }}</p>
+    <p v-if="error" class="text-body text-warn">{{ error }}</p>
 
     <UiActionButton class="btn btn-lg" :disabled="resultatS <= 0" :action="save">
       Enregistrer le résultat

@@ -265,7 +265,7 @@ onBeforeUnmount(() => {
     :style="{ height: `${height}px` }"
   />
 
-  <p v-else class="text-[12.5px] text-text-dim">
+  <p v-else class="text-meta text-text-dim">
     Une trace demande au moins deux points pour se dessiner.
   </p>
 </template>
@@ -282,8 +282,8 @@ onBeforeUnmount(() => {
 
 .route-map .leaflet-control-attribution {
   background: rgba(22, 21, 20, 0.75);
-  color: var(--color-text-muted);
-  font-size: 10px;
+  color: var(--color-text-dim);
+  font-size: var(--text-caption);
 }
 
 .route-map .leaflet-control-attribution a {
