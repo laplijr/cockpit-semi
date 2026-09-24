@@ -1596,26 +1596,30 @@ P26 — Des kilos dès la première séance
 
 Suite de P25 : la réserve dit quoi viser, pas avec quel poids commencer. Hevy, Strong et Alpha Progression ne proposent rien avant une première saisie ; Fitbod part de profils semblables, RP fait monter par paliers. Le cockpit reprend les paliers, sans test de maximum. **Un défaut du moteur se referme au passage** : `nextLoadKg` ajoute 5 kg (2,5 kg pour le haut du corps) sans lire l'intensité. Au passage adaptation (3 × 9 à 70 %) → force (4 × 5 à 85 %), la charge ne monte donc que d'un pas, au lieu d'environ 20 %.
 
-- [ ] `server/domain/strength/estimated-max.ts` :
+- [x] `server/domain/strength/estimated-max.ts` :
   - `estimatedMaxKg(loadKg, reps, reserve)` = charge × (1 + (répétitions + réserve) / 30). C'est Epley, avec la réserve ajoutée aux répétitions faites.
   - `workingLoadKg(maxKg, intensity, equipment)` = maximum × pourcentage, arrondi **au pas inférieur** du matériel (2,5 kg à la barre, 2 kg par haltère), jamais sous la barre à vide (20 kg).
   - `plateBreakdown(loadKg)` : les disques par côté (25, 20, 15, 10, 5, 2,5, 1,25) sur une barre de 20 kg.
   - Tests : 60 kg × 5 avec 3 en réserve → 76 kg ; à 70 % → 52,5 kg, soit 15 + 1,25 par côté ; à 85 % → 62,5 kg.
-- [ ] Schéma : une table `strength_estimate` (athlète, exercice, `max_kg`, source `calage` ou `seance`, date). C'est un historique, jamais écrasé ; la valeur courante est la plus récente. Migration générée.
-- [ ] Réestimation à chaque séance saisie : `application/record-strength-sets` écrit une estimation tirée de la meilleure série de l'exercice, avec une réserve de 10 − RPE de la série. Jusqu'à P27, c'est le RPE unique de la séance. La plus récente fait foi, pas la plus haute : après une pause, le maximum redescend avec ce qui a été tenu.
-- [ ] Charge proposée : pour un exercice dosé en pourcentage qui a une estimation, `GET /api/sessions/[id]/strength` rend `workingLoadKg` au lieu de `nextLoadKg`. `nextLoadKg` reste pour les exercices « modérée », et le format pour le poids de corps. Test : au changement de phase, la charge suit le pourcentage.
-- [ ] **Le calage.** Un exercice chargé, dosé en pourcentage et sans estimation est « à caler » : une pill dans la structure, à la place des kilos. La fiche d'exercice et la fenêtre de séance portent « Caler », qui ouvre une feuille de paliers :
+  - **Fait.** Le matériel d'un exercice chargé est une table du même fichier (`LOAD_IMPLEMENTS` : quatre à la barre, sept aux haltères) plutôt qu'un champ de plus sur les 44 exercices ; un haltère se compte par haltère, au pas de 2 kg.
+- [x] Schéma : une table `strength_estimate` (athlète, exercice, `max_kg`, source `calage` ou `seance`, date). C'est un historique, jamais écrasé ; la valeur courante est la plus récente. Migration générée. **Fait** : migration `0035`.
+- [x] Réestimation à chaque séance saisie : `application/record-strength-sets` écrit une estimation tirée de la meilleure série de l'exercice, avec une réserve de 10 − RPE de la série. Jusqu'à P27, c'est le RPE unique de la séance. La plus récente fait foi, pas la plus haute : après une pause, le maximum redescend avec ce qui a été tenu. **Fait**, avec une précision : une séance ressaisie **corrige** son estimation (même exercice, même jour, source `seance`) au lieu d'en ajouter une ; l'historique compte une estimation par séance. Les séances saisies avant P26 n'ont rien écrit : leur estimation se tire, à la lecture, de la dernière séance de l'exercice, pour ne pas tout faire recaler à qui a déjà un historique.
+- [x] Charge proposée : pour un exercice dosé en pourcentage qui a une estimation, `GET /api/sessions/[id]/strength` rend `workingLoadKg` au lieu de `nextLoadKg`. `nextLoadKg` reste pour les exercices « modérée », et le format pour le poids de corps. Test : au changement de phase, la charge suit le pourcentage. **Fait** (`proposedLoadKg`), et **un défaut antérieur corrigé en chemin** : « la fois d'avant » était la dernière séance de muscu tous types confondus, si bien qu'après un Push le Legs ne connaissait aucune charge. C'est désormais la dernière séance **du même exercice**.
+- [x] **Le calage.** Un exercice chargé, dosé en pourcentage et sans estimation est « à caler » : une pill dans la structure, à la place des kilos. La fiche d'exercice et la fenêtre de séance portent « Caler », qui ouvre une feuille de paliers :
   - des paliers de 5 répétitions : barre à vide, puis + 10 kg tant que ça reste rapide, puis + 5 kg ; kilos et répétitions par palier ;
   - une dernière question : au dernier palier, combien en réserve ? (0, 1, 2, 3, 4+). À 4+, la feuille demande un palier de plus, parce qu'Epley se dégrade loin de l'échec ;
   - à la fin : le maximum estimé, la charge du jour, les disques, et les charges des phases suivantes du cycle ;
   - le calage remplace l'échauffement, pas la séance. `POST /api/strength/calibrations`.
-- [ ] Affichage : des kilos partout où la structure disait un pourcentage (`SessionDialog`, et `StrengthSets` pré-rempli), avec la réserve de P25 en second. Les disques s'affichent sous la charge des exercices à la barre. La fiche d'exercice gagne « Maximum estimé » à côté de « Ce qui a été tenu », avec sa source et sa date.
-- [ ] Vérifié dans le navigateur :
+  - **Fait** : fenêtre `calage` (`CalibrationDialog`), ouverte depuis la tuile « À caler » de la fenêtre de séance ou depuis la fiche d'exercice ; elle rend la main à la séance d'où elle part. Aux haltères, les paliers partent de 4 kg et montent de 4 puis de 2. Les phases qui viennent se lisent dans le plan actif (`upcomingStrengthPhases`, `domain/strength/phases.ts`) ; un exercice qui ne suit pas la dose de phase garde son repère à lui. Le serveur refuse une réserve de 4 ou plus : la feuille a déjà demandé un palier de plus.
+- [x] Affichage : des kilos partout où la structure disait un pourcentage (`SessionDialog`, et `StrengthSets` pré-rempli), avec la réserve de P25 en second. Les disques s'affichent sous la charge des exercices à la barre. La fiche d'exercice gagne « Maximum estimé » à côté de « Ce qui a été tenu », avec sa source et sa date.
+- [x] Vérifié dans le navigateur :
   - sur un compte sans historique, séance Legs : le squat est « à caler » ;
   - un calage 20, 30, 40, 50, 60 kg × 5 avec 3 en réserve donne 76 kg, 52,5 kg et 15 + 1,25 par côté ;
   - la séance suivante saisie réécrit l'estimation ;
   - sur un scénario à changement de phase, la charge suit.
-- [ ] Fini : lint, typecheck, tests et build verts. Un commit par livrable, « P26 — <résumé> ».
+
+  Vu sur le build servi par node, avec un compte d'essai créé par invitation et passé par l'onboarding (cycle d'entretien, salle, programme complet) — `db:seed` aurait vidé la base partagée. À 375 px : squat et soulevé de terre roumain « à caler » ; calage 20, 30, 40, 50, 60 kg × 5, trois en réserve → 76 kg, 52,5 kg aujourd'hui, 15 + 1,25 kg par côté, puis 62,5 kg en force et en force-puissance ; au retour, « 52,5 kg · 2 en réserve ». La séance du 1er déc. saisie à 3 × 9 × 52,5 kg (RPE 8) réécrit l'estimation à 71,8 kg ; le Legs du 8 déc. (adaptation) propose alors 50 kg, celui du 15 déc. (force) 60 kg, là où la progression d'un pas aurait dit 57,5 kg. À 1440 px, « 60 kg · 1 en réserve », « 20 kg par côté », le retour pré-rempli à 60 kg et « Maximum estimé 71,8 kg, séance du 1er déc. » sur la fiche.
+- [x] Fini : lint, typecheck, tests et build verts. Un commit par livrable, « P26 — <résumé> ».
 
 P27 — La séance de muscu se fait en salle, au téléphone
 

@@ -8,6 +8,7 @@ interface ExerciseState {
   targetReps: number
   lastLoadKg: number | null
   suggestedLoadKg: number | null
+  reserve: number | null
 }
 
 const { data } = useFetch<{ exercises: ExerciseState[] }>(
@@ -80,10 +81,16 @@ defineExpose({ save })
         <span class="mono text-meta text-text-dim">
           {{ exercise.sets }} × {{ exercise.targetReps }}
         </span>
-        <span v-if="exercise.lastLoadKg !== null" class="mono ml-auto text-meta">
-          <span class="text-text-dim line-through">{{ formatLoad(exercise.lastLoadKg) }}</span>
-          <span class="mx-1 text-text-dim">→</span>
+        <!-- Des kilos, et la réserve en second (P26). -->
+        <span v-if="exercise.suggestedLoadKg !== null" class="mono ml-auto text-meta">
+          <template v-if="exercise.lastLoadKg !== null">
+            <span class="text-text-dim line-through">{{ formatLoad(exercise.lastLoadKg) }}</span>
+            <span class="mx-1 text-text-dim">→</span>
+          </template>
           <span class="text-accent">{{ formatLoad(exercise.suggestedLoadKg) }}</span>
+          <span v-if="exercise.reserve !== null" class="text-text-dim">
+            · {{ exercise.reserve }} en réserve
+          </span>
         </span>
       </span>
 

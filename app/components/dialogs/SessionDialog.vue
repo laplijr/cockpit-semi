@@ -57,12 +57,26 @@ interface StrengthState {
   suggestedLoadKg: number | null
   lastReps: number | null
   suggestedReps: number | null
+  toCalibrate: boolean
+  plates: number[] | null
 }
 
 /** Charges tenues et proposées, quand la séance est une muscu (§ 9, P5.9). */
 const { data: strength } = useFetch<{ exercises: StrengthState[] }>(
   () => `/api/sessions/${props.sessionId}/strength`,
   { immediate: computed(() => session.value?.sport === 'muscu') as unknown as boolean },
+)
+
+/** L'état de chaque exercice de la séance, par identifiant. */
+const states = computed<Record<string, StrengthState>>(() =>
+  Object.fromEntries((strength.value?.exercises ?? []).map((item) => [item.exerciseId, item])),
+)
+
+/** Chargés, dosés en pourcentage et sans estimation : ils se calent avant la séance (P26). */
+const toCalibrate = computed(() =>
+  (session.value?.prescription.steps ?? []).filter(
+    (step) => step.exerciseId && states.value[step.exerciseId]?.toCalibrate,
+  ),
 )
 
 const loads = computed(() =>
@@ -103,7 +117,9 @@ const ui = useUiStore()
  */
 function loadPill(step: PlanSession['prescription']['steps'][number]): string {
   const reserve = targetReserve(step.intensity)
-  const known = step.exerciseId ? loads.value[step.exerciseId]?.suggestedLoadKg : null
+  const state = step.exerciseId ? states.value[step.exerciseId] : undefined
+  if (state?.toCalibrate) return 'à caler'
+  const known = state?.suggestedLoadKg ?? null
   if (known && reserve !== null) return `${formatLoad(known)} · ${reserveLabel(reserve)}`
   if (known) return formatLoad(known)
   return reserve === null ? step.intensity! : reserveLabel(reserve)
@@ -452,9 +468,41 @@ const plannedMinutes = computed(() => {
               <span v-if="step.replacesLabel" class="text-meta text-text-dim">
                 Remplace {{ step.replacesLabel }} : le matériel qu'il demande n'est pas déclaré.
               </span>
+              <!-- Les disques sous la charge, pour un exercice à la barre (P26). -->
+              <span
+                v-if="step.exerciseId && states[step.exerciseId]?.plates?.length"
+                class="mono text-meta text-text-dim"
+              >
+                {{
+                  states[step.exerciseId]!.plates!.map((plate) => formatDecimal(plate)).join(' + ')
+                }}
+                kg par côté
+              </span>
               <span v-if="step.note" class="text-meta text-text-dim">{{ step.note }}</span>
             </span>
           </component>
+        </div>
+
+        <!-- Un exercice sans estimation se cale avant la séance : le calage
+             remplace l'échauffement, pas la séance (P26). -->
+        <div
+          v-if="toCalibrate.length > 0 && !reading"
+          class="tile order-1 bg-surface-inset lean:order-none"
+        >
+          <span class="label text-caption">À caler</span>
+          <p class="text-meta text-text-dim">
+            Quelques paliers de cinq répétitions pour trouver la charge du jour, sans test de
+            maximum.
+          </p>
+          <button
+            v-for="step in toCalibrate"
+            :key="step.exerciseId"
+            type="button"
+            class="btn btn-ghost self-stretch lean:self-start"
+            @click="ui.openCalibration(step.exerciseId!, session.id)"
+          >
+            Caler : {{ step.label }}
+          </button>
         </div>
 
         <!-- Ce qu'une séance sans charge n'obtient pas, dit une fois et ici

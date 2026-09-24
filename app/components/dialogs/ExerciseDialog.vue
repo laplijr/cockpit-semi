@@ -2,6 +2,9 @@
 import { EQUIPMENT_LABELS, type StrengthEquipment } from '~~/server/domain/strength/equipment'
 import { StrengthEffort } from '~~/server/domain/strength/exercises'
 import { loadHint, reserveLabel, targetReserve } from '~~/server/domain/strength/reserve'
+import { EstimateSource, isCalibratable } from '~~/server/domain/strength/estimated-max'
+
+const ui = useUiStore()
 
 interface Exercise {
   id: string
@@ -38,6 +41,13 @@ const lastLoadKg = computed(() => data.value?.lastLoadsKg?.[props.exerciseId] ??
 
 const technique = computed(() => data.value?.technique[props.exerciseId])
 
+const estimate = computed(() => data.value?.estimates[props.exerciseId] ?? null)
+
+const ESTIMATE_SOURCES: Record<string, string> = {
+  [EstimateSource.Calibration]: 'calage',
+  [EstimateSource.Session]: 'séance',
+}
+
 const muscles = computed(() =>
   technique.value
     ? [
@@ -57,7 +67,11 @@ const dose = computed(() => {
   const main = current.effort === StrengthEffort.MaxStrength
   const intensity = main ? data.value.dose.intensity : current.defaultIntensity
   const reps = main ? data.value.dose.reps : current.reps
-  return { reps, reserve: targetReserve(intensity) }
+  return {
+    reps,
+    reserve: targetReserve(intensity),
+    calibratable: isCalibratable(current.id, intensity),
+  }
 })
 const lastReps = computed(() => data.value?.lastReps?.[props.exerciseId] ?? null)
 
@@ -151,6 +165,14 @@ function rootOf(exercise: Exercise, all: Exercise[]): Exercise {
       <span class="label text-caption">
         <UiInfoHint term="reserve">La charge</UiInfoHint>
       </span>
+      <button
+        v-if="dose.calibratable && !estimate"
+        type="button"
+        class="btn btn-ghost self-stretch lean:self-start"
+        @click="ui.openCalibration(exercise.id, null)"
+      >
+        Caler
+      </button>
       <p v-if="lastLoadKg" class="text-body">
         {{ formatLoad(lastLoadKg) }} la dernière fois, {{ reserveLabel(dose.reserve) }} à la
         dernière série.
@@ -188,6 +210,15 @@ function rootOf(exercise: Exercise, all: Exercise[]): Exercise {
             {{ lastReps }}{{ exercise.isometric ? '″' : ' rép.' }}
           </template>
           <template v-else>—</template>
+        </span>
+      </div>
+      <!-- Le maximum d'où partent les kilos, et d'où il vient (P26). -->
+      <div v-if="estimate" class="tile bg-surface-inset">
+        <span class="label text-caption">Maximum estimé</span>
+        <span class="mono text-heading">{{ formatLoad(estimate.maxKg) }}</span>
+        <span class="mono text-meta text-text-dim">
+          {{ ESTIMATE_SOURCES[estimate.source] ?? estimate.source }} du
+          {{ formatDate(estimate.date) }}
         </span>
       </div>
     </div>

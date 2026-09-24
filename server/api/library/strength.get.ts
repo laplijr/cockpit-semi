@@ -24,12 +24,13 @@ import { PhaseType } from '../../domain/plan/phases'
 import { useDatabase } from '../../infra/db/client'
 import { athleteWeekIds, loadActivePlanVersion } from '../../infra/db/plan-gateway'
 import { athlete, phase, session, strengthSet } from '../../infra/db/schema'
+import { loadCurrentEstimates } from '../../infra/db/strength-estimates'
 import { currentAthleteId, systemClock } from '../../utils/context'
 
 export default defineEventHandler(async (event) => {
   const athleteId = await currentAthleteId(event)
   const db = useDatabase()
-  const [active, sets, [profile]] = await Promise.all([
+  const [active, sets, [profile], estimates] = await Promise.all([
     loadActivePlanVersion(db, athleteId),
     db
       .select({
@@ -43,6 +44,7 @@ export default defineEventHandler(async (event) => {
       .where(inArray(session.weekId, athleteWeekIds(db, athleteId)))
       .orderBy(desc(session.date)),
     db.select({ constraints: athlete.constraints }).from(athlete).where(eq(athlete.id, athleteId)),
+    loadCurrentEstimates(db, athleteId),
   ])
 
   /** Le catalogue de l'athlète, et lui seul : l'autre n'est pas le sien (§ 5, P11.2). */
@@ -89,6 +91,8 @@ export default defineEventHandler(async (event) => {
     /** Comment faire chaque exercice : écrit une fois, relu par Ronan (P25). */
     technique: STRENGTH_TECHNIQUE,
     muscleLabels: MUSCLE_LABELS,
+    /** Le maximum estimé courant de chaque exercice, sa source et sa date (P26). */
+    estimates: Object.fromEntries(estimates),
     lastLoadsKg,
     lastReps,
     equipment,
