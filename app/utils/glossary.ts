@@ -73,6 +73,14 @@ export const GLOSSARY = {
     title: 'Charge combinée',
     text: 'Somme des charges course, vélo et renforcement. Le cadran en affiche le ratio 7 j / 21 j, indisponible avant 28 jours de données.',
   },
+  reserve: {
+    title: 'Réserve',
+    text: 'Les répétitions qu’on pourrait encore faire à la fin de la série. « 2 en réserve » : on s’arrête deux avant l’échec. Elle dit quel poids prendre sans connaître son maximum.',
+  },
+  tempo: {
+    title: 'Tempo',
+    text: 'Le rythme d’une répétition en quatre temps : descente, pause en bas, remontée, pause en haut, en secondes. X veut dire le plus vite possible.',
+  },
   chargeProjetee: {
     title: 'Charge projetée',
     text: "Le ratio 7 j / 21 j prolongé jusqu'au jour J par les séances prévues : ce qui arrive si le plan est tenu à partir d'aujourd'hui. Une lecture, pas une proposition.",
