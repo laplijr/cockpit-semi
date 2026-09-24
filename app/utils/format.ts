@@ -158,6 +158,9 @@ export const SESSION_LABELS: Record<string, string> = {
   push: 'Push',
   pull: 'Pull',
   mobilite: 'Mobilité',
+  /** La séance mixte courte de l'affûtage et le renfo du cycliste, nommés comme la bibliothèque. */
+  full: 'Full',
+  velo: 'Vélo',
   /** Catalogue « pour la course » (§ 5, P11.2) : plus un mot de salle de sport. */
   appuis: 'Appuis',
   tronc: 'Tronc',
