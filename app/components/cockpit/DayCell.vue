@@ -132,17 +132,16 @@ function figureOf(session: PlanSession): string {
           :class="isShortOfPrescription(session) ? 'text-warn' : 'text-ok'"
           :label="isShortOfPrescription(session) ? 'Faite, sous le prescrit' : 'Faite'"
         />
-        <!-- Ni faite ni sautée, et son jour est passé : elle attend son retour (P20). -->
-        <span
-          v-else-if="isAwaitingFeedback(session, plan.today)"
-          class="flex items-baseline gap-1 text-warn wide:whitespace-nowrap"
-        >
-          <span
-            class="block h-[5px] w-[5px] shrink-0 self-center rounded-full bg-warn"
-            aria-hidden="true"
-          />
-          à renseigner
-        </span>
+      </span>
+      <!-- Ni faite ni sautée, et son jour est passé : elle attend son retour
+           (P20). Sa propre ligne, sans retrait et en police courante : une
+           colonne de jour au pouce ne tient pas « à renseigner » en mono. -->
+      <span
+        v-if="isAwaitingFeedback(session, plan.today)"
+        class="flex items-center gap-1 text-caption whitespace-nowrap text-warn"
+      >
+        <span class="block h-[5px] w-[5px] shrink-0 rounded-full bg-warn" aria-hidden="true" />
+        à renseigner
       </span>
     </div>
 
