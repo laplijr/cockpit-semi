@@ -37,6 +37,14 @@ const runnable = computed(
     props.session.status !== 'annulee',
 )
 
+/** Une séance de renforcement du jour se fait en salle, au téléphone (P27). */
+const gym = computed(
+  () =>
+    props.session.sport === 'muscu' &&
+    props.session.date === plan.today &&
+    props.session.status === 'prevue',
+)
+
 /** Le vélo prend le même écran, et le verbe qui lui va (§ 9, P10.3). */
 const riding = computed(() => props.session.sport === 'velo')
 
@@ -126,10 +134,19 @@ const runHref = computed(() => {
       <template v-else>{{ riding ? 'Rouler' : 'Courir' }}</template>
     </NuxtLink>
 
+    <NuxtLink
+      v-if="gym"
+      :to="`/en-salle/${session.id}`"
+      class="btn w-full shrink-0 lean:w-auto"
+      :class="!primary && 'btn-ghost'"
+    >
+      Démarrer
+    </NuxtLink>
+
     <button
       type="button"
       class="btn w-full shrink-0 lean:w-auto"
-      :class="(done || runnable || !primary) && 'btn-ghost'"
+      :class="(done || runnable || gym || !primary) && 'btn-ghost'"
       @click="ui.openModal('seance', session.id)"
     >
       Ressenti

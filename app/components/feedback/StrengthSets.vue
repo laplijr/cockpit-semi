@@ -9,6 +9,7 @@ interface ExerciseState {
   lastLoadKg: number | null
   suggestedLoadKg: number | null
   reserve: number | null
+  recordedSets: { index: number; reps: number; loadKg: number }[]
 }
 
 const { data } = useFetch<{ exercises: ExerciseState[] }>(
@@ -38,6 +39,16 @@ interface SetRow {
   loadKg: number
 }
 
+/**
+ * Une séance faite en salle a déjà ses séries, cochées une à une (P27) : le
+ * retour de séance les montre en lecture, il ne les réécrit pas.
+ */
+const fromGym = computed(
+  () =>
+    props.session.status !== 'faite' &&
+    exercises.value.some((exercise) => exercise.recordedSets.length > 0),
+)
+
 /** Séries pré-remplies par le format prescrit et la charge proposée. */
 const rows = ref<SetRow[]>([])
 
@@ -45,12 +56,14 @@ watch(
   exercises,
   (list) => {
     rows.value = list.flatMap((exercise) =>
-      Array.from({ length: exercise.sets }, (_, index) => ({
-        exerciseId: exercise.exerciseId,
-        index: index + 1,
-        reps: exercise.targetReps,
-        loadKg: exercise.suggestedLoadKg ?? 0,
-      })),
+      fromGym.value
+        ? exercise.recordedSets.map((set) => ({ exerciseId: exercise.exerciseId, ...set }))
+        : Array.from({ length: exercise.sets }, (_, index) => ({
+            exerciseId: exercise.exerciseId,
+            index: index + 1,
+            reps: exercise.targetReps,
+            loadKg: exercise.suggestedLoadKg ?? 0,
+          })),
     )
   },
   { immediate: true },
@@ -61,7 +74,7 @@ function setsOf(exerciseId: string) {
 }
 
 async function save() {
-  if (rows.value.length === 0) return
+  if (rows.value.length === 0 || fromGym.value) return
   await $fetch(`/api/sessions/${props.session.id}/strength`, {
     method: 'PUT',
     body: { sets: rows.value.map((row) => ({ ...row, rpe: props.rpe })) },
@@ -74,6 +87,7 @@ defineExpose({ save })
 <template>
   <div class="flex flex-col gap-3">
     <span class="label text-caption">Séries réalisées</span>
+    <p v-if="fromGym" class="text-meta text-text-dim">Enregistrées en salle, série par série.</p>
 
     <div v-for="exercise in exercises" :key="exercise.exerciseId" class="flex flex-col gap-2">
       <span class="flex items-baseline gap-2">
@@ -108,6 +122,7 @@ defineExpose({ save })
             inputmode="numeric"
             min="0"
             class="input mono"
+            :disabled="fromGym"
           />
         </label>
         <label class="flex items-center gap-2">
@@ -119,6 +134,7 @@ defineExpose({ save })
             min="0"
             step="0.5"
             class="input mono"
+            :disabled="fromGym"
           />
         </label>
       </div>

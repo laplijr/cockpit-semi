@@ -59,6 +59,7 @@ interface StrengthState {
   suggestedReps: number | null
   toCalibrate: boolean
   plates: number[] | null
+  recordedSets: unknown[]
 }
 
 /** Charges tenues et proposées, quand la séance est une muscu (§ 9, P5.9). */
@@ -252,6 +253,28 @@ const runnable = computed(
     session.value.status === 'prevue',
 )
 
+/** Une séance de renforcement du jour : elle se démarre en salle (P27). */
+const gymToday = computed(
+  () =>
+    session.value?.sport === 'muscu' &&
+    session.value.date === plan.today &&
+    session.value.status === 'prevue',
+)
+
+/**
+ * Commencée en salle : des séries sont déjà cochées. On ne la redémarre pas,
+ * on vient dire comment elle s'est passée — la fenêtre descend au retour.
+ */
+const gymStarted = computed(
+  () =>
+    gymToday.value &&
+    (strength.value?.exercises ?? []).some((item) => item.recordedSets.length > 0),
+)
+const feedbackBlock = ref<HTMLElement | null>(null)
+watch(gymStarted, (started) => {
+  if (started) nextTick(() => feedbackBlock.value?.scrollIntoView({ block: 'start' }))
+})
+
 const feedbackForm = ref<{ save: () => Promise<void> } | null>(null)
 
 async function saveFeedback() {
@@ -347,6 +370,16 @@ const plannedMinutes = computed(() => {
       <!-- Le matériel dit ce que la séance suppose, une fois (§ 5, P11.3). -->
       <span v-if="session.sport === 'muscu'" class="pill">{{ EQUIPMENT_LABELS[equipment] }}</span>
 
+      <!-- Au-dessus du pouce, « Démarrer » se prend dans la tête de la fenêtre ;
+           au téléphone, dans son pied (P27). -->
+      <NuxtLink
+        v-if="gymToday"
+        :to="`/en-salle/${session.id}`"
+        class="btn btn-ghost ml-auto hidden lean:inline-flex"
+      >
+        {{ gymStarted ? 'Reprendre en salle' : 'Démarrer' }}
+      </NuxtLink>
+
       <!-- La porte de l'édition : une icône seule au pouce, son mot au-dessus
            de la rupture (§ 8, P12). -->
       <button
@@ -411,7 +444,10 @@ const plannedMinutes = computed(() => {
                   <template v-if="step.repeats && !step.exerciseId">{{ step.repeats }} × </template>
                   {{ step.label }}
                 </span>
-                <span v-if="step.repeats && step.reps" class="mono text-meta text-text-dim">
+                <span
+                  v-if="step.repeats && step.reps"
+                  class="mono whitespace-nowrap text-meta text-text-dim"
+                >
                   {{ step.repeats }} × {{ step.reps }}{{ step.isometric ? '″' : ''
                   }}{{ step.unilateral ? '/côté' : '' }}
                 </span>
@@ -745,9 +781,12 @@ const plannedMinutes = computed(() => {
            se montre qu'en édition, pour corriger le réalisé (§ 8, P12). -->
       <div
         v-if="!reading"
+        ref="feedbackBlock"
         class="order-2 border-t border-line-soft pt-4 lean:order-none lean:border-t-0 lean:border-l lean:pt-0 lean:pl-6"
         :class="
-          runnable ? 'max-lean:[&_.feedback-submit]:static' : 'max-lean:[&_.feedback-submit]:hidden'
+          runnable || (gymToday && !gymStarted)
+            ? 'max-lean:[&_.feedback-submit]:static'
+            : 'max-lean:[&_.feedback-submit]:hidden'
         "
       >
         <span class="label text-caption">{{
@@ -766,10 +805,21 @@ const plannedMinutes = computed(() => {
          au-dessus de la zone sûre : partir avant la séance, dire comment
          elle s'est passée ensuite (P21). -->
     <div
-      v-if="runnable || !reading"
+      v-if="runnable || gymToday || !reading"
       class="sticky bottom-[calc(-18px-env(safe-area-inset-bottom))] z-10 -mx-[18px] -mb-[calc(18px+env(safe-area-inset-bottom))] border-t border-line bg-surface px-[18px] pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] lean:hidden"
     >
-      <NuxtLink v-if="runnable" :to="`/en-course?seance=${session.id}`" class="btn btn-lg w-full">
+      <NuxtLink
+        v-if="gymToday && !gymStarted"
+        :to="`/en-salle/${session.id}`"
+        class="btn btn-lg w-full"
+      >
+        Démarrer
+      </NuxtLink>
+      <NuxtLink
+        v-else-if="runnable"
+        :to="`/en-course?seance=${session.id}`"
+        class="btn btn-lg w-full"
+      >
         <UiAppIcon :name="session.sport === 'velo' ? 'velo' : 'run'" :size="15" />
         {{ session.sport === 'velo' ? 'Rouler' : 'Courir' }}
       </NuxtLink>
