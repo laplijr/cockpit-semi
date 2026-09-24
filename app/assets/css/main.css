@@ -505,6 +505,35 @@
     }
   }
 
+  /*
+   * L'écran de course lisible en plein soleil (P21) : les jetons s'inversent
+   * pour ce seul écran, noir sur blanc, et la carte perd son filtre de nuit.
+   */
+  .plein-soleil {
+    color-scheme: light;
+    --color-ink: #ffffff;
+    --color-ink-deep: #f4f2ee;
+    --color-surface: #f4f2ee;
+    --color-surface-inset: #ebe8e2;
+    --color-surface-raised: #e2ded6;
+    --color-surface-muted: #dcd7ce;
+    --color-line: #9a948a;
+    --color-line-soft: #bdb7ad;
+    --color-line-strong: #6f6a62;
+    --color-text: #000000;
+    --color-text-dim: #2b2926;
+    --color-text-muted: #4a463f;
+    --color-icon: #2b2926;
+    --color-accent: #a35200;
+    --color-accent-hover: #c26200;
+    --color-accent-track: #f0d9bd;
+    --color-on-accent: #ffffff;
+    --color-ok: #0a6b0a;
+    --color-warn: #8a4b00;
+    background: var(--color-ink);
+    color: var(--color-text);
+  }
+
   .badge {
     min-width: 18px;
     height: 18px;

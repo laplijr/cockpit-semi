@@ -209,6 +209,28 @@ const headlineLabel = computed(() => {
 /** En course, l'écran est la carte : plus de colonne, plus de défilement. */
 const immersive = computed(() => started.value && tracker.phase.value === RunPhase.Running)
 
+/**
+ * Lisible en plein soleil (P21, arbitrage de Ronan du 24 sept. 2026) : un jeu
+ * de jetons clair et très contrasté, propre à cet écran, retenu sur
+ * l'appareil. Le reste de l'app garde son thème sombre.
+ */
+const SUN_KEY = 'en-course:plein-soleil'
+const sunlight = ref(false)
+onMounted(() => {
+  try {
+    sunlight.value = localStorage.getItem(SUN_KEY) === '1'
+  } catch {
+    sunlight.value = false
+  }
+})
+watch(sunlight, (value) => {
+  try {
+    localStorage.setItem(SUN_KEY, value ? '1' : '0')
+  } catch {
+    // Un stockage refusé laisse le réglage à cette visite.
+  }
+})
+
 /** Chiffres repliés : il ne reste qu'une ligne, et la carte prend le reste. */
 const folded = ref(false)
 
@@ -367,11 +389,12 @@ async function record(payload: {
 
 <template>
   <div
-    :class="
+    :class="[
       immersive
         ? 'relative h-dvh overflow-hidden bg-ink'
-        : 'flex min-h-dvh flex-col gap-3 bg-ink px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom))]'
-    "
+        : 'flex min-h-dvh flex-col gap-3 bg-ink px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom))]',
+      sunlight && 'plein-soleil',
+    ]"
   >
     <!-- `dvh` et non `vh` : sur un navigateur de téléphone, `100vh` est la
          hauteur barres rétractées — un document plus haut que ce qu'on voit,
@@ -460,6 +483,10 @@ async function record(payload: {
         <label class="flex min-h-11 items-center gap-[10px] text-body">
           <input v-model="tracker.announcing.value" type="checkbox" class="size-5 accent-accent" />
           Annonces vocales à chaque kilomètre et à chaque étape
+        </label>
+        <label class="flex min-h-11 items-center gap-[10px] text-body">
+          <input v-model="sunlight" type="checkbox" class="size-5 accent-accent" />
+          Écran plein soleil : clair et très contrasté
         </label>
       </div>
 

@@ -276,6 +276,11 @@ onBeforeUnmount(() => {
   filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.7);
 }
 
+/* En plein soleil, la carte garde ses couleurs de jour (P21). */
+.plein-soleil .route-map .leaflet-tile-pane {
+  filter: none;
+}
+
 .route-map {
   background: var(--color-surface-inset);
 }
