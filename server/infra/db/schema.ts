@@ -40,6 +40,7 @@ import type { Meal } from '../../domain/nutrition/meal'
 import { PostSource } from '../../domain/circle/post'
 import { ExternalCall } from '../../domain/shared/external-call'
 import { Sport } from '../../domain/shared/sport'
+import { EstimateSource } from '../../domain/strength/estimated-max'
 
 export {
   AthleteProfile,
@@ -98,6 +99,7 @@ export const habitStatusEnum = pgEnum('habit_status', enumValues(HabitStatus))
 export const externalCallEnum = pgEnum('external_call', enumValues(ExternalCall))
 export const postSourceEnum = pgEnum('post_source', enumValues(PostSource))
 export const runStatusEnum = pgEnum('run_status', enumValues(RunStatus))
+export const estimateSourceEnum = pgEnum('estimate_source', enumValues(EstimateSource))
 
 /** Conserve les types littéraux de l'énumération pour que Drizzle les propage. */
 function enumValues<T extends Record<string, string>>(source: T): [T[keyof T], ...T[keyof T][]] {
@@ -447,6 +449,22 @@ export const strengthSet = pgTable(
     ),
   ],
 )
+
+/**
+ * Maximum estimé d'un exercice (P26). Un historique, jamais écrasé : la
+ * valeur courante est la plus récente, pas la plus haute — après une pause,
+ * le maximum redescend avec ce qui a été tenu.
+ */
+export const strengthEstimate = pgTable('strength_estimate', {
+  id: serial('id').primaryKey(),
+  athleteId: integer('athlete_id')
+    .notNull()
+    .references(() => athlete.id, { onDelete: 'cascade' }),
+  exerciseId: text('exercise_id').notNull(),
+  maxKg: real('max_kg').notNull(),
+  source: estimateSourceEnum('source').notNull(),
+  date: date('date').notNull(),
+})
 
 /** Cache recalculable de la charge quotidienne, en unités arbitraires (§ 5). */
 export const loadDaily = pgTable(
