@@ -1537,6 +1537,96 @@ Relevé par Ronan le 23 sept. 2026, au lendemain de P23 : une sortie longue de 2
 - [ ] Vérifié dans le navigateur : plan régénéré, page Semaine du spécifique et de l'affûtage de Paris. **Pas fait** : commit et push demandés par Ronan dans la même consigne.
 - [x] Fini : lint, typecheck, tests et build verts. Commit « P24 — la sortie longue d'un semi, pas d'un marathon ».
 
+P25 — Savoir faire l'exercice
+
+Relevé par Ronan le 24 sept. 2026, sur la fenêtre d'une séance Legs au téléphone : difficile de savoir quoi faire quand on ne connaît pas les exercices, ni à quelle charge les faire. Deux manques relevés dans le code. **Le geste** : les 44 exercices de `STRENGTH_EXERCISES` portent chacun un `why`, aucun ne porte de consigne, d'image ni de muscles, et `ExerciseDialog` ne montre que l'apport, la progression, la dernière charge et la chaîne de matériel. **La charge** : « 70 % », « 85 % » sont des pourcentages d'une répétition maximale que le cockpit ne demande pas et ne stocke pas, et les kilos n'apparaissent qu'après une première séance saisie. Revue des applis (Hevy, Strong, Fitbod, RP Hypertrophy, Juggernaut AI, Alpha Progression) et maquettes des trois réponses : https://claude.ai/artifact/LJAB5dqx5uPEgAMGq8cjCT. Ronan retient les trois, dans cet ordre : P25 le geste et la réserve, P26 les kilos, P27 la séance en salle.
+
+**Tranché le 24 sept. 2026 : les figures se dessinent dans l'app, elles ne se reprennent pas d'une base.** Les deux bases libres ne tiennent pas. free-exercise-db (800 exercices, annoncée dans le domaine public) n'a que deux photos fixes par exercice, reprises d'un autre jeu de données sans source vérifiable. wger est en CC-BY-SA et sa couverture est inégale. Aucune des deux n'a le squat espagnol, le Copenhagen court, le short foot ni la mobilité genou-au-mur. Les vidéos de Hevy et de Fitbod sont les leurs. Un bonhomme au trait, animé entre deux poses, se dessine pour les 44 et tient dans la charte. Il peut aussi faire ce qu'aucune de ces applis ne fait : **jouer le tempo prescrit**.
+
+- [ ] **`server/domain/strength/technique.ts`** : une fiche par exercice, indexée par `id`. Elle porte 3 à 5 consignes dans l'ordre du geste, les deux erreurs qui comptent, et les muscles principaux et secondaires (enum `StrengthMuscle`, libellés français). La fiche vit à côté de `exercises.ts`, qui fait déjà 791 lignes. Le texte est écrit une fois et relu par Ronan, jamais généré à l'exécution. `/api/library/strength` la sert avec l'exercice. Test : chaque exercice de `STRENGTH_EXERCISES` a sa fiche, et aucune fiche n'est orpheline.
+- [ ] **La réserve remplace le pourcentage à l'affichage.** `server/domain/strength/reserve.ts` : `targetReserve(intensity)` rend le nombre de répétitions à garder sous le pied à la dernière série :
+  - 70 % et 75 % → 2 ;
+  - 85 % → 1 ;
+  - ≥ 85 % → 2 (en force-puissance, l'intention de vitesse s'arrête loin de l'échec) ;
+  - modérée → 3 ;
+  - « à vide » et « — » → rien.
+  - Les tables publiées divergent (3 × 9 à 70 % laisse de 1 à 4 répétitions en réserve selon la formule) : ces valeurs sont un choix, écrit une fois et testé.
+  - Le pourcentage reste dans la prescription et passe dans la bulle.
+  - Glossaire : une entrée `reserve` (les répétitions qu'on pourrait encore faire à la fin de la série), et une entrée `tempo`, qui manque aujourd'hui.
+- [ ] **`UiExerciseFigure`.** Les poses vivent dans `app/utils/exercise-figures/`, un fichier par `StrengthGroup`, sous 500 lignes.
+  - Une pose, ce sont les articulations d'un bonhomme de profil dans un cadre de 120 × 160 : tête, épaule, coude, main, hanche, genou, cheville, pointe, avec les côtés gauche et droit quand ils diffèrent. S'y ajoutent les accessoires : barre, haltère, élastique, banc, marche, mur, sol.
+  - Le composant interpole de la première pose à la seconde au rythme du tempo : descente, pause, montée, pause, avec X = 0,6 s. Sans tempo, 1,5 s par sens.
+  - Un isométrique n'a qu'une pose, avec la durée tenue en mono dessous. Un unilatéral montre le côté qui travaille.
+  - `prefers-reduced-motion` : les deux poses côte à côte, sans mouvement. Couleurs par tokens : `text` pour le corps, `accent` pour la charge.
+  - Tests : chaque exercice a ses poses, toutes les articulations sont dans le cadre, et les segments gardent leur longueur d'une pose à l'autre à 10 % près (un tibia qui s'allonge trahit une pose fausse).
+- [ ] **La structure d'une séance de muscu montre ce qu'on va faire.** Dans `SessionDialog`, chaque ligne d'exercice gagne une vignette (la pose clé, figée) et devient un bouton qui ouvre la fiche (`ui.openExercise`), comme dans `StrengthSessionDialog`. La pill du pourcentage laisse la place aux kilos quand ils sont connus, à la réserve sinon (« 2 en réserve »). L'étape d'échauffement, sans `exerciseId`, ne change pas.
+- [ ] **La fiche d'exercice montre le geste d'abord.** Dans `ExerciseDialog`, dans l'ordre :
+  - la figure animée, et le tempo en mots dessous (« descente 2″, remontée explosive ») ;
+  - « Comment faire » : les consignes, numérotées puisque c'est une séquence ;
+  - « À éviter » ;
+  - les muscles en pills ;
+  - la charge. Quand rien n'est connu, elle se dit par le format et la réserve : « choisis un poids que tu pourrais soulever 11 fois, fais-en 9 ».
+  - Puis ce qui existe déjà : l'apport, la progression, ce qui a été tenu, la chaîne de matériel.
+- [ ] **Les 44 figures relues par Ronan** avant de cocher. Une planche contact est publiée (les 44 animées, le nom dessous), et ses corrections sont consignées sous cette case. Un geste mal dessiné est pire que pas de dessin.
+- [ ] Vérifié dans le navigateur, à 375 px puis à 1440 px :
+  - la fenêtre d'une séance Legs, avec les vignettes et la réserve dans la structure ;
+  - la fiche du squat, animée au tempo 2-0-X-0 ;
+  - la fiche du squat espagnol, isométrique, figée avec sa durée ;
+  - la réduction des animations émulée.
+- [ ] Fini : lint, typecheck, tests et build verts. Un commit par livrable, « P25 — <résumé> ».
+
+P26 — Des kilos dès la première séance
+
+Suite de P25 : la réserve dit quoi viser, pas avec quel poids commencer. Hevy, Strong et Alpha Progression ne proposent rien avant une première saisie ; Fitbod part de profils semblables, RP fait monter par paliers. Le cockpit reprend les paliers, sans test de maximum. **Un défaut du moteur se referme au passage** : `nextLoadKg` ajoute 5 kg (2,5 kg pour le haut du corps) sans lire l'intensité. Au passage adaptation (3 × 9 à 70 %) → force (4 × 5 à 85 %), la charge ne monte donc que d'un pas, au lieu d'environ 20 %.
+
+- [ ] `server/domain/strength/estimated-max.ts` :
+  - `estimatedMaxKg(loadKg, reps, reserve)` = charge × (1 + (répétitions + réserve) / 30). C'est Epley, avec la réserve ajoutée aux répétitions faites.
+  - `workingLoadKg(maxKg, intensity, equipment)` = maximum × pourcentage, arrondi **au pas inférieur** du matériel (2,5 kg à la barre, 2 kg par haltère), jamais sous la barre à vide (20 kg).
+  - `plateBreakdown(loadKg)` : les disques par côté (25, 20, 15, 10, 5, 2,5, 1,25) sur une barre de 20 kg.
+  - Tests : 60 kg × 5 avec 3 en réserve → 76 kg ; à 70 % → 52,5 kg, soit 15 + 1,25 par côté ; à 85 % → 62,5 kg.
+- [ ] Schéma : une table `strength_estimate` (athlète, exercice, `max_kg`, source `calage` ou `seance`, date). C'est un historique, jamais écrasé ; la valeur courante est la plus récente. Migration générée.
+- [ ] Réestimation à chaque séance saisie : `application/record-strength-sets` écrit une estimation tirée de la meilleure série de l'exercice, avec une réserve de 10 − RPE de la série. Jusqu'à P27, c'est le RPE unique de la séance. La plus récente fait foi, pas la plus haute : après une pause, le maximum redescend avec ce qui a été tenu.
+- [ ] Charge proposée : pour un exercice dosé en pourcentage qui a une estimation, `GET /api/sessions/[id]/strength` rend `workingLoadKg` au lieu de `nextLoadKg`. `nextLoadKg` reste pour les exercices « modérée », et le format pour le poids de corps. Test : au changement de phase, la charge suit le pourcentage.
+- [ ] **Le calage.** Un exercice chargé, dosé en pourcentage et sans estimation est « à caler » : une pill dans la structure, à la place des kilos. La fiche d'exercice et la fenêtre de séance portent « Caler », qui ouvre une feuille de paliers :
+  - des paliers de 5 répétitions : barre à vide, puis + 10 kg tant que ça reste rapide, puis + 5 kg ; kilos et répétitions par palier ;
+  - une dernière question : au dernier palier, combien en réserve ? (0, 1, 2, 3, 4+). À 4+, la feuille demande un palier de plus, parce qu'Epley se dégrade loin de l'échec ;
+  - à la fin : le maximum estimé, la charge du jour, les disques, et les charges des phases suivantes du cycle ;
+  - le calage remplace l'échauffement, pas la séance. `POST /api/strength/calibrations`.
+- [ ] Affichage : des kilos partout où la structure disait un pourcentage (`SessionDialog`, et `StrengthSets` pré-rempli), avec la réserve de P25 en second. Les disques s'affichent sous la charge des exercices à la barre. La fiche d'exercice gagne « Maximum estimé » à côté de « Ce qui a été tenu », avec sa source et sa date.
+- [ ] Vérifié dans le navigateur :
+  - sur un compte sans historique, séance Legs : le squat est « à caler » ;
+  - un calage 20, 30, 40, 50, 60 kg × 5 avec 3 en réserve donne 76 kg, 52,5 kg et 15 + 1,25 par côté ;
+  - la séance suivante saisie réécrit l'estimation ;
+  - sur un scénario à changement de phase, la charge suit.
+- [ ] Fini : lint, typecheck, tests et build verts. Un commit par livrable, « P26 — <résumé> ».
+
+P27 — La séance de muscu se fait en salle, au téléphone
+
+**Tranché par Ronan le 24 sept. 2026 : la muscu est pensée pour la salle.** C'est un amendement du § 8 : le téléphone gagne un cinquième geste excellent au pouce, faire sa séance de renforcement, à côté des quatre de P6.8. Le modèle est Hevy (Série / Précédent / kg / Rép. / coche, récup lancée à la validation), avec deux choses qu'il n'a pas : la réserve par série, qui règle la série suivante comme chez Fitbod et Alpha Progression, et la figure au tempo de P25. La séance remplace la saisie de mémoire en fin de séance, avec son RPE unique pour toutes les séries.
+
+- [ ] `/en-salle/[id]` : une coque plein écran comme `/en-course` (hauteur en `dvh`), ouverte par « Démarrer » sur une séance de muscu, depuis la tuile Aujourd'hui et depuis la fenêtre de séance. Un exercice à la fois : le nom, le rang (« 2 / 7 »), le temps écoulé, une barre de progression des exercices, la figure compacte de P25, le tempo en mots, et « Comment faire », qui ouvre la fiche.
+- [ ] Le tableau des séries : Série / Précédent / kg / Rép. / coche.
+  - « Précédent » : les séries de la dernière séance du même exercice ; un tap les recopie.
+  - Kilos et répétitions sont pré-remplis par P26 (ou par `nextLoadKg`).
+  - Cibles de 44 px, champs de 16 px.
+  - Séries d'échauffement calculées, marquées É et non enregistrées, avant les séries de travail des exercices à la barre dosés à 75 % ou plus : barre à vide × 8, puis environ deux tiers de la charge × 4. Pas d'échauffement après un calage, qui en tient lieu.
+- [ ] Cocher une série l'enregistre tout de suite (`PUT /api/sessions/[id]/strength/sets`, une série à la fois) et demande la réserve en un tap (0 à 4+). La réserve est stockée comme RPE de la série (10 − réserve) : pas de nouvelle colonne. Fermer l'onglet ou verrouiller le téléphone ne perd rien : la séance reprend à la première série non cochée.
+- [ ] Réglage en cours de séance, proposé et jamais appliqué seul : réserve 0 et répétitions manquées → − 5 % sur la série suivante ; réserve de 4 ou plus → + 5 % ; sinon rien. C'est la règle de `nextLoadKg`, appliquée de série en série, dans `server/domain/strength/next-set.ts`, avec ses tests. La proposition s'affiche sous la série suivante (« 50 kg proposé : série 1 à l'échec ») et s'accepte d'un tap.
+- [ ] La récup : lancée à la coche, pour la durée `recoveryS` déjà fixée par la nature de l'effort, avec − 15″ / + 15″ et « passer ».
+  - L'écran reste allumé (Screen Wake Lock, refus toléré).
+  - Un son court à la fin, si le son est permis.
+  - En superset, l'écran alterne les deux exercices, et la récup vient après le second.
+- [ ] Fin de séance : « Terminer » ouvre le retour de séance existant, séries déjà remplies. Le RPE de séance reste demandé : il sert la charge, pas les kilos. `StrengthSets` s'affiche en lecture pour une séance faite en salle.
+- [ ] § 8 : le cinquième geste rejoint la liste du téléphone, dans le § 8 et dans le paragraphe de P6.8, avec la date de la décision.
+- [ ] Vérifié à 375 px :
+  - une séance Legs démarrée, deux séries cochées ;
+  - une réserve de 0 à la série 1, qui propose − 5 % ;
+  - la récup qui tourne ;
+  - un rechargement de la page, qui reprend à la série 3 ;
+  - la fin de séance et le retour pré-rempli.
+  - Puis à 1440 px : l'écran reste lisible.
+- [ ] Fini : lint, typecheck, tests et build verts. Un commit par livrable, « P27 — <résumé> ».
+
 ## 0. Données réelles de départ (à seeder en P1)
 
 Les valeurs des maquettes (VDOT 45, 1:42 au semi, objectif 1:38, Madrid le 18 avril) sont des exemples. Voici la vraie base.
