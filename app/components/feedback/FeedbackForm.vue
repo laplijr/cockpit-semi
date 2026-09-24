@@ -92,7 +92,8 @@ async function save() {
       sleepHours: form.sleepHours,
       pain: form.painZone ? { zone: form.painZone, intensity: form.painIntensity } : null,
       durationMin: form.durationMin,
-      distanceM: form.distanceM,
+      /** Une séance sans kilométrage n'a pas de distance : zéro serait refusé. */
+      distanceM: form.distanceM || null,
       notes: form.notes || null,
     }
 
