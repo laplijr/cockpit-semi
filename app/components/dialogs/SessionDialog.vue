@@ -220,6 +220,24 @@ async function cancelSession() {
   }
 }
 
+/** Son jour est arrivé et rien n'est renseigné : elle peut se dire manquée (§ 5, R6). */
+const missable = computed(
+  () => session.value?.status === 'prevue' && session.value.date <= plan.today,
+)
+
+const skipError = ref('')
+
+async function markMissed() {
+  if (!session.value) return
+  skipError.value = ''
+  try {
+    await $fetch(`/api/sessions/${session.value.id}/skip`, { method: 'POST' })
+    emit('saved')
+  } catch (failure) {
+    skipError.value = apiMessage(failure, 'Impossible de la marquer manquée.')
+  }
+}
+
 async function restoreDay() {
   if (!day.value) return
   editError.value = ''
@@ -608,6 +626,16 @@ const plannedMinutes = computed(() => {
             Rendre la journée au moteur
           </UiActionButton>
           <p v-if="editError" class="text-body text-warn">{{ editError }}</p>
+        </div>
+
+        <!-- Le retour de séance dit « faite » ; ceci dit l'inverse, sans ressenti.
+             Contrairement au retrait, la séance compte comme manquée (§ 5, R6). -->
+        <div v-if="missable" class="tile order-4 bg-surface-inset lean:order-none">
+          <span class="label text-caption">Pas faite</span>
+          <UiActionButton class="btn btn-ghost self-stretch lean:self-start" :action="markMissed">
+            Marquer manquée
+          </UiActionButton>
+          <p v-if="skipError" class="text-body text-warn">{{ skipError }}</p>
         </div>
 
         <!--

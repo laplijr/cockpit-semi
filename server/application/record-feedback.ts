@@ -66,3 +66,16 @@ export async function recordFeedback(
 export async function skipSession(gateway: FeedbackGateway, sessionId: number): Promise<void> {
   await gateway.markSkipped(sessionId)
 }
+
+/**
+ * Séance déclarée manquée par Ronan : comme un ressenti, elle relance les
+ * règles, et R6 peut proposer de replacer une séance clé tout de suite.
+ */
+export async function recordMissed(
+  gateway: FeedbackGateway,
+  clock: Clock,
+  sessionId: number,
+): Promise<Proposal[]> {
+  await gateway.markSkipped(sessionId)
+  return gateway.evaluateRules(clock.today(), ProposalTrigger.Feedback)
+}
