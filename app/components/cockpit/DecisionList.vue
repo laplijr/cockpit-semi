@@ -116,13 +116,17 @@ async function apply() {
       :key="group.key"
       class="flex items-center gap-3 border-t border-line-soft py-[8px] first:border-t-0"
     >
-      <input
-        type="checkbox"
-        class="tap h-5 w-5 shrink-0 accent-accent lean:h-auto lean:w-auto lean:min-h-0 lean:min-w-0"
-        :checked="proposals.selected.includes(group.key)"
-        :aria-label="titleOf(group)"
-        @change="proposals.toggle(group.key)"
-      />
+      <!-- La cible de 44 px est le libellé autour de la case : la case, elle,
+           reste une case de 20 px au pouce (P21). -->
+      <label class="tap -mx-3 flex shrink-0 items-center justify-center lean:mx-0">
+        <input
+          type="checkbox"
+          class="h-5 w-5 accent-accent lean:h-auto lean:w-auto"
+          :checked="proposals.selected.includes(group.key)"
+          :aria-label="titleOf(group)"
+          @change="proposals.toggle(group.key)"
+        />
+      </label>
       <button
         type="button"
         class="tap explicable-zone grid min-w-0 flex-1 grid-cols-1 content-center gap-1 text-left wide:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] wide:items-baseline wide:gap-3"
