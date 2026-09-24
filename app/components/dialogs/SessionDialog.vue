@@ -212,6 +212,20 @@ async function replaceWithRun() {
   }
 }
 
+/** Une sortie de course ou de vélo à faire aujourd'hui : le pied porte « Courir » (P21). */
+const runnable = computed(
+  () =>
+    ['course', 'velo'].includes(session.value?.sport ?? '') &&
+    session.value?.date === plan.today &&
+    session.value.status === 'prevue',
+)
+
+const feedbackForm = ref<{ save: () => Promise<void> } | null>(null)
+
+async function saveFeedback() {
+  await feedbackForm.value?.save()
+}
+
 const plannedMinutes = computed(() => {
   const prescription = session.value?.prescription
   if (!prescription) return 0
@@ -329,9 +343,14 @@ const plannedMinutes = computed(() => {
 
     <!-- La structure d'abord, le retour de séance ensuite : sur téléphone on
          lit ce qu'il y avait à faire avant de dire comment ça s'est passé. -->
-    <div class="grid grid-cols-1 gap-4 lean:grid-cols-[1.3fr_1fr] lean:gap-6">
-      <div class="flex flex-col gap-4">
-        <div class="tile bg-surface-inset">
+    <!-- Au pouce, la fenêtre commence par ce qu'on vient y faire : structure,
+         retour de séance, puis ce qui l'entoure, et les gestes sur le plan en
+         dernier. C'est le seul endroit où l'ordre change avec la largeur : la
+         boucle du jour l'emporte sur la règle du § 8 (P21). Au-dessus de
+         `lean`, l'ordre du DOM. -->
+    <div class="flex flex-col gap-4 lean:grid lean:grid-cols-[1.3fr_1fr] lean:gap-6">
+      <div class="contents lean:flex lean:flex-col lean:gap-4">
+        <div class="tile order-1 bg-surface-inset lean:order-none">
           <span class="label text-caption">Structure</span>
           <div
             v-for="step in session.prescription.steps"
@@ -395,7 +414,10 @@ const plannedMinutes = computed(() => {
 
         <!-- Ce qu'une séance sans charge n'obtient pas, dit une fois et ici
              seulement : la fenêtre de la séance, nulle part ailleurs (P11.3). -->
-        <div v-if="session.sport === 'muscu' && bodyweight" class="tile bg-surface-inset">
+        <div
+          v-if="session.sport === 'muscu' && bodyweight"
+          class="tile order-1 bg-surface-inset lean:order-none"
+        >
           <span class="label text-caption">Ce que cette séance ne fait pas</span>
           <p class="text-body text-text-dim">
             Sans charge externe, pas de force maximale : c'est elle qui fait gagner en économie de
@@ -406,7 +428,10 @@ const plannedMinutes = computed(() => {
 
         <!-- Une journée peut recevoir une séance de plus, vide ou non (P6.43).
              Sur une séance faite, c'est de la saisie : elle passe par la porte. -->
-        <div v-if="session.date >= plan.today && !reading" class="tile bg-surface-inset">
+        <div
+          v-if="session.date >= plan.today && !reading"
+          class="tile order-4 bg-surface-inset lean:order-none"
+        >
           <span class="label text-caption">Ajouter une séance ce jour-là</span>
 
           <PlanSessionForm v-if="adding" :date="session.date" @saved="emit('saved')" />
@@ -426,7 +451,7 @@ const plannedMinutes = computed(() => {
           ou la retirer sans la compter comme manquée. Le moteur dit ce que ça
           coûte, il ne l'interdit pas (§ 1, P6.43).
         -->
-        <div v-if="editable" class="tile bg-surface-inset">
+        <div v-if="editable" class="tile order-4 bg-surface-inset lean:order-none">
           <span class="label text-caption">Changer cette séance</span>
 
           <PlanSessionForm
@@ -462,7 +487,7 @@ const plannedMinutes = computed(() => {
           semaine. Bouton fantôme — le retour de séance reste l'action
           principale de la fenêtre (§ 8, P6.42).
         -->
-        <div v-if="canSwap" class="tile bg-surface-inset">
+        <div v-if="canSwap" class="tile order-4 bg-surface-inset lean:order-none">
           <span class="label text-caption">Si tu ne peux pas la faire</span>
 
           <template v-if="replacement">
@@ -499,7 +524,10 @@ const plannedMinutes = computed(() => {
           bloc, celui-ci garde le sien : une seule action principale par ligne
           (§ 8, P6.7).
         -->
-        <div v-if="session.sport === 'course' && !done" class="tile bg-surface-inset">
+        <div
+          v-if="session.sport === 'course' && !done"
+          class="tile order-3 bg-surface-inset lean:order-none"
+        >
           <span class="label text-caption">Sur la montre</span>
 
           <a
@@ -518,14 +546,19 @@ const plannedMinutes = computed(() => {
         </div>
 
         <!-- Une séance faite peut aller au cercle, et rien d'autre (§ 8, P9.2). -->
-        <CircleShareRow v-if="session.status === 'faite'" source="seance" :source-id="session.id" />
+        <CircleShareRow
+          v-if="session.status === 'faite'"
+          class="order-3 lean:order-none"
+          source="seance"
+          :source-id="session.id"
+        />
 
         <!-- Trois lignes courtes ne sont pas un objet à axe : la table se
              replie au lieu de défiler, et ses deux titres se disent une fois
              en tête (§ 8, P12). -->
         <!-- Avant le réalisé, le bloc alignait trois tirets : il n'apparaît
              qu'une fois la séance faite, la structure disait déjà le reste (P20). -->
-        <div v-if="done" class="tile bg-surface-inset">
+        <div v-if="done" class="tile order-3 bg-surface-inset lean:order-none">
           <span class="label text-caption">Prescrit contre réalisé</span>
           <table class="w-full text-body">
             <thead>
@@ -566,13 +599,14 @@ const plannedMinutes = computed(() => {
              Une course faite ne se retrace pas (§ 8, P12). -->
         <SessionsRouteSuggestion
           v-if="!done && session.sport === 'course' && session.prescription.totalDistanceM > 0"
+          class="order-3 lean:order-none"
           :session-id="session.id"
           :distance-m="session.prescription.totalDistanceM"
         />
 
         <!-- Ce qui a été couru, quand la sortie est partie du cockpit (P10.1).
              Sans trace, le bloc n'existe pas : il ne propose rien à la place. -->
-        <div v-if="done && track?.track" class="tile bg-surface-inset">
+        <div v-if="done && track?.track" class="tile order-3 bg-surface-inset lean:order-none">
           <span class="label text-caption">Trace</span>
           <!-- Leaflet ne se rend que dans un navigateur (§ 8, P5.5). -->
           <ClientOnly>
@@ -590,9 +624,9 @@ const plannedMinutes = computed(() => {
 
         <!-- Les repas du jour vivent avec la séance : c'est elle qui décide de
              leurs heures (§ 9, P6.4). -->
-        <NutritionDayMealPlan v-if="day" :date="day" />
+        <NutritionDayMealPlan v-if="day" class="order-3 lean:order-none" :date="day" />
 
-        <div v-if="history.length > 0" class="tile bg-surface-inset">
+        <div v-if="history.length > 0" class="tile order-3 bg-surface-inset lean:order-none">
           <span class="label text-caption">Les fois d'avant</span>
           <div
             v-for="item in history"
@@ -618,17 +652,37 @@ const plannedMinutes = computed(() => {
            se montre qu'en édition, pour corriger le réalisé (§ 8, P12). -->
       <div
         v-if="!reading"
-        class="border-t border-line-soft pt-4 lean:border-t-0 lean:border-l lean:pt-0 lean:pl-6"
+        class="order-2 border-t border-line-soft pt-4 lean:order-none lean:border-t-0 lean:border-l lean:pt-0 lean:pl-6"
+        :class="
+          runnable ? 'max-lean:[&_.feedback-submit]:static' : 'max-lean:[&_.feedback-submit]:hidden'
+        "
       >
         <span class="label text-caption">{{
           done ? 'Corriger le réalisé' : 'Retour de séance'
         }}</span>
         <FeedbackForm
+          ref="feedbackForm"
           :session="session"
           :watch-zones="plan.pause?.watchZones ?? plan.lastWatchZones"
           @saved="emit('saved')"
         />
       </div>
+    </div>
+
+    <!-- Le pied de la feuille porte l'action du moment, sous le pouce et
+         au-dessus de la zone sûre : partir avant la séance, dire comment
+         elle s'est passée ensuite (P21). -->
+    <div
+      v-if="runnable || !reading"
+      class="sticky bottom-[calc(-18px-env(safe-area-inset-bottom))] z-10 -mx-[18px] -mb-[calc(18px+env(safe-area-inset-bottom))] border-t border-line bg-surface px-[18px] pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] lean:hidden"
+    >
+      <NuxtLink v-if="runnable" :to="`/en-course?seance=${session.id}`" class="btn btn-lg w-full">
+        <UiAppIcon :name="session.sport === 'velo' ? 'velo' : 'run'" :size="15" />
+        {{ session.sport === 'velo' ? 'Rouler' : 'Courir' }}
+      </NuxtLink>
+      <UiActionButton v-else class="btn btn-lg w-full" :action="saveFeedback">
+        Enregistrer le ressenti
+      </UiActionButton>
     </div>
   </div>
 </template>

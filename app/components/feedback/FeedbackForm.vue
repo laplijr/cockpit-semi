@@ -105,6 +105,9 @@ async function save() {
     error.value = apiMessage(cause, 'Enregistrement impossible.')
   }
 }
+
+/** La fenêtre de séance porte le bouton dans son pied au pouce, et l'appelle d'ici (P21). */
+defineExpose({ save })
 </script>
 
 <template>
@@ -233,7 +236,7 @@ async function save() {
     <!-- Une seule action principale, et elle reste sous le pouce : collée au
          bas de la feuille, elle ne demande pas de faire remonter le corps
          après le dernier champ (§ 8, P6.8). -->
-    <UiActionButton class="btn btn-lg sticky bottom-0 lean:static" :action="save">
+    <UiActionButton class="feedback-submit btn btn-lg sticky bottom-0 lean:static" :action="save">
       {{ action }}
     </UiActionButton>
   </div>
