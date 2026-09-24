@@ -146,3 +146,25 @@ export function sessionFigures(session: PlanSession): SessionFigure[] {
     return figure.value === before.value ? figure : { ...figure, planned: before.value }
   })
 }
+
+/** Sous cette part du prescrit, une séance faite garde sa coche, en ambre (P20). */
+export const COMPLIANCE_FLOOR = 0.8
+
+/**
+ * Le réalisé tombe sous 80 % du prescrit, mesuré là où la séance se mesure :
+ * la distance quand elle en prescrit une, la durée sinon. Sans mesure, on ne
+ * juge pas.
+ */
+export function isShortOfPrescription(session: PlanSession): boolean {
+  if (session.status !== 'faite') return false
+  if (session.prescription.totalDistanceM > 0 && session.actualDistanceM !== null) {
+    return session.actualDistanceM < session.prescription.totalDistanceM * COMPLIANCE_FLOOR
+  }
+  if (session.actualDurationMin === null) return false
+  return session.actualDurationMin < prescribedMinutes(session.prescription) * COMPLIANCE_FLOOR
+}
+
+/** Une séance prévue dont le jour est passé : ni faite ni sautée, elle attend son retour (P20). */
+export function isAwaitingFeedback(session: PlanSession, today: string): boolean {
+  return session.status === 'prevue' && session.date < today
+}

@@ -21,6 +21,7 @@ withDefaults(
 )
 
 const ui = useUiStore()
+const plan = usePlanStore()
 
 /**
  * Le seul chiffre de la cellule est celui du réalisé dès que la séance est
@@ -120,16 +121,28 @@ function figureOf(session: PlanSession): string {
           <span class="text-meta text-text-dim">Séance clé</span>
         </UiHoverBubble>
       </span>
-      <span class="mono flex items-center gap-1 pl-[19px] text-caption text-text-dim">
-        {{ figureOf(session) }}
-        <!-- « · faite » devient une coche : le mot ne s'écrit plus (§ 8, P6.35). -->
+      <span class="mono flex flex-wrap items-center gap-x-1 pl-[19px] text-caption text-text-dim">
+        <span class="whitespace-nowrap">{{ figureOf(session) }}</span>
+        <!-- « · faite » devient une coche : le mot ne s'écrit plus (§ 8, P6.35).
+             Sous 80 % du prescrit, la coche passe à l'ambre, sans légende (P20). -->
         <UiAppIcon
           v-if="session.status === 'faite'"
           name="check"
           :size="12"
-          class="text-ok"
-          label="Faite"
+          :class="isShortOfPrescription(session) ? 'text-warn' : 'text-ok'"
+          :label="isShortOfPrescription(session) ? 'Faite, sous le prescrit' : 'Faite'"
         />
+        <!-- Ni faite ni sautée, et son jour est passé : elle attend son retour (P20). -->
+        <span
+          v-else-if="isAwaitingFeedback(session, plan.today)"
+          class="flex items-baseline gap-1 text-warn wide:whitespace-nowrap"
+        >
+          <span
+            class="block h-[5px] w-[5px] shrink-0 self-center rounded-full bg-warn"
+            aria-hidden="true"
+          />
+          à renseigner
+        </span>
       </span>
     </div>
 
