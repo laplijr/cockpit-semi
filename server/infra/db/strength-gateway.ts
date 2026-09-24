@@ -1,10 +1,11 @@
 import { and, eq, inArray } from 'drizzle-orm'
-import type { StrengthGateway } from '../../application/record-strength-sets'
+import type { SessionEstimate, StrengthGateway } from '../../application/record-strength-sets'
+import { EstimateSource } from '../../domain/strength/estimated-max'
 import type { StrengthSetRecord } from '../../domain/strength/next-load'
 import type { Prescription } from '../../domain/shared/prescription'
 import type { Database } from './client'
 import { athleteWeekIds } from './plan-gateway'
-import { session, strengthSet } from './schema'
+import { session, strengthEstimate, strengthSet } from './schema'
 
 export function createStrengthGateway(db: Database, athleteId: number): StrengthGateway {
   const mine = () => athleteWeekIds(db, athleteId)
@@ -27,6 +28,42 @@ export function createStrengthGateway(db: Database, athleteId: number): Strength
       if (sets.length === 0) return
 
       await db.insert(strengthSet).values(sets.map((set) => ({ sessionId, ...set })))
+    },
+
+    /**
+     * Une séance ressaisie corrige son estimation au lieu d'en ajouter une :
+     * l'historique compte une estimation par séance et par exercice.
+     */
+    async saveSessionEstimates(sessionId: number, estimates: SessionEstimate[]) {
+      const [row] = await db
+        .select({ date: session.date })
+        .from(session)
+        .where(and(eq(session.id, sessionId), inArray(session.weekId, mine())))
+        .limit(1)
+      if (!row) return
+
+      for (const estimate of estimates) {
+        await db
+          .delete(strengthEstimate)
+          .where(
+            and(
+              eq(strengthEstimate.athleteId, athleteId),
+              eq(strengthEstimate.exerciseId, estimate.exerciseId),
+              eq(strengthEstimate.date, row.date),
+              eq(strengthEstimate.source, EstimateSource.Session),
+            ),
+          )
+      }
+      if (estimates.length === 0) return
+      await db.insert(strengthEstimate).values(
+        estimates.map((estimate) => ({
+          athleteId,
+          exerciseId: estimate.exerciseId,
+          maxKg: estimate.maxKg,
+          source: EstimateSource.Session,
+          date: row.date,
+        })),
+      )
     },
 
     async targetReps(sessionId: number): Promise<Record<string, number>> {

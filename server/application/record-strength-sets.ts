@@ -1,10 +1,18 @@
+import { LOAD_IMPLEMENTS, estimateFromSets } from '../domain/strength/estimated-max'
 import type { StrengthSetRecord } from '../domain/strength/next-load'
 import { nextLoadKg, nextRepsTarget } from '../domain/strength/next-load'
+
+export interface SessionEstimate {
+  exerciseId: string
+  maxKg: number
+}
 
 export interface StrengthGateway {
   saveSets(sessionId: number, sets: StrengthSetRecord[]): Promise<void>
   /** Répétitions prescrites par exercice, lues sur la séance elle-même. */
   targetReps(sessionId: number): Promise<Record<string, number>>
+  /** Les maximums estimés d'une séance, datés de son jour (P26). */
+  saveSessionEstimates(sessionId: number, estimates: SessionEstimate[]): Promise<void>
 }
 
 export interface NextLoad {
@@ -29,7 +37,23 @@ export async function recordStrengthSets(
 ): Promise<NextLoad[]> {
   const targets = await gateway.targetReps(sessionId)
   await gateway.saveSets(sessionId, sets)
+  await gateway.saveSessionEstimates(sessionId, estimatesFor(sets))
   return nextLoadsFor(sets, targets)
+}
+
+/**
+ * Une estimation par exercice chargé, tirée de sa meilleure série avec une
+ * réserve de 10 − RPE de la série (P26). La plus récente fait foi, pas la
+ * plus haute : après une pause, le maximum redescend avec ce qui a été tenu.
+ */
+export function estimatesFor(sets: StrengthSetRecord[]): SessionEstimate[] {
+  const exercises = [...new Set(sets.map((set) => set.exerciseId))]
+  return exercises
+    .filter((exerciseId) => LOAD_IMPLEMENTS[exerciseId] !== undefined)
+    .flatMap((exerciseId) => {
+      const maxKg = estimateFromSets(sets.filter((set) => set.exerciseId === exerciseId))
+      return maxKg === null ? [] : [{ exerciseId, maxKg }]
+    })
 }
 
 /** Charge suivante par exercice, à partir des séries saisies et du format visé. */
