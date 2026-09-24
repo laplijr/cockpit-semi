@@ -62,8 +62,10 @@ describe('gabarit de cadran (§ 8, P6.35)', () => {
     expect(mounted.find('div[role="button"]').exists()).toBe(false)
   })
 
-  it('porte le chiffre à 56 px', async () => {
-    expect((await dial()).get('.display').classes()).toContain('text-display-xl')
+  it('porte le chiffre à 56 px, 38 au pouce', async () => {
+    const classes = (await dial()).get('.display').classes()
+    expect(classes).toContain('lean:text-display-xl')
+    expect(classes).toContain('text-display-l')
   })
 
   it('n’affiche qu’une métadonnée mono sous le chiffre', async () => {

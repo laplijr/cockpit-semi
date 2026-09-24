@@ -37,7 +37,7 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
     </div>
     <UiSkeleton variant="number" />
     <UiSkeleton :height="15" width="164px" />
-    <UiSkeleton variant="block" :height="10" />
+    <UiSkeleton variant="block" :height="10" class="hidden lean:block" />
   </div>
 
   <button
@@ -47,13 +47,13 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
     style="border-color: rgba(242, 162, 58, 0.35)"
     @click="ui.openDial('course-a')"
   >
-    <span class="flex items-baseline justify-between gap-2">
-      <span class="label truncate"
+    <span class="flex min-w-0 items-baseline justify-between gap-2">
+      <span class="label min-w-0 truncate"
         ><UiInfoHint term="courseA">Course A</UiInfoHint> · {{ race.name }}</span
       >
     </span>
 
-    <span class="display text-display-xl leading-none font-bold text-accent"
+    <span class="display text-display-l lean:text-display-xl leading-none font-bold text-accent"
       >J−{{ countdown }}</span
     >
 
@@ -70,7 +70,7 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
     </span>
 
     <!-- L'échelle situe le décompte : la confiance de tenir l'objectif. -->
-    <span class="relative block h-[10px]">
+    <span class="relative hidden lean:block h-[10px]">
       <span class="absolute inset-x-0 top-[4px] h-[3px] rounded-sm bg-accent-track" />
       <span
         v-if="race.confidencePct !== null"
@@ -87,14 +87,16 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
       <span class="label"><UiInfoHint term="courseA">Course A</UiInfoHint></span>
     </div>
 
-    <span class="display text-display-xl leading-none font-bold text-text-dim">—</span>
+    <span class="display text-display-l lean:text-display-xl leading-none font-bold text-text-dim"
+      >—</span
+    >
 
     <div class="flex items-baseline gap-4">
       <span class="mono text-meta text-text-dim">aucune course à venir</span>
       <NuxtLink to="/courses" class="mono ml-auto text-meta text-accent">en ajouter</NuxtLink>
     </div>
 
-    <div class="relative h-[10px]">
+    <div class="relative hidden h-[10px] lean:block">
       <span class="absolute inset-x-0 top-[4px] h-[3px] rounded-sm bg-accent-track" />
     </div>
   </div>

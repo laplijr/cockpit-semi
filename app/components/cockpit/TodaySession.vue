@@ -6,7 +6,11 @@ import type { PlanSession } from '~/stores/plan'
  * son nom à 38 px et trois chiffres, rien d'autre. La zone est un bouton et
  * « Ressenti » reste à côté — pas de bouton dans un bouton.
  */
-const props = defineProps<{ session: PlanSession }>()
+const props = defineProps<{
+  session: PlanSession
+  /** La prochaine action du jour : la seule ligne dont le bouton est plein (P21). */
+  primary: boolean
+}>()
 
 const ui = useUiStore()
 const plan = usePlanStore()
@@ -90,14 +94,16 @@ const runHref = computed(() => {
       <span v-if="done" class="pill pill-done shrink-0">faite</span>
       <span v-else-if="session.status === 'sautee'" class="pill shrink-0">manquée</span>
 
-      <span class="flex w-full shrink-0 justify-between gap-5 lean:w-auto lean:justify-start">
+      <span
+        class="flex w-full shrink-0 justify-between gap-3 lean:w-auto lean:gap-5 lean:justify-start"
+      >
         <span
           v-for="figure in figures"
           :key="figure.key"
           class="flex flex-col items-start lean:items-end"
         >
-          <span class="mono text-title">{{ figure.value }}</span>
-          <span class="label text-caption">{{ figure.label }}</span>
+          <span class="mono text-title whitespace-nowrap">{{ figure.value }}</span>
+          <span class="label text-caption whitespace-nowrap">{{ figure.label }}</span>
           <span v-if="figure.planned" class="mono text-caption text-text-dim">
             prévu {{ figure.planned }}
           </span>
@@ -106,8 +112,14 @@ const runHref = computed(() => {
     </button>
 
     <!-- Une seule action principale par ligne : quand il y a une sortie à
-         courir, c'est elle, et le ressenti passe en fantôme (§ 8). -->
-    <NuxtLink v-if="runnable" :to="runHref" class="btn w-full shrink-0 lean:w-auto">
+         courir, c'est elle, et le ressenti passe en fantôme (§ 8). Et une
+         seule par tuile : celle de la prochaine séance du jour (P21). -->
+    <NuxtLink
+      v-if="runnable"
+      :to="runHref"
+      class="btn w-full shrink-0 lean:w-auto"
+      :class="!primary && 'btn-ghost'"
+    >
       <UiAppIcon :name="riding ? 'velo' : 'run'" :size="15" />
       <template v-if="pending">Terminer l'enregistrement</template>
       <template v-else-if="live">Reprendre · {{ formatDistance(live.distanceM) }}</template>
@@ -117,7 +129,7 @@ const runHref = computed(() => {
     <button
       type="button"
       class="btn w-full shrink-0 lean:w-auto"
-      :class="(done || runnable) && 'btn-ghost'"
+      :class="(done || runnable || !primary) && 'btn-ghost'"
       @click="ui.openModal('seance', session.id)"
     >
       Ressenti

@@ -107,6 +107,9 @@ export interface PlanPayload {
   todaySessions: PlanSession[]
 }
 
+/** Rang d'un sport dans la journée : on court avant de soulever (§ 5, G2). */
+const DAY_ORDER: Record<string, number> = { course: 0, velo: 1, autre: 2, muscu: 3 }
+
 export const usePlanStore = defineStore('plan', () => {
   const payload = ref<PlanPayload>()
   const pending = ref(false)
@@ -142,7 +145,15 @@ export const usePlanStore = defineStore('plan', () => {
   const today = computed(() => payload.value?.today ?? '')
   const plan = computed(() => payload.value?.plan ?? null)
   const pause = computed(() => payload.value?.pause ?? null)
-  const todaySessions = computed(() => payload.value?.todaySessions ?? [])
+  /**
+   * Dans l'ordre de la journée : la course d'abord, la muscu le soir (§ 5, G2).
+   * C'est cet ordre qui désigne la prochaine action du jour (P21).
+   */
+  const todaySessions = computed(() =>
+    [...(payload.value?.todaySessions ?? [])].sort(
+      (a, b) => (DAY_ORDER[a.sport] ?? 2) - (DAY_ORDER[b.sport] ?? 2),
+    ),
+  )
   /** Zones à surveiller héritées de la dernière pause, même refermée (§ 0). */
   const lastWatchZones = computed(() => payload.value?.watchZones ?? [])
 

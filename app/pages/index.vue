@@ -81,19 +81,22 @@ const pending = computed(() => {
  */
 const dialColumns = ref(4)
 
+/** Deux colonnes sous `wide`, téléphone compris : la rangée tient en 2 × 2 (P21). */
 onMounted(() => {
   const wide = window.matchMedia('(min-width: 1280px)')
-  const lean = window.matchMedia('(min-width: 768px)')
-  const measure = () => (dialColumns.value = wide.matches ? 4 : lean.matches ? 2 : 1)
+  const measure = () => (dialColumns.value = wide.matches ? 4 : 2)
 
   measure()
   wide.addEventListener('change', measure)
-  lean.addEventListener('change', measure)
-  onBeforeUnmount(() => {
-    wide.removeEventListener('change', measure)
-    lean.removeEventListener('change', measure)
-  })
+  onBeforeUnmount(() => wide.removeEventListener('change', measure))
 })
+
+/** La première séance du jour qui reste à faire porte le seul bouton plein (P21). */
+const nextSessionId = computed(
+  () =>
+    plan.todaySessions.find((session) => !['faite', 'sautee', 'annulee'].includes(session.status))
+      ?.id,
+)
 
 const currentWeekSessions = computed(() =>
   plan.currentWeek ? (plan.sessionsByWeek.get(plan.currentWeek.id) ?? []) : [],
@@ -160,6 +163,7 @@ async function onResume() {
             v-for="session in plan.todaySessions"
             :key="session.id"
             :session="session"
+            :primary="session.id === nextSessionId"
           />
         </template>
         <p v-else class="text-body text-text-dim">Repos aujourd'hui.</p>
@@ -196,7 +200,7 @@ async function onResume() {
     </section>
 
     <!-- Course A est le seul cadran qui est un but, pas une mesure (§ 9, P5.19). -->
-    <section class="fold-4 grid gap-4 wide:grid-cols-[1.15fr_1fr_1fr_1fr]">
+    <section class="fold-4 dial-row grid gap-4 wide:grid-cols-[1.15fr_1fr_1fr_1fr]">
       <!-- Le décompte se compte depuis aujourd'hui : sans le plan, pas de J−. -->
       <CockpitRaceDial
         :race="raceA"

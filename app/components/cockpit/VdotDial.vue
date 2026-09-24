@@ -41,19 +41,19 @@ const line = computed(() => {
     </div>
     <UiSkeleton variant="number" />
     <UiSkeleton :height="15" width="72px" />
-    <UiSkeleton variant="block" :height="14" />
+    <UiSkeleton variant="block" :height="14" class="hidden lean:block" />
   </div>
 
   <button v-else type="button" class="tile dial tile-action text-left" @click="ui.openDial('vdot')">
-    <span class="flex items-baseline justify-between gap-2">
-      <span class="label">
+    <span class="flex min-w-0 items-baseline justify-between gap-2">
+      <span class="label min-w-0 truncate">
         <UiInfoHint :term="isFloor ? 'plancher' : 'vdot'">{{ label }}</UiInfoHint>
       </span>
     </span>
 
     <!-- Une estimation basse se lit à la couleur du chiffre : la pastille sort (§ 8, P6.35). -->
     <span
-      class="display text-display-xl leading-none font-bold"
+      class="display text-display-l lean:text-display-xl leading-none font-bold"
       :class="{ 'text-warn': isFloor, 'text-text-dim': vdot === null }"
     >
       {{ vdot === null ? '—' : vdot.toFixed(1).replace('.', ',') }}
@@ -63,7 +63,12 @@ const line = computed(() => {
     <span class="mono text-meta text-text-dim">{{ fitness?.point?.verdict ?? '—' }}</span>
 
     <!-- L'échelle situe le chiffre : la tendance des points de forme. -->
-    <svg v-if="line" viewBox="0 0 100 20" preserveAspectRatio="none" class="h-[14px] w-full">
+    <svg
+      v-if="line"
+      viewBox="0 0 100 20"
+      preserveAspectRatio="none"
+      class="hidden h-[14px] w-full lean:block"
+    >
       <polyline
         :points="line"
         fill="none"
@@ -73,7 +78,7 @@ const line = computed(() => {
         stroke-linejoin="round"
       />
     </svg>
-    <span v-else class="block h-[14px]">
+    <span v-else class="hidden h-[14px] lean:block">
       <span class="mt-[6px] block h-px bg-line" />
     </span>
   </button>

@@ -26,7 +26,7 @@ const SEGMENTS = [
     </div>
     <UiSkeleton variant="number" />
     <UiSkeleton :height="15" width="72px" />
-    <UiSkeleton variant="block" :height="14" />
+    <UiSkeleton variant="block" :height="14" class="hidden lean:block" />
   </div>
 
   <button
@@ -35,11 +35,13 @@ const SEGMENTS = [
     class="tile dial tile-action text-left"
     @click="ui.openDial('forme')"
   >
-    <span class="flex items-baseline justify-between gap-2">
-      <span class="label"><UiInfoHint term="formeDuJour">Forme du jour</UiInfoHint></span>
+    <span class="flex min-w-0 items-baseline justify-between gap-2">
+      <span class="label min-w-0 truncate"
+        ><UiInfoHint term="formeDuJour">Forme du jour</UiInfoHint></span
+      >
     </span>
 
-    <span class="display text-display-xl leading-none font-bold" :class="tone">
+    <span class="display text-display-l lean:text-display-xl leading-none font-bold" :class="tone">
       {{ data?.score ?? '—' }}
     </span>
 
@@ -47,7 +49,7 @@ const SEGMENTS = [
     <span class="mono text-meta text-text-dim">{{ data?.verdict ?? 'sur 100' }}</span>
 
     <!-- L'échelle situe le chiffre : trois segments et le repère du score. -->
-    <span class="relative block h-[14px]">
+    <span class="relative hidden lean:block h-[14px]">
       <span
         v-for="segment in SEGMENTS"
         :key="segment.key"

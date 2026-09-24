@@ -31,7 +31,7 @@ const tone = computed(() => {
     </div>
     <UiSkeleton variant="number" />
     <UiSkeleton :height="15" width="72px" />
-    <UiSkeleton variant="block" :height="14" />
+    <UiSkeleton variant="block" :height="14" class="hidden lean:block" />
   </div>
 
   <button
@@ -40,11 +40,13 @@ const tone = computed(() => {
     class="tile dial tile-action text-left"
     @click="ui.openDial('charge')"
   >
-    <span class="flex items-baseline justify-between gap-2">
-      <span class="label"><UiInfoHint term="chargeCombinee">Charge combinée</UiInfoHint></span>
+    <span class="flex min-w-0 items-baseline justify-between gap-2">
+      <span class="label min-w-0 truncate"
+        ><UiInfoHint term="chargeCombinee">Charge combinée</UiInfoHint></span
+      >
     </span>
 
-    <span class="display text-display-xl leading-none font-bold" :class="tone">
+    <span class="display text-display-l lean:text-display-xl leading-none font-bold" :class="tone">
       {{ data?.ratio ? data.ratio.ratio.toFixed(2).replace('.', ',') : '—' }}
     </span>
 
@@ -53,7 +55,7 @@ const tone = computed(() => {
     </span>
 
     <!-- L'échelle situe le chiffre : bande de référence, repère à la couleur de l'état. -->
-    <span class="relative block h-[14px]">
+    <span class="relative hidden lean:block h-[14px]">
       <span class="absolute inset-x-0 top-[6px] h-px bg-line" />
       <span
         class="absolute top-[3px] h-[7px] rounded-sm"
