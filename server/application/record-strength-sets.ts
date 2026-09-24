@@ -13,6 +13,10 @@ export interface StrengthGateway {
   targetReps(sessionId: number): Promise<Record<string, number>>
   /** Les maximums estimés d'une séance, datés de son jour (P26). */
   saveSessionEstimates(sessionId: number, estimates: SessionEstimate[]): Promise<void>
+  /** Une série cochée en salle : elle s'écrit seule, tout de suite (P27). */
+  saveSet(sessionId: number, set: StrengthSetRecord): Promise<void>
+  removeSet(sessionId: number, exerciseId: string, index: number): Promise<void>
+  setsOf(sessionId: number): Promise<StrengthSetRecord[]>
 }
 
 export interface NextLoad {
@@ -39,6 +43,31 @@ export async function recordStrengthSets(
   await gateway.saveSets(sessionId, sets)
   await gateway.saveSessionEstimates(sessionId, estimatesFor(sets))
   return nextLoadsFor(sets, targets)
+}
+
+/**
+ * Une série cochée en salle (P27) : fermer l'onglet ou verrouiller le
+ * téléphone ne perd rien, la séance reprend à la première série non cochée.
+ * L'estimation suit la séance au fil des séries.
+ */
+export async function recordStrengthSet(
+  gateway: StrengthGateway,
+  sessionId: number,
+  set: StrengthSetRecord,
+): Promise<void> {
+  await gateway.saveSet(sessionId, set)
+  await gateway.saveSessionEstimates(sessionId, estimatesFor(await gateway.setsOf(sessionId)))
+}
+
+/** Une série décochée : elle sort de la séance, et l'estimation se recalcule sans elle. */
+export async function removeStrengthSet(
+  gateway: StrengthGateway,
+  sessionId: number,
+  exerciseId: string,
+  index: number,
+): Promise<void> {
+  await gateway.removeSet(sessionId, exerciseId, index)
+  await gateway.saveSessionEstimates(sessionId, estimatesFor(await gateway.setsOf(sessionId)))
 }
 
 /**

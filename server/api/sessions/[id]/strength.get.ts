@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { nextFormatsFor, nextLoadsFor } from '../../../application/record-strength-sets'
 import type { Prescription } from '../../../domain/shared/prescription'
 import {
+  EstimateSource,
   LOAD_IMPLEMENTS,
   LoadImplement,
   estimateFromSets,
@@ -15,7 +16,7 @@ import { useDatabase } from '../../../infra/db/client'
 import { athleteWeekIds } from '../../../infra/db/plan-gateway'
 import { session, strengthSet } from '../../../infra/db/schema'
 import { loadCurrentEstimates } from '../../../infra/db/strength-estimates'
-import { currentAthleteId } from '../../../utils/context'
+import { currentAthleteId, systemClock } from '../../../utils/context'
 import { ownedSession } from '../../../utils/scope'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
@@ -38,6 +39,12 @@ export interface StrengthExerciseState {
   toCalibrate: boolean
   /** Disques d'un côté de la barre, pour un exercice à la barre. */
   plates: number[] | null
+  /** Les séries de la fois d'avant : la colonne « Précédent » de la salle (P27). */
+  previousSets: { index: number; reps: number; loadKg: number }[]
+  /** Les séries déjà cochées de cette séance : on reprend à la première qui manque. */
+  recordedSets: { index: number; reps: number; loadKg: number; rpe: number }[]
+  /** Calé aujourd'hui : le calage a tenu lieu d'échauffement. */
+  calibratedToday: boolean
 }
 
 type PreviousSet = {
@@ -66,7 +73,7 @@ export default defineEventHandler(async (event) => {
   const targets = steps.filter((step) => step.exerciseId && step.reps !== undefined)
   const exerciseIds = targets.map((step) => step.exerciseId!)
 
-  const [prior, estimates] = await Promise.all([
+  const [prior, estimates, recorded] = await Promise.all([
     exerciseIds.length === 0
       ? Promise.resolve([] as PreviousSet[])
       : db
@@ -90,7 +97,18 @@ export default defineEventHandler(async (event) => {
           )
           .orderBy(desc(session.date), desc(session.id)),
     loadCurrentEstimates(db, athleteId),
+    db
+      .select({
+        exerciseId: strengthSet.exerciseId,
+        index: strengthSet.index,
+        reps: strengthSet.reps,
+        loadKg: strengthSet.loadKg,
+        rpe: strengthSet.rpe,
+      })
+      .from(strengthSet)
+      .where(eq(strengthSet.sessionId, current.id)),
   ])
+  const today = systemClock.today()
 
   const exercises: StrengthExerciseState[] = targets.map((step) => {
     const exerciseId = step.exerciseId!
@@ -138,6 +156,16 @@ export default defineEventHandler(async (event) => {
         LOAD_IMPLEMENTS[exerciseId] === LoadImplement.Barbell && suggestedLoadKg !== null
           ? plateBreakdown(suggestedLoadKg)
           : null,
+      previousSets: previousSets
+        .map((set) => ({ index: set.index, reps: set.reps, loadKg: set.loadKg }))
+        .sort((a, b) => a.index - b.index),
+      recordedSets: recorded
+        .filter((set) => set.exerciseId === exerciseId)
+        .map((set) => ({ index: set.index, reps: set.reps, loadKg: set.loadKg, rpe: set.rpe }))
+        .sort((a, b) => a.index - b.index),
+      calibratedToday:
+        estimates.get(exerciseId)?.source === EstimateSource.Calibration &&
+        estimates.get(exerciseId)?.date === today,
     }
   })
 

@@ -30,6 +30,44 @@ export function createStrengthGateway(db: Database, athleteId: number): Strength
       await db.insert(strengthSet).values(sets.map((set) => ({ sessionId, ...set })))
     },
 
+    async saveSet(sessionId: number, set: StrengthSetRecord) {
+      if (!(await owns(sessionId))) return
+      await db
+        .insert(strengthSet)
+        .values({ sessionId, ...set })
+        .onConflictDoUpdate({
+          target: [strengthSet.sessionId, strengthSet.exerciseId, strengthSet.index],
+          set: { reps: set.reps, loadKg: set.loadKg, rpe: set.rpe },
+        })
+    },
+
+    async removeSet(sessionId: number, exerciseId: string, index: number) {
+      if (!(await owns(sessionId))) return
+      await db
+        .delete(strengthSet)
+        .where(
+          and(
+            eq(strengthSet.sessionId, sessionId),
+            eq(strengthSet.exerciseId, exerciseId),
+            eq(strengthSet.index, index),
+          ),
+        )
+    },
+
+    async setsOf(sessionId: number): Promise<StrengthSetRecord[]> {
+      if (!(await owns(sessionId))) return []
+      return db
+        .select({
+          exerciseId: strengthSet.exerciseId,
+          index: strengthSet.index,
+          reps: strengthSet.reps,
+          loadKg: strengthSet.loadKg,
+          rpe: strengthSet.rpe,
+        })
+        .from(strengthSet)
+        .where(eq(strengthSet.sessionId, sessionId))
+    },
+
     /**
      * Une séance ressaisie corrige son estimation au lieu d'en ajouter une :
      * l'historique compte une estimation par séance et par exercice.
