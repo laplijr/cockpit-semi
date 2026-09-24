@@ -17,6 +17,8 @@ import {
 import { strengthPerPhase } from '../../domain/plan/week-support'
 import { equipmentOf, strengthIntentOf } from '../../domain/athlete/constraints'
 import { EQUIPMENT_LABELS } from '../../domain/strength/equipment'
+import { MUSCLE_LABELS } from '../../domain/strength/muscles'
+import { STRENGTH_TECHNIQUE } from '../../domain/strength/technique'
 import type { AthleteConstraints } from '../../domain/athlete/constraints'
 import { PhaseType } from '../../domain/plan/phases'
 import { useDatabase } from '../../infra/db/client'
@@ -84,6 +86,9 @@ export default defineEventHandler(async (event) => {
     recoveryByEffort: EFFORT_RECOVERY_S,
     restFactor: STRENGTH_DOSES[strengthPhase].restFactor,
     exercises: STRENGTH_EXERCISES,
+    /** Comment faire chaque exercice : écrit une fois, relu par Ronan (P25). */
+    technique: STRENGTH_TECHNIQUE,
+    muscleLabels: MUSCLE_LABELS,
     lastLoadsKg,
     lastReps,
     equipment,
