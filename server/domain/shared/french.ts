@@ -30,3 +30,22 @@ export function frenchShortDate(iso: string): string {
   const [, month, day] = iso.split('-').map(Number)
   return `${day} ${MONTHS[month! - 1]}`
 }
+
+/** « +0,6 », « −0,3 », « 0,0 » : le signe moins typographique, comme à l'écran. */
+export function frenchSignedDecimal(value: number, digits: number): string {
+  const rounded = Number(value.toFixed(digits))
+  const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : ''
+  return `${sign}${Math.abs(rounded).toFixed(digits).replace('.', ',')}`
+}
+
+/** « +0:45 », « −1:02:03 » : un écart de chrono, au format de la montre. */
+export function frenchSignedDuration(seconds: number): string {
+  const total = Math.round(Math.abs(seconds))
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const rest = String(total % 60).padStart(2, '0')
+  const body =
+    hours === 0 ? `${minutes}:${rest}` : `${hours}:${String(minutes).padStart(2, '0')}:${rest}`
+  const sign = Math.round(seconds) > 0 ? '+' : Math.round(seconds) < 0 ? '−' : ''
+  return `${sign}${body}`
+}

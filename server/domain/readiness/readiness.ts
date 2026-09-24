@@ -37,6 +37,8 @@ export interface ReadinessInput {
 export interface Readiness {
   score: number
   state: ReadinessState
+  /** L'état en un mot, pour le cadran : le chiffre seul ne dit pas si on est prêt (P20). */
+  verdict: string
   /** Ce qui tire le score vers le bas, du plus pesant au moins pesant. */
   causes: string[]
   suggestion: string
@@ -83,6 +85,12 @@ function stateOf(score: number): ReadinessState {
   return ReadinessState.Rest
 }
 
+const VERDICTS: Record<ReadinessState, string> = {
+  [ReadinessState.Ready]: 'prêt',
+  [ReadinessState.Caution]: 'vigilance',
+  [ReadinessState.Rest]: 'repos',
+}
+
 const SUGGESTIONS: Record<ReadinessState, string> = {
   [ReadinessState.Ready]: 'Séance prévue telle quelle. Rien à ajuster.',
   [ReadinessState.Caution]:
@@ -116,5 +124,5 @@ export function readiness(input: ReadinessInput): Readiness {
     causes.push(`Charge hors zone de référence (${input.loadRatio.toFixed(2).replace('.', ',')})`)
   }
 
-  return { score, state, causes, suggestion: SUGGESTIONS[state] }
+  return { score, state, verdict: VERDICTS[state], causes, suggestion: SUGGESTIONS[state] }
 }

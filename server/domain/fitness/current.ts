@@ -1,4 +1,5 @@
 import type { IsoDate } from '../plan/calendar'
+import { frenchSignedDecimal } from '../shared/french'
 
 /**
  * Au-delà de cette ancienneté, un point de forme ne mesure plus rien : il
@@ -50,4 +51,22 @@ export function currentFitnessOf(
   const measured = fresh.find((point) => !point.isFloor)
   const chosen = measured ?? fresh[0]!
   return { date: chosen.date, vdot: chosen.vdot, isFloor: chosen.isFloor }
+}
+
+/**
+ * Le point courant en mots, pour le cadran (P20) : sa nature, puis l'écart au
+ * point de forme qui le précède. « mesuré · +0,6 », « plancher » pour le
+ * premier point.
+ */
+export function fitnessVerdict(
+  points: readonly FitnessPointLike[],
+  current: CurrentFitness,
+): string {
+  const nature = current.isFloor ? 'plancher' : 'mesuré'
+  const previous = [...points]
+    .filter((point) => point.date < current.date)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .at(0)
+  if (!previous) return nature
+  return `${nature} · ${frenchSignedDecimal(current.vdot - previous.vdot, 1)}`
 }

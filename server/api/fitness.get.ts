@@ -1,5 +1,5 @@
 import { desc, eq } from 'drizzle-orm'
-import { currentFitnessOf } from '../domain/fitness/current'
+import { currentFitnessOf, fitnessVerdict } from '../domain/fitness/current'
 import { useDatabase } from '../infra/db/client'
 import { fitnessPoint } from '../infra/db/schema'
 import { currentAthleteId, systemClock } from '../utils/context'
@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
       origin: row?.origin ?? null,
       date: current.date,
       note: row?.note ?? null,
+      verdict: fitnessVerdict(rows, current),
     },
   }
 })

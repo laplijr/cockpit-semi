@@ -43,7 +43,8 @@ const SEGMENTS = [
       {{ data?.score ?? '—' }}
     </span>
 
-    <span class="mono text-meta text-text-dim">sur 100</span>
+    <!-- Le mot remplace « sur 100 » : le chiffre seul ne dit pas si on est prêt (P20). -->
+    <span class="mono text-meta text-text-dim">{{ data?.verdict ?? 'sur 100' }}</span>
 
     <!-- L'échelle situe le chiffre : trois segments et le repère du score. -->
     <span class="relative block h-[14px]">

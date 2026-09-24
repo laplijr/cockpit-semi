@@ -13,6 +13,7 @@ interface RaceRow {
   projectionHighS: number | null
   projectionIsFloor: boolean | null
   gapS: number | null
+  verdict: string | null
   confidencePct: number | null
   objectiveToSet: boolean
 }
@@ -56,22 +57,16 @@ const countdown = computed(() => (props.race ? daysUntil(props.race.date, props.
       >J−{{ countdown }}</span
     >
 
-    <!-- Une seule métadonnée : l'objectif et sa projection. La confiance est
-         l'échelle, la date se lit dans le décompte (§ 8, P6.35). -->
-    <span class="mono text-meta text-text-dim">
+    <!-- Une seule métadonnée : l'écart de la projection à sa cible, en mots —
+         la paire nue se lisait comme un intervalle (P20). Les deux chrono
+         vivent dans le dialog, la confiance est l'échelle. -->
+    <span
+      class="mono text-meta"
+      :class="race.projectionIsFloor && race.verdict ? 'text-warn' : 'text-text-dim'"
+    >
       <template v-if="race.objectiveToSet">objectif à fixer</template>
-      <template v-else-if="race.objectiveMode === 'record'">
-        record {{ formatDuration(race.recordS) }} →
-        <span :class="race.projectionIsFloor ? 'text-warn' : 'text-text'">
-          {{ formatDuration(race.projectionS) }}
-        </span>
-      </template>
-      <template v-else>
-        {{ formatDuration(race.objectifS) }} →
-        <span :class="race.projectionIsFloor ? 'text-warn' : 'text-text'">
-          {{ formatDuration(race.projectionS) }}
-        </span>
-      </template>
+      <template v-else-if="race.verdict">{{ race.verdict }}</template>
+      <template v-else>projection à venir</template>
     </span>
 
     <!-- L'échelle situe le décompte : la confiance de tenir l'objectif. -->

@@ -3,9 +3,15 @@ const props = defineProps<{ vdot: number | null; isFloor: boolean; loading?: boo
 
 const ui = useUiStore()
 const { data, status } = useFetch('/api/progression', { lazy: true, server: false })
+const { data: fitness, status: fitnessStatus } = useFetch('/api/fitness', {
+  lazy: true,
+  server: false,
+})
 
 /** Le titre lui-même dépend du plan : sans lui, il est encore inconnu (§ 8). */
-const loading = computed(() => props.loading || isLoading(status.value))
+const loading = computed(
+  () => props.loading || isLoading(status.value) || isLoading(fitnessStatus.value),
+)
 
 const label = computed(() => (props.isFloor ? 'Plancher' : 'VDOT'))
 
@@ -53,9 +59,8 @@ const line = computed(() => {
       {{ vdot === null ? '—' : vdot.toFixed(1).replace('.', ',') }}
     </span>
 
-    <span class="mono text-meta text-text-dim">
-      {{ points.length }} point{{ points.length > 1 ? 's' : '' }}
-    </span>
+    <!-- La nature du point et l'écart au précédent, au lieu du nombre de points (P20). -->
+    <span class="mono text-meta text-text-dim">{{ fitness?.point?.verdict ?? '—' }}</span>
 
     <!-- L'échelle situe le chiffre : la tendance des points de forme. -->
     <svg v-if="line" viewBox="0 0 100 20" preserveAspectRatio="none" class="h-[14px] w-full">

@@ -66,6 +66,15 @@ export interface LoadRatio {
   chronic: number
   ratio: number
   inReferenceZone: boolean
+  /** Le ratio en mots de coureur, bornes de `RATIO_REFERENCE` (P20). */
+  verdict: string
+}
+
+/** Sous la bande, dans la bande, au-dessus : ce que le chiffre veut dire. */
+export function loadVerdict(ratio: number): string {
+  if (ratio < RATIO_REFERENCE.low) return 'charge basse'
+  if (ratio > RATIO_REFERENCE.high) return 'charge haute'
+  return 'charge tenue'
 }
 
 /**
@@ -96,6 +105,7 @@ export function loadRatio(
     chronic: Math.round(chronic),
     ratio: Math.round(ratio * 100) / 100,
     inReferenceZone: ratio >= RATIO_REFERENCE.low && ratio <= RATIO_REFERENCE.high,
+    verdict: loadVerdict(ratio),
   }
 }
 

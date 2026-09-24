@@ -49,7 +49,7 @@ const tone = computed(() => {
     </span>
 
     <span class="mono text-meta text-text-dim">
-      {{ data?.ratio ? '7 j / 21 j' : `encore ${missingDays} j` }}
+      {{ data?.ratio ? data.ratio.verdict : `encore ${missingDays} j` }}
     </span>
 
     <!-- L'échelle situe le chiffre : bande de référence, repère à la couleur de l'état. -->

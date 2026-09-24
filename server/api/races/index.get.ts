@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { confidence } from '../../domain/fitness/confidence'
-import { objectiveIsUnset, proposeLevels } from '../../domain/fitness/objective'
+import { objectiveIsUnset, projectionVerdict, proposeLevels } from '../../domain/fitness/objective'
 import { ObjectiveMode, RaceStatus } from '../../domain/races/race'
 import { canRecordResult } from '../../domain/races/result'
 import { useDatabase } from '../../infra/db/client'
@@ -63,6 +63,7 @@ export default defineEventHandler(async (event) => {
         projectionIsFloor: null,
         proposedLevels: null,
         gapS: null,
+        verdict: null,
         confidencePct: null,
         confidenceAmbitionPct: null,
         confidencePlancherPct: null,
@@ -73,6 +74,7 @@ export default defineEventHandler(async (event) => {
     // seconde loi : en mode record, la cible est le record (§ 9, P5.15).
     const confidenceFor = (targetS: number | null) => confidence(projection, { targetS })
     const realisticTargetS = record ? record.resultatS : row.objectifS
+    const gapS = realisticTargetS === null ? null : projection.timeS - realisticTargetS
 
     return {
       ...base,
@@ -81,7 +83,8 @@ export default defineEventHandler(async (event) => {
       projectionHighS: projection.highS,
       projectionIsFloor: context.fitness!.isFloor,
       proposedLevels: proposeLevels(projection),
-      gapS: realisticTargetS === null ? null : projection.timeS - realisticTargetS,
+      gapS,
+      verdict: gapS === null ? null : projectionVerdict(gapS, record ? 'record' : 'objectif'),
       confidencePct: confidenceFor(realisticTargetS),
       confidenceAmbitionPct: confidenceFor(row.objectifAmbitionS),
       confidencePlancherPct: confidenceFor(row.objectifPlancherS),
