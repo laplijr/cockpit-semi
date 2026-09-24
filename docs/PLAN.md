@@ -1457,24 +1457,24 @@ P21 — Le téléphone ouvre sur la journée
 
 Même revue, à 375 px. Les quatre gestes que le § 8 veut excellents au pouce le sont presque ; ce qui reste, c'est la place qu'ils prennent. Le cockpit mesure 2 114 px : les quatre cadrans empilés en occupent environ 600 avant « À décider ». La fenêtre d'une séance défile sur 2 262 px, avec le retour de séance à la fin. Et « Démarrer » se cache sous dix lignes d'étapes. Deux cases demandent un arbitrage de Ronan **avant** d'être prises, parce qu'elles amendent une règle du § 8.
 
-- [ ] **Les cadrans tiennent sur deux colonnes au téléphone.** Sous `lean`, la rangée des instruments passe en 2 × 2 compact : titre, grand chiffre et mot de P20 ; l'échelle descend dans le dialog. Le premier écran montre alors « Aujourd'hui » et les quatre lectures. L'ordre ne change pas. **Amende le § 8** (« quatre colonnes, puis deux, puis une ») pour cette seule rangée : à consigner dans le § 8.
-- [ ] **Un seul bouton plein dans la tuile Aujourd'hui.** Le 24 nov., « Courir » (VMA) et « Ressenti » (Legs) sont pleins tous les deux ; au téléphone, ils s'empilent en deux grandes barres accent. La règle « une action principale » vaut pour la tuile. Seule la prochaine action du jour est pleine (la première séance non faite, dans l'ordre de la journée), les autres sont fantômes. Vaut aux deux largeurs.
-- [ ] **La case d'une décision redevient une case.** Sous `lean`, `.tap` agrandit la case native elle-même à 44 × 44 : trois carrés gris qui écrasent leurs lignes. La cible de 44 px est portée par un `label` autour d'une case visuelle de 20 px ; la rangée garde sa hauteur de P13.
-- [ ] **Au pouce, la fenêtre d'une séance commence par ce qu'on vient y faire.** Sous `lean`, l'ordre devient :
+- [x] **Les cadrans tiennent sur deux colonnes au téléphone.** Sous `lean`, la rangée des instruments passe en 2 × 2 compact : titre, grand chiffre et mot de P20 ; l'échelle descend dans le dialog. Le premier écran montre alors « Aujourd'hui » et les quatre lectures. L'ordre ne change pas. **Amende le § 8** (« quatre colonnes, puis deux, puis une ») pour cette seule rangée : à consigner dans le § 8. **Fait**, consigné au § 8 : classe `dial-row`, chiffre à 38 px, échelle masquée, cadran resserré (12 × 14 px de marge, 4 px entre les lignes) et titres tronqués sur une ligne ; les chiffres de la tuile Aujourd'hui ne passent plus à la ligne (« 1 h 13 » tenait sur deux). Le quatrième cadran finit à 748 px, la barre du bas commence à 752.
+- [x] **Un seul bouton plein dans la tuile Aujourd'hui.** Le 24 nov., « Courir » (VMA) et « Ressenti » (Legs) sont pleins tous les deux ; au téléphone, ils s'empilent en deux grandes barres accent. La règle « une action principale » vaut pour la tuile. Seule la prochaine action du jour est pleine (la première séance non faite, dans l'ordre de la journée), les autres sont fantômes. Vaut aux deux largeurs. **Fait, avec un écart** : « l'ordre de la journée » n'existait pas, la tuile suivait l'ordre de la base et montrait Legs avant la VMA. Il est désormais celui du § 5 (G2, la course d'abord) : course, vélo, autre, muscu, dans le store du plan. Même commit que les cadrans : les deux touchent la même page et servent le même premier écran.
+- [x] **La case d'une décision redevient une case.** Sous `lean`, `.tap` agrandit la case native elle-même à 44 × 44 : trois carrés gris qui écrasent leurs lignes. La cible de 44 px est portée par un `label` autour d'une case visuelle de 20 px ; la rangée garde sa hauteur de P13.
+- [x] **Au pouce, la fenêtre d'une séance commence par ce qu'on vient y faire.** Sous `lean`, l'ordre devient :
   1. structure ;
   2. retour de séance ;
   3. itinéraire, repas et fois d'avant ;
   4. en dernier, « Ajouter une séance ce jour-là » et « Changer cette séance ».
 
-  La feuille gagne un pied fixe qui porte l'action du moment, « Courir » avant la séance et « Enregistrer le ressenti » ensuite, et respecte la zone sûre (P15). L'ordre ne change qu'au téléphone. **À consigner** : c'est une exception à « sans jamais réordonner son contenu » du § 8, justifiée par la boucle du jour.
-- [ ] **« Démarrer » se voit sans défiler.** À la préparation de `/en-course`, deux changements :
+  La feuille gagne un pied fixe qui porte l'action du moment, « Courir » avant la séance et « Enregistrer le ressenti » ensuite, et respecte la zone sûre (P15). L'ordre ne change qu'au téléphone. **À consigner** : c'est une exception à « sans jamais réordonner son contenu » du § 8, justifiée par la boucle du jour. **Fait**, consigné au § 8 : la colonne de gauche passe en `display: contents` sous `lean` et ses blocs prennent un `order`, le DOM ne bouge pas. Le pied porte « Courir » (ou « Rouler ») pour une sortie du jour encore prévue, sinon « Enregistrer le ressenti », qui appelle le formulaire exposé ; le bouton du formulaire se cache alors au pouce. Quand le pied dit « Courir », le bouton du formulaire reste à sa place, non collé : sans lui, un ressenti saisi à la main avant 23 h n'aurait plus de bouton. Au scénario `cercle`, « Retour de séance » commence à 543 px sur la VMA.
+- [x] **« Démarrer » se voit sans défiler.** À la préparation de `/en-course`, deux changements :
   - le bouton passe dans un pied fixe, avec la zone sûre ;
   - les étapes répétées se regroupent en une ligne, « 4 × (500 m à 5:23 + récup 2′30) », comme dans la fenêtre de séance : dix lignes deviennent trois.
   
-  « Tracer la boucle » redevient fantôme, puisque l'action principale de l'écran est de partir.
+  « Tracer la boucle » redevient fantôme, puisque l'action principale de l'écran est de partir. **Fait** : `GET /api/sessions/[id]/steps` rend aussi les blocs non dépliés ; la VMA passe de dix lignes à trois, « 4 × (500 m à 5:23/km + récup 2′30) », et « Démarrer » tient de 756 à 800 px à l'ouverture.
 - [ ] **Arbitrage de Ronan : la semaine en agenda au téléphone ?** La bande de 7 colonnes défile et montre deux jours et demi, conformément à la règle « un objet à axe défile ». Une liste verticale (un jour par ligne, séances à droite) se lit mieux au pouce, mais transforme un objet à axe en liste, précisément ce que le § 8 refuse. Si oui : sur la page Semaine seulement, et la bande du cockpit garde son défilement.
 - [ ] **Arbitrage de Ronan : l'écran de course lisible au soleil ?** L'app n'a qu'un thème sombre, et `/en-course` se lit dehors en plein jour. Si oui : un jeu de jetons à fort contraste propre à cet écran, basculé depuis la préparation et retenu sur l'appareil, sans thème clair pour le reste de l'app.
-- [ ] Vérifié dans le navigateur à 375 px, au scénario `cercle`, sur la séance du 24 nov. :
+- [x] Vérifié dans le navigateur à 375 px, au scénario `cercle`, sur la séance du 24 nov. :
   - « Aujourd'hui » et les quatre cadrans sur le premier écran de 812 px ;
   - un seul bouton plein dans la tuile ;
   - des cases de 20 px et des rangées de 44 px ;
@@ -1482,7 +1482,9 @@ Même revue, à 375 px. Les quatre gestes que le § 8 veut excellents au pouce l
   - « Démarrer » visible à l'ouverture de la préparation ;
   - `scrollWidth` égal à la largeur partout ;
   - puis relecture à 1440 px.
-- [ ] Fini : lint, typecheck, tests et build verts. Un commit par livrable, « P21 — <résumé> ».
+
+  Vu sur le build servi par node, par un parcours Playwright à 375 × 812 en émulation tactile : quatrième cadran à 748 px, seul « Courir » plein, cases de 20 px dans des cibles de 44, « Retour de séance » à 543 px, « Démarrer » de 756 à 800 px, `scrollWidth` de 375 sur les quatorze pages. À 1440 px, aucune tuile ne bouge par rapport à P20 ; la fenêtre de séance garde ses deux colonnes et l'ordre du DOM. Les deux arbitrages ci-dessus restent ouverts : ils attendent Ronan.
+- [x] Fini : lint, typecheck, tests et build verts. Un commit par livrable, « P21 — <résumé> ». Les cadrans et le bouton plein partagent un commit (même page, même premier écran).
 
 P22 — Voir la saison devant soi
 
@@ -1917,7 +1919,7 @@ Règles de tuile (fixées le 16 sept. 2026) :
 
 Règles de largeur (fixées le 20 sept. 2026, P6.8) :
 - **Trois largeurs, deux points de rupture**, nommés une fois dans `main.css` et jamais improvisés composant par composant : **≥ 1280 px** le cockpit, inchangé au pixel près et seul écran de référence des maquettes ; **768–1279 px** étroit, barre latérale réduite à ses icônes et grilles à deux colonnes ; **< 768 px** téléphone, une colonne et barre du bas.
-- **Une grille de champs ou de tuiles se replie** — quatre colonnes, puis deux, puis une — **sans jamais réordonner son contenu** : l'ordre de lecture ci-dessus est le même sur les trois largeurs.
+- **Une grille de champs ou de tuiles se replie** — quatre colonnes, puis deux, puis une — **sans jamais réordonner son contenu** : l'ordre de lecture ci-dessus est le même sur les trois largeurs. **Deux exceptions, posées par P21 le 24 sept. 2026**, toutes deux pour la boucle du jour : (1) la rangée des instruments s'arrête à deux colonnes au téléphone — quatre cadrans compacts en 2 × 2, titre, grand chiffre et mot, l'échelle dans le dialog — pour que « Aujourd'hui » et les quatre lectures tiennent dans le premier écran ; (2) la fenêtre d'une séance se réordonne sous `lean` — structure, retour de séance, ce qui l'entoure, puis les gestes sur le plan — et gagne un pied fixe qui porte l'action du moment. Au-dessus de `lean`, rien ne change.
 - **Un objet à axe ne se replie pas, il défile horizontalement dans sa tuile**, avec un dégradé sur le bord pour le dire. Frise de saison, bande de semaine, bloc de quatre semaines, tables : le contenant rétrécit, l'objet garde sa forme. Une frise empilée en colonne n'est plus une frise.
 - **Sur téléphone, la navigation est une barre du bas à quatre onglets** — Cockpit, Semaine, Propositions avec son badge, Plus — c'est-à-dire le groupe « Piloter » plus une porte ; « Plus » ouvre une feuille portant les quatre autres groupes. Ajouter une destination à la barre du bas suit la règle du § 11 : elle en remplace une, ou elle reste dans « Plus ». La cloche de la barre du haut disparaît, son badge ayant rejoint l'onglet.
 - **Sous 768 px, panneau latéral et dialog deviennent la même feuille montante** (pleine largeur, hauteur au contenu bornée à 92 vh, tête fixe, corps défilant, fermeture au glissement en plus des gestes existants). Les deux hôtes portent ce changement ; les six objets de dialog et les deux panneaux en héritent.

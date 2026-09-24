@@ -35,5 +35,7 @@ export default defineEventHandler(async (event) => {
     totalDistanceM: prescription.totalDistanceM,
     totalDurationS: Math.round(prescribedDurationS(prescription)),
     targets: flattenWorkout(workout),
+    /** Les répétitions repliées, pour les lire d'un coup avant de partir (P21). */
+    blocks: workout.blocks,
   }
 })

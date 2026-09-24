@@ -2,6 +2,7 @@
 import { FIX_TOLERANCE } from '~~/server/domain/tracking/fix'
 import { paceGap, paceOffBand, stepRemaining } from '~~/server/domain/tracking/steps'
 import type { StepTarget } from '~~/server/domain/tracking/steps'
+import { WorkoutStepKind } from '~~/server/domain/watch/workout'
 import { averagePace, offTrackM, type Split } from '~~/server/domain/tracking/track'
 
 /**
@@ -262,6 +263,24 @@ function describeTarget(step: StepTarget): string {
  * Ce qu'il y a à tenir sur l'étape. Une récupération ne porte ni allure ni
  * effort : elle ne dit que sa durée, et « à RPE — » n'aurait rien dit.
  */
+/**
+ * Une ligne par bloc, avant de partir : « 4 × (500 m à 5:23/km + récup 2′30) »,
+ * comme dans la fenêtre de séance. Dépliées, les répétitions faisaient dix
+ * lignes et poussaient « Démarrer » hors de l'écran (P21).
+ */
+const blockLines = computed(() =>
+  (brief.value?.blocks ?? []).flatMap((block) => {
+    if (block.repeats <= 1)
+      return block.steps.map((step) => ({ label: step.label, line: targetLine(step) }))
+    const parts = block.steps.map((step) =>
+      step.kind === WorkoutStepKind.Recovery ? `récup ${describeTarget(step)}` : targetLine(step),
+    )
+    return [
+      { label: block.steps[0]?.label ?? '', line: `${block.repeats} × (${parts.join(' + ')})` },
+    ]
+  }),
+)
+
 function targetLine(step: StepTarget): string {
   if (step.paceSecPerKm) return `${describeTarget(step)} à ${formatPace(step.paceSecPerKm)}/km`
   if (step.rpe) return `${describeTarget(step)} à RPE ${step.rpe}`
@@ -399,15 +418,15 @@ async function record(payload: {
         </span>
       </div>
 
-      <div v-if="targets.length > 0" class="tile bg-surface-inset">
+      <div v-if="blockLines.length > 0" class="tile bg-surface-inset">
         <span class="label text-caption">Étapes</span>
         <div
-          v-for="(step, index) in targets"
+          v-for="(step, index) in blockLines"
           :key="`${step.label}-${index}`"
           class="flex items-baseline gap-3 border-t border-line-soft pt-2 first:border-t-0 first:pt-0"
         >
           <span class="flex-1 text-body">{{ step.label }}</span>
-          <span class="mono text-meta text-text-dim">{{ targetLine(step) }}</span>
+          <span class="mono text-right text-meta text-text-dim">{{ step.line }}</span>
         </div>
       </div>
 
@@ -444,11 +463,17 @@ async function record(payload: {
         </label>
       </div>
 
-      <UiActionButton class="btn btn-lg mt-auto" :action="start">
-        <template v-if="toBilan">Reprendre l'enregistrement</template>
-        <template v-else-if="resuming">Reprendre la sortie</template>
-        <template v-else>Démarrer</template>
-      </UiActionButton>
+      <!-- « Démarrer » se voit sans défiler : il vit dans un pied fixe, au-dessus
+           de la zone sûre, et la page défile dessous (P21). -->
+      <div
+        class="sticky bottom-0 z-10 -mx-4 mt-auto -mb-[calc(16px+env(safe-area-inset-bottom))] border-t border-line bg-ink px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] lean:static lean:mx-0 lean:mb-0 lean:border-t-0 lean:p-0"
+      >
+        <UiActionButton class="btn btn-lg w-full" :action="start">
+          <template v-if="toBilan">Reprendre l'enregistrement</template>
+          <template v-else-if="resuming">Reprendre la sortie</template>
+          <template v-else>Démarrer</template>
+        </UiActionButton>
+      </div>
     </template>
 
     <!-- 2 · Acquisition : le chrono attend une position digne de ce nom. -->

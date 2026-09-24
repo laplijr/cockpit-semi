@@ -134,8 +134,11 @@ async function anotherLoop() {
           placeholder="Adresse de départ"
           aria-label="Adresse de départ"
         />
+        <!-- À la préparation de course, l'action de l'écran est de partir :
+             tracer la boucle y redevient un geste secondaire (P21). -->
         <UiActionButton
           class="btn shrink-0 self-stretch lean:self-auto"
+          :class="compact && 'btn-ghost'"
           :disabled="address.length < 3"
           :action="fromAddress"
         >
