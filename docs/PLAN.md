@@ -1555,8 +1555,8 @@ Relevé par Ronan le 24 sept. 2026, sur la fenêtre d'une séance Legs au télé
 
 **Tranché le 24 sept. 2026 : les figures se dessinent dans l'app, elles ne se reprennent pas d'une base.** Les deux bases libres ne tiennent pas. free-exercise-db (800 exercices, annoncée dans le domaine public) n'a que deux photos fixes par exercice, reprises d'un autre jeu de données sans source vérifiable. wger est en CC-BY-SA et sa couverture est inégale. Aucune des deux n'a le squat espagnol, le Copenhagen court, le short foot ni la mobilité genou-au-mur. Les vidéos de Hevy et de Fitbod sont les leurs. Un bonhomme au trait, animé entre deux poses, se dessine pour les 44 et tient dans la charte. Il peut aussi faire ce qu'aucune de ces applis ne fait : **jouer le tempo prescrit**.
 
-- [ ] **`server/domain/strength/technique.ts`** : une fiche par exercice, indexée par `id`. Elle porte 3 à 5 consignes dans l'ordre du geste, les deux erreurs qui comptent, et les muscles principaux et secondaires (enum `StrengthMuscle`, libellés français). La fiche vit à côté de `exercises.ts`, qui fait déjà 791 lignes. Le texte est écrit une fois et relu par Ronan, jamais généré à l'exécution. `/api/library/strength` la sert avec l'exercice. Test : chaque exercice de `STRENGTH_EXERCISES` a sa fiche, et aucune fiche n'est orpheline.
-- [ ] **La réserve remplace le pourcentage à l'affichage.** `server/domain/strength/reserve.ts` : `targetReserve(intensity)` rend le nombre de répétitions à garder sous le pied à la dernière série :
+- [x] **`server/domain/strength/technique.ts`** : une fiche par exercice, indexée par `id`. Elle porte 3 à 5 consignes dans l'ordre du geste, les deux erreurs qui comptent, et les muscles principaux et secondaires (enum `StrengthMuscle`, libellés français). La fiche vit à côté de `exercises.ts`, qui fait déjà 791 lignes. Le texte est écrit une fois et relu par Ronan, jamais généré à l'exécution. `/api/library/strength` la sert avec l'exercice. Test : chaque exercice de `STRENGTH_EXERCISES` a sa fiche, et aucune fiche n'est orpheline. **Fait**, en quatre fichiers sous 500 lignes : `muscles.ts` (l'enum, ses libellés et la forme d'une fiche), `technique-legs.ts`, `technique-upper.ts` (poussée, tirage, tronc), `technique-care.ts` (prévention, mobilité), réunis par `technique.ts`. 44 fiches, relues contre le `why` et le tempo de chaque exercice : la fiche du mollet genou tendu suit son tempo 3-1-2-0 (descente 3″, pause en bas, remontée 2″), que la note de l'exercice contredit (« trois secondes dans chaque sens ») — **à trancher par Ronan**, la note ou le tempo. **Le texte attend sa relecture** comme les figures.
+- [x] **La réserve remplace le pourcentage à l'affichage.** `server/domain/strength/reserve.ts` : `targetReserve(intensity)` rend le nombre de répétitions à garder sous le pied à la dernière série :
   - 70 % et 75 % → 2 ;
   - 85 % → 1 ;
   - ≥ 85 % → 2 (en force-puissance, l'intention de vitesse s'arrête loin de l'échec) ;
@@ -1565,27 +1565,32 @@ Relevé par Ronan le 24 sept. 2026, sur la fenêtre d'une séance Legs au télé
   - Les tables publiées divergent (3 × 9 à 70 % laisse de 1 à 4 répétitions en réserve selon la formule) : ces valeurs sont un choix, écrit une fois et testé.
   - Le pourcentage reste dans la prescription et passe dans la bulle.
   - Glossaire : une entrée `reserve` (les répétitions qu'on pourrait encore faire à la fin de la série), et une entrée `tempo`, qui manque aujourd'hui.
-- [ ] **`UiExerciseFigure`.** Les poses vivent dans `app/utils/exercise-figures/`, un fichier par `StrengthGroup`, sous 500 lignes.
+  - **Fait** : `targetReserve`, `reserveLabel` et `loadHint` (« choisis un poids que tu pourrais soulever 11 fois, fais-en 9 ») dans `reserve.ts`, testés.
+- [x] **`UiExerciseFigure`.** Les poses vivent dans `app/utils/exercise-figures/`, un fichier par `StrengthGroup`, sous 500 lignes.
   - Une pose, ce sont les articulations d'un bonhomme de profil dans un cadre de 120 × 160 : tête, épaule, coude, main, hanche, genou, cheville, pointe, avec les côtés gauche et droit quand ils diffèrent. S'y ajoutent les accessoires : barre, haltère, élastique, banc, marche, mur, sol.
   - Le composant interpole de la première pose à la seconde au rythme du tempo : descente, pause, montée, pause, avec X = 0,6 s. Sans tempo, 1,5 s par sens.
   - Un isométrique n'a qu'une pose, avec la durée tenue en mono dessous. Un unilatéral montre le côté qui travaille.
   - `prefers-reduced-motion` : les deux poses côte à côte, sans mouvement. Couleurs par tokens : `text` pour le corps, `accent` pour la charge.
   - Tests : chaque exercice a ses poses, toutes les articulations sont dans le cadre, et les segments gardent leur longueur d'une pose à l'autre à 10 % près (un tibia qui s'allonge trahit une pose fausse).
-- [ ] **La structure d'une séance de muscu montre ce qu'on va faire.** Dans `SessionDialog`, chaque ligne d'exercice gagne une vignette (la pose clé, figée) et devient un bouton qui ouvre la fiche (`ui.openExercise`), comme dans `StrengthSessionDialog`. La pill du pourcentage laisse la place aux kilos quand ils sont connus, à la réserve sinon (« 2 en réserve »). L'étape d'échauffement, sans `exerciseId`, ne change pas.
-- [ ] **La fiche d'exercice montre le geste d'abord.** Dans `ExerciseDialog`, dans l'ordre :
+  - **Fait, avec une précision sur la méthode** : une pose s'écrit par l'angle de chaque segment (cinématique directe, `skeleton.ts`), ou par le point que vise une main ou un pied, le coude ou le genou se déduisant par cinématique inverse à deux segments ; tout se résout en angles, et l'interpolation se fait sur les angles, par le plus court chemin. Les longueurs sont donc tenues par construction, et le test le vérifie quand même sur les coordonnées. Une échelle par figure (0,62 à 1) fait tenir un corps allongé dans 120 de large. Les deux poses d'un geste s'ancrent au même point du corps (la cheville quand les pieds restent au sol, la hanche sinon), testé aussi. La fente latérale, qui ne se voit pas de profil, est dessinée de face. `draw.ts` rend les segments et les formes, lus par le composant et par la planche contact. Tempo : `app/utils/tempo.ts` (phases, mots, progression), testé.
+- [x] **La structure d'une séance de muscu montre ce qu'on va faire.** Dans `SessionDialog`, chaque ligne d'exercice gagne une vignette (la pose clé, figée) et devient un bouton qui ouvre la fiche (`ui.openExercise`), comme dans `StrengthSessionDialog`. La pill du pourcentage laisse la place aux kilos quand ils sont connus, à la réserve sinon (« 2 en réserve »). L'étape d'échauffement, sans `exerciseId`, ne change pas. **Fait** : vignette de 36 px, le pourcentage dans la bulle de la pill. Quand une charge est connue, la pill dit « 52,5 kg · 2 en réserve » et la ligne mono ne garde que l'ancienne charge barrée. **Défaut relevé, laissé à P26** : `GET /api/sessions/[id]/strength` lit la dernière séance de muscu tous types confondus, si bien qu'après un Push le Legs ne connaît aucune charge — au scénario `cercle`, le squat affiche « 2 en réserve » alors que 67 kg ont été tenus.
+- [x] **La fiche d'exercice montre le geste d'abord.** Dans `ExerciseDialog`, dans l'ordre :
   - la figure animée, et le tempo en mots dessous (« descente 2″, remontée explosive ») ;
   - « Comment faire » : les consignes, numérotées puisque c'est une séquence ;
   - « À éviter » ;
   - les muscles en pills ;
   - la charge. Quand rien n'est connu, elle se dit par le format et la réserve : « choisis un poids que tu pourrais soulever 11 fois, fais-en 9 ».
   - Puis ce qui existe déjà : l'apport, la progression, ce qui a été tenu, la chaîne de matériel.
-- [ ] **Les 44 figures relues par Ronan** avant de cocher. Une planche contact est publiée (les 44 animées, le nom dessous), et ses corrections sont consignées sous cette case. Un geste mal dessiné est pire que pas de dessin.
-- [ ] Vérifié dans le navigateur, à 375 px puis à 1440 px :
+  - **Fait** : la charge lit la dose de la phase pour l'exercice principal et le repère de l'exercice pour les autres ; avec une charge tenue, « 67 kg la dernière fois, 2 en réserve à la dernière série ».
+- [ ] **Les 44 figures relues par Ronan** avant de cocher. Une planche contact est publiée (les 44 animées, le nom dessous), et ses corrections sont consignées sous cette case. Un geste mal dessiné est pire que pas de dessin. **Planche publiée le 24 sept. 2026** : https://claude.ai/artifact/XaXW96W2RncVyXdmYGYkTh — le code même des figures, empaqueté, au tempo de chaque exercice. **En attente de Ronan.**
+- [x] Vérifié dans le navigateur, à 375 px puis à 1440 px :
   - la fenêtre d'une séance Legs, avec les vignettes et la réserve dans la structure ;
   - la fiche du squat, animée au tempo 2-0-X-0 ;
   - la fiche du squat espagnol, isométrique, figée avec sa durée ;
   - la réduction des animations émulée.
-- [ ] Fini : lint, typecheck, tests et build verts. Un commit par livrable, « P25 — <résumé> ».
+
+  Vu sur le build servi par node, par un parcours Playwright : la fenêtre du Legs du 24 nov. avec ses vignettes et « 2 en réserve » sur le squat et le soulevé de terre roumain ; la fiche du squat animée, « descente 2″, remontée explosive » ; le squat espagnol figé, « 45″ tenues » ; sous `reducedMotion: 'reduce'`, les deux poses du squat côte à côte. `scrollWidth` égal à la largeur aux deux tailles.
+- [x] Fini : lint, typecheck, tests et build verts. Un commit par livrable, « P25 — <résumé> ».
 
 P26 — Des kilos dès la première séance
 
