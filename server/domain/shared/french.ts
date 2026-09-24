@@ -38,14 +38,17 @@ export function frenchSignedDecimal(value: number, digits: number): string {
   return `${sign}${Math.abs(rounded).toFixed(digits).replace('.', ',')}`
 }
 
-/** « +0:45 », « −1:02:03 » : un écart de chrono, au format de la montre. */
-export function frenchSignedDuration(seconds: number): string {
+/** « 56:40 », « 2:26:00 » : un chrono, au format de la montre. */
+export function frenchDuration(seconds: number): string {
   const total = Math.round(Math.abs(seconds))
   const hours = Math.floor(total / 3600)
   const minutes = Math.floor((total % 3600) / 60)
   const rest = String(total % 60).padStart(2, '0')
-  const body =
-    hours === 0 ? `${minutes}:${rest}` : `${hours}:${String(minutes).padStart(2, '0')}:${rest}`
+  return hours === 0 ? `${minutes}:${rest}` : `${hours}:${String(minutes).padStart(2, '0')}:${rest}`
+}
+
+/** « +0:45 », « −1:02:03 » : un écart de chrono, au format de la montre. */
+export function frenchSignedDuration(seconds: number): string {
   const sign = Math.round(seconds) > 0 ? '+' : Math.round(seconds) < 0 ? '−' : ''
-  return `${sign}${body}`
+  return `${sign}${frenchDuration(seconds)}`
 }

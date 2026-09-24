@@ -21,9 +21,11 @@ const props = withDefaults(
   defineProps<{
     points: ProjectionPoint[]
     raceName?: string | null
+    /** Pourquoi la forme a bougé à chaque point, par date (P22). */
+    causes?: Record<string, string>
     height?: number
   }>(),
-  { raceName: null, height: 150 },
+  { raceName: null, causes: () => ({}), height: 150 },
 )
 
 const WIDTH = 100
@@ -131,6 +133,7 @@ const EVENT_LABELS: Record<string, string> = {
             </template>
 
             <span class="label text-caption">{{ formatDate(point.date) }}</span>
+            <span v-if="causes[point.date]" class="text-meta">{{ causes[point.date] }}</span>
             <span class="mono text-meta">
               {{ formatDuration(point.projectedS) }} ± {{ formatMinutes(marginOf(point) / 60) }}
             </span>
@@ -138,8 +141,12 @@ const EVENT_LABELS: Record<string, string> = {
               {{ formatDuration(point.lowS) }} – {{ formatDuration(point.highS) }} ·
               {{ point.confidencePct }} % de tenir l'objectif
             </span>
-            <span v-if="point.events.length > 0" class="mono text-meta text-text-dim">
-              {{ point.events.map((event) => EVENT_LABELS[event] ?? event).join(' · ') }}
+            <!-- La cause dit déjà le test, la course ou le plancher : reste la pause. -->
+            <span
+              v-if="point.events.includes(ConfidenceEvent.Paused)"
+              class="mono text-meta text-text-dim"
+            >
+              {{ EVENT_LABELS[ConfidenceEvent.Paused] }}
             </span>
           </UiHoverBubble>
         </span>
