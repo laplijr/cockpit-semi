@@ -143,3 +143,34 @@ export function strengthPhaseFor(phase: PhaseType, weekInPhase: number): Strengt
       return StrengthPhase.Off
   }
 }
+
+export interface PhaseWeek {
+  startDate: string
+  endDate: string
+  phaseType: PhaseType
+}
+
+export interface StrengthPhaseSpan {
+  phase: StrengthPhase
+  startDate: string
+}
+
+/**
+ * Les phases de renforcement de la semaine en cours jusqu'à la fin du plan,
+ * dans l'ordre et sans doublon consécutif (P26) : ce que le calage annonce,
+ * la charge du jour puis celles des phases suivantes.
+ */
+export function upcomingStrengthPhases(
+  weeks: readonly PhaseWeek[],
+  today: string,
+): StrengthPhaseSpan[] {
+  const spans: StrengthPhaseSpan[] = []
+  let weekInPhase = 0
+  weeks.forEach((week, index) => {
+    weekInPhase = index > 0 && weeks[index - 1]!.phaseType === week.phaseType ? weekInPhase + 1 : 1
+    if (week.endDate < today) return
+    const phase = strengthPhaseFor(week.phaseType, weekInPhase)
+    if (spans.at(-1)?.phase !== phase) spans.push({ phase, startDate: week.startDate })
+  })
+  return spans
+}

@@ -11,6 +11,7 @@ export const MODAL_IDS = [
   'proposition',
   'bloc',
   'publication',
+  'calage',
 ] as const
 
 /** Cadrans du cockpit qui ouvrent un détail (§ 8). */
@@ -74,6 +75,17 @@ export const useUiStore = defineStore('ui', () => {
     modalExerciseId.value = exerciseId
   }
 
+  /**
+   * La feuille de paliers d'un exercice à caler (P26). La séance d'où elle
+   * part est gardée : le calage remplace l'échauffement, on y retourne.
+   */
+  function openCalibration(exerciseId: string, sessionId: number | null) {
+    reset()
+    modal.value = 'calage'
+    modalExerciseId.value = exerciseId
+    modalTargetId.value = sessionId
+  }
+
   /** Séance de la bibliothèque muscu : l'index ouvre son détail ici (§ 8, P6.35). */
   function openStrengthSession(code: string) {
     reset()
@@ -130,6 +142,7 @@ export const useUiStore = defineStore('ui', () => {
     openModal,
     openDial,
     openExercise,
+    openCalibration,
     openStrengthSession,
     openLibrarySession,
     openDay,

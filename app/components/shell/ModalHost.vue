@@ -16,6 +16,7 @@ const WIDTHS: Record<string, number> = {
   'seance-biblio': 880,
   bloc: 880,
   publication: 600,
+  calage: 560,
 }
 
 const TITLES: Record<string, string> = {
@@ -30,6 +31,7 @@ const TITLES: Record<string, string> = {
   'seance-biblio': 'Séance',
   bloc: 'Bloc',
   publication: 'Publication',
+  calage: 'Caler',
 }
 
 /** Un jour sans séance n'est pas une séance : la fenêtre le dit dans son titre. */
@@ -96,6 +98,12 @@ async function onDecided() {
       <DialogsExerciseDialog
         v-else-if="ui.modal === 'exercice' && ui.modalExerciseId"
         :exercise-id="ui.modalExerciseId"
+      />
+
+      <DialogsCalibrationDialog
+        v-else-if="ui.modal === 'calage' && ui.modalExerciseId"
+        :exercise-id="ui.modalExerciseId"
+        :session-id="ui.modalTargetId"
       />
 
       <DialogsStrengthSessionDialog
