@@ -7,6 +7,7 @@ import { STANDARD_INCREASE_PCT } from '../domain/athlete/profile'
 import type { GeneratedPlan } from '../domain/plan/generate'
 import { addDays } from '../domain/plan/calendar'
 import { LONG_RUN_SPIKE_WINDOW_DAYS, generatePlan } from '../domain/plan/generate'
+import { heldWeeklyVolume } from '../domain/plan/held-volume'
 import { VDOT_GAIN_PER_BLOCK } from '../domain/fitness/projection'
 import { COMEBACK_RATIOS } from '../domain/plan/weeks'
 import type { PlanTrigger } from '../domain/plan/session'
@@ -68,8 +69,19 @@ async function regenerate(
   const vdotKnown = fitness != null
   const vdot = fitness?.vdot ?? FALLBACK_VDOT
   const gainPerBlock = athlete?.vdotGainPerBlock ?? VDOT_GAIN_PER_BLOCK
-  const baseWeeklyVolumeM = athlete?.startWeeklyVolumeM ?? DEFAULT_START_VOLUME_M
   const peakWeeklyVolumeM = athlete?.peakWeeklyVolumeM ?? DEFAULT_PEAK_VOLUME_M
+  /**
+   * L'escalier repart de ce qui a été couru, pas du volume déclaré au profil :
+   * sans ça, un test 20′ ou une course ajoutée en milieu de cycle faisaient
+   * redescendre la montée au point de départ (P28). Une reprise garde le
+   * volume déclaré — ses 60 / 80 / 100 % s'y rapportent (§ 5).
+   */
+  const comeback = openPause !== undefined || resumedRecently
+  const held = comeback ? null : heldWeeklyVolume(recentRuns, clock.today())
+  const baseWeeklyVolumeM = Math.min(
+    held ?? athlete?.startWeeklyVolumeM ?? DEFAULT_START_VOLUME_M,
+    peakWeeklyVolumeM,
+  )
 
   const plan = generatePlan({
     today: clock.today(),
@@ -85,7 +97,7 @@ async function regenerate(
           allowances: openPause.allowances,
         }
       : undefined,
-    comebackWeeks: openPause || resumedRecently ? COMEBACK_RATIOS.length : 0,
+    comebackWeeks: comeback ? COMEBACK_RATIOS.length : 0,
     lastTestDate,
     maxWeeklyIncreasePct: athlete?.maxWeeklyIncreasePct ?? STANDARD_INCREASE_PCT,
     vdotKnown,

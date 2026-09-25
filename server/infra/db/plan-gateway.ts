@@ -136,19 +136,8 @@ export function createPlanGateway(db: Database, athleteId: number): PlanGateway 
       return row?.date ?? null
     },
 
-    async loadRunsSince(date: IsoDate): Promise<RecentRun[]> {
-      const rows = await db
-        .select({ date: activity.date, distanceM: activity.distanceM })
-        .from(activity)
-        .where(
-          and(
-            eq(activity.athleteId, athleteId),
-            eq(activity.sport, Sport.Running),
-            gte(activity.date, date),
-            isNotNull(activity.distanceM),
-          ),
-        )
-      return rows.map((row) => ({ date: row.date, distanceM: row.distanceM! }))
+    loadRunsSince(date: IsoDate): Promise<RecentRun[]> {
+      return loadRealizedRuns(db, athleteId, date)
     },
 
     async savePlan(
@@ -437,6 +426,47 @@ async function carryDecidedDays(
       .set({ weekId: target.id })
       .where(and(eq(session.date, date), inArray(session.weekId, previousWeeks)))
   }
+}
+
+/**
+ * Ce qui a été couru depuis une date : les séances faites avec leur distance
+ * relevée, plus les sorties importées restées hors plan. Les activités seules
+ * ne suffisaient pas — une saisie à la main n'en écrit pas, et le plafond de
+ * la sortie longue ne voyait rien du réalisé saisi (P28). Une activité
+ * rattachée n'est pas recomptée : sa distance est déjà sur la séance.
+ */
+export async function loadRealizedRuns(
+  db: Database,
+  athleteId: number,
+  since: IsoDate,
+): Promise<RecentRun[]> {
+  const [sessions, unmatched] = await Promise.all([
+    db
+      .select({ date: session.date, distanceM: session.actualDistanceM })
+      .from(session)
+      .where(
+        and(
+          inArray(session.weekId, athleteWeekIds(db, athleteId)),
+          eq(session.sport, Sport.Running),
+          eq(session.status, SessionStatus.Done),
+          gte(session.date, since),
+          isNotNull(session.actualDistanceM),
+        ),
+      ),
+    db
+      .select({ date: activity.date, distanceM: activity.distanceM })
+      .from(activity)
+      .where(
+        and(
+          eq(activity.athleteId, athleteId),
+          eq(activity.sport, Sport.Running),
+          gte(activity.date, since),
+          isNotNull(activity.distanceM),
+          isNull(activity.sessionId),
+        ),
+      ),
+  ])
+  return [...sessions, ...unmatched].map((row) => ({ date: row.date, distanceM: row.distanceM! }))
 }
 
 /** Semaines de l'athlète, quelle que soit la version : la borne de toute écriture. */
