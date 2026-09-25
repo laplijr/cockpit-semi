@@ -166,5 +166,5 @@ export function isShortOfPrescription(session: PlanSession): boolean {
 
 /** Une séance prévue dont le jour est passé : ni faite ni sautée, elle attend son retour (P20). */
 export function isAwaitingFeedback(session: PlanSession, today: string): boolean {
-  return session.status === 'prevue' && session.date < today
+  return (session.status === 'prevue' || session.status === 'modifiee') && session.date < today
 }

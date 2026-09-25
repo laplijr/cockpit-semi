@@ -82,7 +82,7 @@ export interface WeeklyReview {
   next: { targetRunM: number | null; phase: PhaseType | null }
 }
 
-const DONE = [SessionStatus.Done, SessionStatus.Modified]
+const DONE = [SessionStatus.Done]
 
 /**
  * Le bilan d'une semaine close (§ 9, P7.1). Il ne calcule rien de neuf : il
@@ -94,7 +94,7 @@ const DONE = [SessionStatus.Done, SessionStatus.Modified]
 export function weeklyReview(input: WeeklyReviewInput): WeeklyReview {
   const { summary, sessions } = input
 
-  const key = sessions.filter((item) => item.key)
+  const key = sessions.filter((item) => item.key && item.status !== SessionStatus.Cancelled)
   const keyDone = key.filter((item) => DONE.includes(item.status))
 
   return {
@@ -140,7 +140,7 @@ function highlightsFor(input: WeeklyReviewInput, keyMissed: number): ReviewHighl
   if (change !== null && change > 0) found.push(ReviewHighlight.VdotGained)
   if (change !== null && change < 0) found.push(ReviewHighlight.VdotLost)
 
-  const longRun = sessions.find((item) => item.longRun)
+  const longRun = sessions.find((item) => item.longRun && item.status !== SessionStatus.Cancelled)
   if (longRun && !DONE.includes(longRun.status)) found.push(ReviewHighlight.LongRunMissed)
   if (keyMissed > 0) found.push(ReviewHighlight.KeySessionsMissed)
 

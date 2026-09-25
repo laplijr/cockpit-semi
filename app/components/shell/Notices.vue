@@ -11,8 +11,6 @@ const plan = usePlanStore()
 const proposals = usePropositionsStore()
 const notices = useBrowserNotices()
 
-const DONE = [SessionStatus.Done, SessionStatus.Modified] as string[]
-
 /** Rien n'est chargé pour les rappels seuls : ils lisent ce qui est déjà là. */
 const ready = computed(
   () => notices.enabled.value && plan.loaded && plan.today !== '' && proposals.loaded,
@@ -27,7 +25,7 @@ watch(
       today: plan.today,
       sessions: (plan.plan?.sessions ?? []).map((session) => ({
         date: session.date,
-        done: DONE.includes(session.status),
+        done: session.status === SessionStatus.Done,
         hasFeedback: session.feedbackRpe !== null,
       })),
       pendingProposals: proposals.pendingCount,

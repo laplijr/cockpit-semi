@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanSession } from '~/stores/plan'
-import { sessionFigures } from '~/utils/session-figures'
+import { isAwaitingFeedback, sessionFigures } from '~/utils/session-figures'
 
 /**
  * Les trois chiffres d'une séance sont ceux de son sport (§ 8, P11.1) : une
@@ -146,5 +146,21 @@ describe('les trois chiffres du sport', () => {
       label: 'distance',
       value: '10 km',
     })
+  })
+})
+
+describe('une séance passée qui attend son retour (P20)', () => {
+  it('attend son retour, prévue ou modifiée (P28)', () => {
+    expect(isAwaitingFeedback(session({ date: '2026-11-20' }), '2026-11-24')).toBe(true)
+    expect(
+      isAwaitingFeedback(session({ date: '2026-11-20', status: 'modifiee' }), '2026-11-24'),
+    ).toBe(true)
+  })
+
+  it('n’attend rien une fois faite, ou le jour même', () => {
+    expect(isAwaitingFeedback(session({ date: '2026-11-20', status: 'faite' }), '2026-11-24')).toBe(
+      false,
+    )
+    expect(isAwaitingFeedback(session({ status: 'modifiee' }), '2026-11-24')).toBe(false)
   })
 })

@@ -166,9 +166,7 @@ export default defineEventHandler(async (event) => {
   const intensityOf = (sessions: typeof pastSessions) => {
     const runs = sessions
       .filter((item) => item.sport === Sport.Running)
-      .filter(
-        (item) => item.status === SessionStatus.Done || item.status === SessionStatus.Modified,
-      )
+      .filter((item) => item.status === SessionStatus.Done)
       .flatMap((item) => {
         const vdot = vdotOn(item.date)
         if (vdot === null) return []
@@ -211,9 +209,9 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const done = pastSessions.filter(
-    (item) => item.status === SessionStatus.Done || item.status === SessionStatus.Modified,
-  )
+  /** Faite, et rien d'autre : une séance `modifiee` reste à faire (P28). */
+  const done = pastSessions.filter((item) => item.status === SessionStatus.Done)
+  const counted = pastSessions.filter((item) => item.status !== SessionStatus.Cancelled)
 
   /** Records personnels : ils alimentent aussi la référence du mode record (§ 5). */
   const records = personalRecords(races)
@@ -276,7 +274,7 @@ export default defineEventHandler(async (event) => {
   /** Une ligne par jour de la période, pour compter les jours sans rien. */
   const daysWithSessions = new Map<string, number>()
   for (const item of pastSessions) {
-    if (item.status === SessionStatus.Done || item.status === SessionStatus.Modified) {
+    if (item.status === SessionStatus.Done) {
       daysWithSessions.set(item.date, (daysWithSessions.get(item.date) ?? 0) + 1)
     }
   }
@@ -316,9 +314,8 @@ export default defineEventHandler(async (event) => {
       representative: item.representative,
     })),
     weeks,
-    /** Part des séances prévues effectivement réalisées. */
-    adherence:
-      pastSessions.length === 0 ? null : Math.round((done.length / pastSessions.length) * 100),
+    /** Part des séances prévues effectivement réalisées ; une séance retirée n'en est pas une (§ 5). */
+    adherence: counted.length === 0 ? null : Math.round((done.length / counted.length) * 100),
     /** Part des propositions acceptées parmi celles décidées. */
     acceptanceRate:
       decided.length === 0 ? null : Math.round((accepted.length / decided.length) * 100),

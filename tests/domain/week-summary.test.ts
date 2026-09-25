@@ -73,6 +73,29 @@ describe('résumé de semaine (§ 9, P5.14)', () => {
     expect(summary.loadUa).toBe(0)
   })
 
+  it('ne compte pas faite une séance modifiée qui n’a pas eu lieu (P28)', () => {
+    const summary = summariseWeek(
+      week,
+      [],
+      [run(), run({ status: SessionStatus.Modified, actualDistanceM: null })],
+    )!
+
+    expect(summary.sessionsDone).toBe(1)
+    expect(summary.sessionsPlanned).toBe(2)
+  })
+
+  it('ne compte pas au prévu une séance retirée d’avance (P28)', () => {
+    const summary = summariseWeek(
+      week,
+      [],
+      [run(), run({ status: SessionStatus.Cancelled, actualDistanceM: null, longRun: true })],
+    )!
+
+    expect(summary.sessionsPlanned).toBe(1)
+    expect(summary.longRun.planned).toBe(0)
+    expect(isConforming(summary)).toBe(true)
+  })
+
   it('rend un résumé vide, pas des zéros, pour une semaine sans rien', () => {
     expect(summariseWeek(week, [], [])).toBeUndefined()
   })

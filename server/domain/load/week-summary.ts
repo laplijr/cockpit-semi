@@ -46,7 +46,11 @@ export interface WeekSummary {
   comeback: boolean
 }
 
-const DONE_STATUSES = [SessionStatus.Done, SessionStatus.Modified]
+/**
+ * Faite, et rien d'autre : une séance `modifiee` a été changée par une
+ * proposition ou par la main, elle reste à faire (P28).
+ */
+const DONE_STATUSES = [SessionStatus.Done]
 
 /**
  * Résumé d'une semaine du plan, lisible au survol de son graphe (§ 9, P5.14).
@@ -71,8 +75,10 @@ export function summariseWeek(
     (item) => item.sport === Sport.Running && DONE_STATUSES.includes(item.status),
   )
   const isDone = (item: WeekSessionRecord) => DONE_STATUSES.includes(item.status)
-  const longRuns = sessions.filter((item) => item.longRun)
-  const quality = sessions.filter((item) => item.key && !item.longRun)
+  /** Une séance retirée d'avance n'est pas un échec : elle ne compte pas au prévu (§ 5). */
+  const counted = sessions.filter((item) => item.status !== SessionStatus.Cancelled)
+  const longRuns = counted.filter((item) => item.longRun)
+  const quality = counted.filter((item) => item.key && !item.longRun)
   const measured = runs.filter((item) => item.actualDistanceM !== null)
   const actualRunM =
     measured.length === 0 ? null : Math.round(sum(measured, (item) => item.actualDistanceM ?? 0))
@@ -83,8 +89,8 @@ export function summariseWeek(
     runGapM: actualRunM === null ? null : actualRunM - week.targetRunM,
     loadUa: sum(days, (day) => day.totalUa),
     loadBySport,
-    sessionsPlanned: sessions.length,
-    sessionsDone: sessions.filter(isDone).length,
+    sessionsPlanned: counted.length,
+    sessionsDone: counted.filter(isDone).length,
     longRun: { planned: longRuns.length, done: longRuns.filter(isDone).length },
     quality: { planned: quality.length, done: quality.filter(isDone).length },
     light: week.light,

@@ -56,6 +56,25 @@ const input = (over: Partial<WeeklyReviewInput> = {}): WeeklyReviewInput => ({
 })
 
 describe('bilan de la semaine (§ 9, P7.1)', () => {
+  it('ne compte pas faite une séance clé modifiée qui n’a pas eu lieu (P28)', () => {
+    const review = weeklyReview(
+      input({ sessions: [session(), session({ key: true, status: SessionStatus.Modified })] }),
+    )
+
+    expect(review.sessions.keyDone).toBe(0)
+    expect(review.highlights).toContain(ReviewHighlight.KeySessionsMissed)
+  })
+
+  it('ne dit pas manquée une sortie longue retirée d’avance (P28)', () => {
+    const review = weeklyReview(
+      input({
+        sessions: [session(), session({ longRun: true, status: SessionStatus.Cancelled })],
+      }),
+    )
+
+    expect(review.highlights).not.toContain(ReviewHighlight.LongRunMissed)
+  })
+
   it('déclare conforme une semaine dont tout est fait', () => {
     const review = weeklyReview(input())
 
