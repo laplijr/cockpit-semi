@@ -1,7 +1,9 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lt, notInArray } from 'drizzle-orm'
 import { loadAcceptedHabits } from '../../application/detect-habits'
+import { STANDARD_INCREASE_PCT } from '../../domain/athlete/profile'
 import { adjustmentsFrom } from '../../domain/learning/personal-rules'
 import { addDays } from '../../domain/plan/calendar'
+import { frozenRamp, restoredRamp } from '../../domain/plan/ramp'
 import { SessionStatus } from '../../domain/plan/session'
 import { PauseType } from '../../domain/pause/pause'
 import { applyToPrescription, isSessionEffect } from '../../domain/rules/apply'
@@ -23,7 +25,7 @@ import type { RunSessionCode, Prescription } from '../../domain/running/session-
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
 import { loadGainPerBlock, loadResolvedForecasts } from './forecast-repository'
-import { athleteWeekIds } from './plan-gateway'
+import { athleteWeekIds, createPlanGateway, loadActivePlanVersion } from './plan-gateway'
 import { athlete, feedback, pause, proposal, race, session, week } from './schema'
 
 /** Fenêtre de séances passées examinée par les règles. */
@@ -235,8 +237,12 @@ export async function acceptProposal(db: Database, athleteId: number, id: number
     await adjustExpectedGain(db, athleteId, row.payload)
   }
 
-  if (effect === ProposalEffect.FreezeProgression) await freezeProgression(db, athleteId, today)
-  if (effect === ProposalEffect.RestoreProgression) await restoreProgression(db, athleteId, today)
+  if (effect === ProposalEffect.FreezeProgression) {
+    await applyRamp(db, athleteId, today, frozenRamp)
+  }
+  if (effect === ProposalEffect.RestoreProgression) {
+    await applyRamp(db, athleteId, today, restoredRamp)
+  }
   if (effect === ProposalEffect.ProposePause || effect === ProposalEffect.ForcePause) {
     await openPause(db, athleteId, today, row.explanation)
   }
@@ -324,30 +330,24 @@ async function adjustExpectedGain(
   await db.update(athlete).set({ vdotGainPerBlock: value }).where(eq(athlete.id, athleteId))
 }
 
-/** Gèle la montée : la semaine suivante reprend le volume de la semaine en cours. */
-async function freezeProgression(db: Database, athleteId: number, today: string) {
-  const [current, next] = await db
-    .select()
-    .from(week)
-    .where(and(gte(week.endDate, today), inArray(week.id, athleteWeekIds(db, athleteId))))
-    .orderBy(asc(week.index))
-    .limit(2)
+/**
+ * Gel (R4) ou rétablissement (R7) de la montée. Les semaines sont celles du
+ * plan actif, jamais celles d'une version remplacée : toutes versions
+ * confondues, « la semaine en cours et la suivante » pouvaient venir de deux
+ * plans différents (P28).
+ */
+async function applyRamp(db: Database, athleteId: number, today: string, ramp: typeof frozenRamp) {
+  const weeks = (await loadActivePlanVersion(db, athleteId))?.weeks ?? []
+  const current = weeks.find((item) => item.startDate <= today && today <= item.endDate)
+  if (!current) return
 
-  if (!current || !next || next.targetRunM <= current.targetRunM) return
-  await scaleWeek(db, athleteId, next, current.targetRunM)
-}
+  const profile = await createPlanGateway(db, athleteId).loadAthlete()
+  const ceiling = 1 + (profile?.maxWeeklyIncreasePct ?? STANDARD_INCREASE_PCT) / 100
+  const byIndex = new Map(weeks.map((item) => [item.index, item]))
 
-/** Restaure la montée : la semaine suivante retrouve +10 % sur la semaine en cours. */
-async function restoreProgression(db: Database, athleteId: number, today: string) {
-  const [current, next] = await db
-    .select()
-    .from(week)
-    .where(and(gte(week.endDate, today), inArray(week.id, athleteWeekIds(db, athleteId))))
-    .orderBy(asc(week.index))
-    .limit(2)
-
-  if (!current || !next) return
-  await scaleWeek(db, athleteId, next, Math.round(current.targetRunM * 1.1))
+  for (const change of ramp(weeks, current.index, ceiling)) {
+    await scaleWeek(db, athleteId, byIndex.get(change.index)!, change.targetRunM)
+  }
 }
 
 /** Ramène une semaine à un volume cible, et ses séances avec elle. */
