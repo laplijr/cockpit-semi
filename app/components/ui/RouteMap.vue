@@ -28,7 +28,7 @@ const props = withDefaults(
   { height: 220, guide: undefined, position: null, fill: false },
 )
 
-/** Vrai dès que le doigt a déplacé la carte : elle ne suit plus le coureur. */
+/** Vrai dès que le doigt a glissé la carte : elle ne suit plus le coureur. */
 const emit = defineEmits<{ adrift: [boolean] }>()
 
 const container = ref<HTMLElement>()
@@ -39,10 +39,11 @@ let startMark: L.CircleMarker | undefined
 let hereMark: L.CircleMarker | undefined
 let observer: ResizeObserver | undefined
 
-/** Vrai tant que la carte suit le coureur ; un geste sur la carte l'arrête. */
+/**
+ * Vrai tant que la carte garde le coureur au centre. Seul un glissement du
+ * doigt l'arrête — un zoom non —, et seul « Recentrer » la relance.
+ */
 let following = true
-/** Un recadrage demandé par l'écran n'est pas un geste du doigt. */
-let fromScreen = false
 /** Le premier cadrage se pose une fois ; ensuite le zoom appartient au doigt. */
 let framed = false
 
@@ -62,13 +63,6 @@ function frame(): L.LatLngBounds | undefined {
   return all.length > 1 ? L.latLngBounds(all) : undefined
 }
 
-/** Un mouvement de la carte demandé par l'écran, qui ne doit pas la décrocher. */
-function move(action: () => void) {
-  fromScreen = true
-  action()
-  fromScreen = false
-}
-
 function ensureMap(): L.Map | undefined {
   if (map || !container.value) return map
 
@@ -81,10 +75,19 @@ function ensureMap(): L.Map | undefined {
    */
   const coarse = window.matchMedia('(pointer: coarse)').matches
 
+  /*
+   * Plein cadre, le zoom se fait autour du centre et non sous les doigts :
+   * pincer ne déplace pas la carte, le coureur reste au milieu.
+   */
+  const zoomAround = props.fill ? 'center' : true
+
   map = L.map(container.value, {
     attributionControl: true,
     zoomControl: !props.fill,
     dragging: props.fill || !coarse,
+    touchZoom: zoomAround,
+    scrollWheelZoom: zoomAround,
+    doubleClickZoom: zoomAround,
   })
 
   /**
@@ -107,8 +110,9 @@ function ensureMap(): L.Map | undefined {
   guideLine = L.polyline([], { color: '#6d665c', weight: 3, opacity: 0.9 }).addTo(map)
   trackLine = L.polyline([], { color: '#f2a23a', weight: 4, opacity: 0.95 }).addTo(map)
 
-  map.on('dragstart zoomstart', () => {
-    if (fromScreen || !following) return
+  /** `dragstart` ne vient que du doigt : un recadrage de l'écran ne le lève pas. */
+  map.on('dragstart', () => {
+    if (!following) return
     following = false
     emit('adrift', true)
   })
@@ -159,13 +163,8 @@ function drawPosition() {
     }).addTo(current)
   }
 
-  /**
-   * Suivre, ce n'est pas recadrer : le zoom reste celui du doigt, et la carte
-   * ne se déplace que lorsque le coureur s'approche du bord.
-   */
-  if (following && !current.getBounds().pad(-0.25).contains(here)) {
-    move(() => current.panTo(here, { animate: false }))
-  }
+  /** Suivre, ce n'est pas recadrer : le coureur revient au centre, le zoom reste celui du doigt. */
+  if (following) current.panTo(here, { animate: false })
 }
 
 /**
@@ -182,14 +181,14 @@ function reframe() {
   const here = props.position
 
   if (!here) {
-    if (bounds) move(() => current.fitBounds(bounds, { padding: [16, 16], animate: false }))
+    if (bounds) current.fitBounds(bounds, { padding: [16, 16], animate: false })
     return
   }
 
   if (framed) return
 
-  if (bounds) move(() => current.fitBounds(bounds, { padding: [16, 16], animate: false }))
-  else move(() => current.setView([here.lat, here.lon], START_ZOOM, { animate: false }))
+  if (bounds) current.fitBounds(bounds, { padding: [16, 16], animate: false })
+  else current.setView([here.lat, here.lon], START_ZOOM, { animate: false })
 
   framed = true
 }
@@ -204,20 +203,24 @@ function recenter() {
 
   const here = props.position
   if (here) {
-    move(() => current.setView([here.lat, here.lon], current.getZoom(), { animate: false }))
+    current.setView([here.lat, here.lon], current.getZoom(), { animate: false })
     return
   }
 
   const bounds = frame()
-  if (bounds) move(() => current.fitBounds(bounds, { padding: [16, 16], animate: false }))
+  if (bounds) current.fitBounds(bounds, { padding: [16, 16], animate: false })
 }
 
 defineExpose({ recenter })
 
+/*
+ * Le cadrage passe avant le point courant : il pose le zoom de départ, puis le
+ * suivi ramène le coureur au centre dès le premier relevé.
+ */
 onMounted(() => {
   drawTrack()
-  drawPosition()
   reframe()
+  drawPosition()
 
   /**
    * Leaflet mesure son conteneur au moment où il se construit. Dans un dialog,
@@ -236,8 +239,8 @@ watch([() => props.points, () => props.guide], () => {
 watch(
   () => props.position,
   () => {
-    drawPosition()
     reframe()
+    drawPosition()
   },
 )
 
