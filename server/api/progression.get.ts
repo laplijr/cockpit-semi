@@ -7,15 +7,14 @@ import { currentFitnessOf } from '../domain/fitness/current'
 import { raceTimeForVdot } from '../domain/fitness/vdot'
 import { rpeByCode } from '../domain/learning/calibration'
 import { weeklyIntensity } from '../domain/load/intensity'
+import { coveredByPause, sessionDays, strengthSeries } from '../domain/load/progression-series'
 import { summariseRecovery } from '../domain/load/recovery'
 import { progressCounters, summariseWeek } from '../domain/load/week-summary'
-import { addDays } from '../domain/plan/calendar'
 import { ObjectiveMode, RacePriority, RaceStatus } from '../domain/races/race'
 import { personalRecords, recordFor } from '../domain/races/records'
 import { ProposalStatus } from '../domain/rules/proposal-status'
 import { windowStart } from '../domain/shared/period'
 import { Sport } from '../domain/shared/sport'
-import { strengthExercise } from '../domain/strength/exercises'
 import { SessionStatus } from '../domain/plan/session'
 import type { Prescription } from '../domain/shared/prescription'
 import { RunSessionCode } from '../domain/running/session-types'
@@ -271,29 +270,6 @@ export default defineEventHandler(async (event) => {
   const decided = decisions.filter((item) => item.status !== ProposalStatus.Proposed)
   const accepted = decided.filter((item) => item.status === ProposalStatus.Accepted)
 
-  /** Une ligne par jour de la période, pour compter les jours sans rien. */
-  const daysWithSessions = new Map<string, number>()
-  for (const item of pastSessions) {
-    if (item.status === SessionStatus.Done) {
-      daysWithSessions.set(item.date, (daysWithSessions.get(item.date) ?? 0) + 1)
-    }
-  }
-  const firstDay = pastSessions.map((item) => item.date).sort()[0] ?? today
-  const days: { date: string; sessions: number }[] = []
-  for (let cursor = firstDay; cursor <= today; cursor = addDays(cursor, 1)) {
-    days.push({ date: cursor, sessions: daysWithSessions.get(cursor) ?? 0 })
-  }
-
-  /** Charges tenues par exercice, dans l'ordre du temps (§ 9, P6). */
-  const byExercise = new Map<string, { date: string; loadKg: number }[]>()
-  for (const set of strength) {
-    const previous = byExercise.get(set.exerciseId) ?? []
-    const last = previous.at(-1)
-    /** Une séance = un point : on garde la charge la plus lourde du jour. */
-    if (last?.date === set.date) last.loadKg = Math.max(last.loadKg, set.loadKg)
-    else byExercise.set(set.exerciseId, [...previous, { date: set.date, loadKg: set.loadKg }])
-  }
-
   return {
     today,
     period,
@@ -338,7 +314,7 @@ export default defineEventHandler(async (event) => {
     ),
     recovery: summariseRecovery({
       nights: rated.map((row) => row.sleepHours).filter((hours): hours is number => hours !== null),
-      days,
+      days: sessionDays(pastSessions, today),
     }),
     records,
     confidence,
@@ -370,29 +346,6 @@ export default defineEventHandler(async (event) => {
     gainPerBlock,
     resumedOn,
     pausedNow: openPause !== undefined,
-    /**
-     * Un exercice au poids du corps n'a pas de charge à suivre : sa courbe
-     * serait une droite à zéro. On ne garde que ce qui se charge (§ 9, P6).
-     */
-    strengthLoads: [...byExercise.entries()]
-      .map(([exerciseId, series]) => ({
-        exerciseId,
-        label: strengthExercise(exerciseId)?.label ?? exerciseId,
-        points: series,
-      }))
-      .filter((series) => series.points.length > 1)
-      .filter((series) => series.points.some((point) => point.loadKg > 0))
-      .sort((a, b) => b.points.length - a.points.length),
+    strengthLoads: strengthSeries(strength),
   }
 })
-
-/** Vrai quand une pause recouvre la semaine, même en partie : elle l'excuse. */
-function coveredByPause(
-  startDate: string,
-  endDate: string,
-  pauses: { startDate: string; endDate: string | null }[],
-): boolean {
-  return pauses.some(
-    (row) => row.startDate <= endDate && (row.endDate ?? '9999-12-31') >= startDate,
-  )
-}
