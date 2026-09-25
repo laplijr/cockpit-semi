@@ -7,6 +7,7 @@ import { frozenRamp, restoredRamp } from '../../domain/plan/ramp'
 import { SessionStatus } from '../../domain/plan/session'
 import { PauseType } from '../../domain/pause/pause'
 import { applyToPrescription, isSessionEffect } from '../../domain/rules/apply'
+import { isPaceHeld } from '../../domain/rules/pace-held'
 import { toCyclingPrescription } from '../../domain/cycling/convert'
 import {
   ProposalStatus,
@@ -97,10 +98,12 @@ async function buildContext(db: Database, athleteId: number, today: string): Pro
     sensations: row.feedback?.sensations ?? [],
     sleepHours: row.feedback?.sleepHours ?? null,
     pain: row.feedback?.pain ?? null,
-    // Faute de réalisé détaillé, on considère l'allure tenue si le RPE l'est.
-    paceHeld:
-      row.feedback === null ||
-      row.feedback.rpe <= (row.session.prescription as unknown as Prescription).expectedRpe,
+    paceHeld: isPaceHeld({
+      prescription: row.session.prescription as unknown as Prescription,
+      actualDistanceM: row.session.actualDistanceM,
+      actualDurationMin: row.session.actualDurationMin,
+      rpe: row.feedback?.rpe ?? null,
+    }),
     skipped: row.session.status === SessionStatus.Skipped,
   }))
 
