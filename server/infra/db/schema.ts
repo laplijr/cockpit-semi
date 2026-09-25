@@ -556,6 +556,18 @@ export const user = pgTable('user', {
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
 })
 
+/**
+ * Échecs de connexion par identifiant, dans leur fenêtre (P28). Clé sur
+ * l'identifiant saisi et non sur le compte : un identifiant qui n'existe pas
+ * se ferme comme un autre, sinon le refus dirait lequel existe. En base parce
+ * que la mémoire d'une fonction Vercel ne survit pas d'un appel à l'autre.
+ */
+export const loginAttempt = pgTable('login_attempt', {
+  login: text('login').primaryKey(),
+  failures: integer('failures').notNull().default(0),
+  windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
+})
+
 /** Seule voie d'entrée : pas d'inscription libre, le lien se donne en main propre. */
 export const invitation = pgTable('invitation', {
   id: serial('id').primaryKey(),

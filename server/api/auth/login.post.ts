@@ -1,7 +1,8 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { lockMessage, lockedMinutes, windowCutoff } from '../../domain/account/throttle'
 import { useDatabase } from '../../infra/db/client'
-import { user } from '../../infra/db/schema'
+import { loginAttempt, user } from '../../infra/db/schema'
 
 const bodySchema = z.object({ login: z.string().min(1).max(60), password: z.string().min(1) })
 
@@ -14,12 +15,14 @@ const REFUSAL = 'Identifiant ou mot de passe incorrect'
 export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, bodySchema.parse)
   const db = useDatabase()
+  const login = body.login.trim().toLowerCase()
+  const now = new Date()
 
-  const [row] = await db
-    .select()
-    .from(user)
-    .where(eq(user.login, body.login.trim().toLowerCase()))
-    .limit(1)
+  const attempt = await countAttempt(login, now)
+  const wait = lockedMinutes(attempt, now)
+  if (wait !== null) throw createError({ statusCode: 429, statusMessage: lockMessage(wait) })
+
+  const [row] = await db.select().from(user).where(eq(user.login, login)).limit(1)
 
   /**
    * Sans compte, on vérifie quand même un mot de passe : sinon la réponse
@@ -30,6 +33,7 @@ export default defineEventHandler(async (event) => {
 
   if (!row || !ok) throw createError({ statusCode: 401, statusMessage: REFUSAL })
 
+  await db.delete(loginAttempt).where(eq(loginAttempt.login, login))
   await db.update(user).set({ lastLoginAt: new Date() }).where(eq(user.id, row.id))
   await setUserSession(event, {
     user: { id: row.id, login: row.login, athleteId: row.athleteId },
@@ -38,6 +42,27 @@ export default defineEventHandler(async (event) => {
 
   return { ok: true }
 })
+
+/**
+ * Compte la tentative en une seule écriture, avant de la juger (P28) : la
+ * fenêtre échue repart à un, sinon le compteur monte. Lire puis écrire
+ * laisserait des essais parallèles passer tous sous la limite.
+ */
+async function countAttempt(login: string, now: Date) {
+  const expired = sql`${loginAttempt.windowStart} <= ${windowCutoff(now).toISOString()}`
+  const [attempt] = await useDatabase()
+    .insert(loginAttempt)
+    .values({ login, failures: 1, windowStart: now })
+    .onConflictDoUpdate({
+      target: loginAttempt.login,
+      set: {
+        failures: sql`case when ${expired} then 1 else ${loginAttempt.failures} + 1 end`,
+        windowStart: sql`case when ${expired} then ${now.toISOString()}::timestamptz else ${loginAttempt.windowStart} end`,
+      },
+    })
+    .returning()
+  return attempt!
+}
 
 let decoy: string | undefined
 

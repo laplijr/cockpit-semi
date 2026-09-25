@@ -18,9 +18,12 @@ async function submit() {
     })
     await refreshSession()
     await navigateTo('/')
-  } catch {
-    /** Un seul message : dire lequel des deux est faux dirait qui a un compte. */
-    error.value = 'Identifiant ou mot de passe incorrect'
+  } catch (failure) {
+    /**
+     * Le serveur ne dit que deux choses : le refus unique, qui ne dit pas
+     * lequel des deux est faux, et la porte fermée après cinq échecs (P28).
+     */
+    error.value = apiMessage(failure, 'Identifiant ou mot de passe incorrect')
     password.value = ''
   } finally {
     pending.value = false

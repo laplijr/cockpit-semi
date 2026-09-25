@@ -253,6 +253,13 @@
       "when": 1790246139550,
       "tag": "0035_futuristic_monster_badoon",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790347592156,
+      "tag": "0036_volatile_living_tribunal",
+      "breakpoints": true
     }
   ]
 }
