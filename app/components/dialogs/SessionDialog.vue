@@ -3,9 +3,7 @@
  * Le dialog d'une séance, et — depuis P6.4 — celui d'un jour de repos, qui
  * n'avait rien à ouvrir. Sans séance, il ne reste du jour que ses repas.
  */
-import type { PlanSession } from '~/stores/plan'
 import { EQUIPMENT_LABELS, StrengthEquipment } from '~~/server/domain/strength/equipment'
-import { reserveLabel, targetReserve } from '~~/server/domain/strength/reserve'
 
 const props = defineProps<{ sessionId?: number | null; date?: string | null }>()
 const emit = defineEmits<{ saved: [] }>()
@@ -40,17 +38,6 @@ const week = computed(() => plan.plan?.weeks.find((item) => item.id === session.
 /** Les trois chiffres du sport (§ 8, P11.1), partagés avec la tuile du jour. */
 const figures = computed(() => (session.value ? sessionFigures(session.value) : []))
 
-/** Mêmes séances du plan, pour situer celle-ci dans la progression. */
-const history = computed(() => {
-  const current = session.value
-  if (!current) return []
-  return (plan.plan?.sessions ?? [])
-    .filter((item) => item.code === current.code && item.id !== current.id)
-    .filter((item) => item.date <= plan.today)
-    .slice(-5)
-    .reverse()
-})
-
 interface StrengthState {
   exerciseId: string
   lastLoadKg: number | null
@@ -80,26 +67,6 @@ const toCalibrate = computed(() =>
   ),
 )
 
-const loads = computed(() =>
-  Object.fromEntries(
-    (strength.value?.exercises ?? [])
-      .filter((item) => item.lastLoadKg !== null)
-      .map((item) => [item.exerciseId, item]),
-  ),
-)
-
-/**
- * Au poids de corps, il n'y a pas de charge à proposer : c'est le format qui
- * progresse, et il s'affiche à la même place (§ 5, P11.3).
- */
-const formats = computed(() =>
-  Object.fromEntries(
-    (strength.value?.exercises ?? [])
-      .filter((item) => item.lastLoadKg === null && item.suggestedReps !== null)
-      .map((item) => [item.exerciseId, item]),
-  ),
-)
-
 const athleteStore = useAthleteStore()
 
 /** Le matériel déclaré ; sans déclaration, la salle (§ 5, P11.3). */
@@ -111,37 +78,6 @@ const bodyweight = computed(() => equipment.value === StrengthEquipment.None)
 
 const ui = useUiStore()
 
-/**
- * La pill d'un exercice dosé : la charge proposée, avec la réserve en second,
- * quand une charge est connue ; la réserve seule sinon ; le repère tel quel
- * quand il ne se dose pas en réserve (« à vide »).
- */
-function loadPill(step: PlanSession['prescription']['steps'][number]): string {
-  const reserve = targetReserve(step.intensity)
-  const state = step.exerciseId ? states.value[step.exerciseId] : undefined
-  if (state?.toCalibrate) return 'à caler'
-  const known = state?.suggestedLoadKg ?? null
-  if (known && reserve !== null) return `${formatLoad(known)} · ${reserveLabel(reserve)}`
-  if (known) return formatLoad(known)
-  return reserve === null ? step.intensity! : reserveLabel(reserve)
-}
-
-interface RideSwapGiveback {
-  sessionId: number
-  date: string
-  takenM: number
-}
-
-interface RideSwapResponse {
-  ok: boolean
-  refusal?: string
-  replacement?: {
-    prescription: PlanSession['prescription']
-    givebacks: RideSwapGiveback[]
-    cappedAfterLongRun: boolean
-  }
-}
-
 /** Une sortie vélo encore à faire aujourd'hui, et elle seule (§ 5, P6.42). */
 const canSwap = computed(
   () =>
@@ -150,44 +86,11 @@ const canSwap = computed(
     session.value.status === 'prevue',
 )
 
-const { data: swap } = useFetch<RideSwapResponse>(
-  () => `/api/sessions/${session.value?.id}/run-swap`,
-  { immediate: canSwap as unknown as boolean },
-)
-
-const replacement = computed(() => (swap.value?.ok ? swap.value.replacement : undefined))
-
-/** Ce que la semaine rend pour payer la course ajoutée : sa cible ne bouge pas. */
-const givebackText = computed(() => {
-  const item = replacement.value
-  if (!item) return ''
-
-  const taken = item.givebacks.reduce((total, giveback) => total + giveback.takenM, 0)
-  const lenders =
-    item.givebacks.length > 1
-      ? `aux ${item.givebacks.length} endurances suivantes`
-      : 'à l’endurance suivante'
-  const base = `Les ${formatDistance(taken)} ajoutés sont repris ${lenders} de la semaine : le volume de course visé ne bouge pas.`
-
-  return item.cappedAfterLongRun
-    ? `${base} Elle est ramenée au minimum : c’est le lendemain de la sortie longue.`
-    : base
-})
-
 /** Une journée posée à la main : le générateur ne la retouche plus (§ 5, P6.43). */
 const manualDay = computed(() =>
   (plan.plan?.sessions ?? []).some((item) => item.date === day.value && item.origin === 'manuelle'),
 )
 
-const editable = computed(
-  () =>
-    session.value !== undefined &&
-    session.value.status !== 'faite' &&
-    session.value.status !== 'annulee' &&
-    session.value.date >= plan.today,
-)
-
-const editing = ref(false)
 const adding = ref(false)
 const editError = ref('')
 
@@ -209,35 +112,6 @@ const { data: track } = useFetch<{
   default: () => ({ track: null }),
 })
 
-async function cancelSession() {
-  if (!session.value) return
-  editError.value = ''
-  try {
-    await $fetch(`/api/sessions/${session.value.id}/cancel`, { method: 'POST' })
-    emit('saved')
-  } catch (failure) {
-    editError.value = apiMessage(failure, 'Retrait impossible.')
-  }
-}
-
-/** Son jour est arrivé et rien n'est renseigné : elle peut se dire manquée (§ 5, R6). */
-const missable = computed(
-  () => session.value?.status === 'prevue' && session.value.date <= plan.today,
-)
-
-const skipError = ref('')
-
-async function markMissed() {
-  if (!session.value) return
-  skipError.value = ''
-  try {
-    await $fetch(`/api/sessions/${session.value.id}/skip`, { method: 'POST' })
-    emit('saved')
-  } catch (failure) {
-    skipError.value = apiMessage(failure, 'Impossible de la marquer manquée.')
-  }
-}
-
 async function restoreDay() {
   if (!day.value) return
   editError.value = ''
@@ -246,20 +120,6 @@ async function restoreDay() {
     emit('saved')
   } catch (failure) {
     editError.value = apiMessage(failure, 'Impossible de rendre la journée au moteur.')
-  }
-}
-
-const swapError = ref('')
-
-async function replaceWithRun() {
-  if (!session.value) return
-
-  swapError.value = ''
-  try {
-    await $fetch(`/api/sessions/${session.value.id}/run-swap`, { method: 'POST' })
-    emit('saved')
-  } catch (failure) {
-    swapError.value = apiMessage(failure, 'Remplacement impossible.')
   }
 }
 
@@ -299,21 +159,9 @@ async function saveFeedback() {
   await feedbackForm.value?.save()
 }
 
-const plannedMinutes = computed(() => {
-  const prescription = session.value?.prescription
-  if (!prescription) return 0
-  if (prescription.durationMin) return prescription.durationMin
-
-  const seconds = prescription.steps.reduce((total, step) => {
-    const repeats = step.repeats ?? 1
-    if (step.durationS) return total + (step.durationS + (step.recoveryS ?? 0)) * repeats
-    if (step.distanceM && step.paceSecPerKm) {
-      return total + (step.distanceM / 1000) * step.paceSecPerKm * repeats
-    }
-    return total
-  }, 0)
-  return Math.round(seconds / 60)
-})
+const plannedMinutes = computed(() =>
+  session.value ? prescribedMinutes(session.value.prescription) : 0,
+)
 </script>
 
 <template>
@@ -433,109 +281,7 @@ const plannedMinutes = computed(() => {
          `lean`, l'ordre du DOM. -->
     <div class="flex flex-col gap-4 lean:grid lean:grid-cols-[1.3fr_1fr] lean:gap-6">
       <div class="contents lean:flex lean:flex-col lean:gap-4">
-        <div class="tile order-1 bg-surface-inset lean:order-none">
-          <span class="label text-caption">Structure</span>
-          <!-- Un exercice montre ce qu'on va faire : sa pose clé, et la ligne
-               ouvre sa fiche. L'échauffement, sans exercice, ne change pas (P25). -->
-          <component
-            :is="step.exerciseId ? 'button' : 'div'"
-            v-for="step in session.prescription.steps"
-            :key="step.label"
-            :type="step.exerciseId ? 'button' : undefined"
-            class="flex gap-3 border-t border-line-soft pt-2 text-left first:border-t-0 first:pt-0"
-            :class="
-              step.exerciseId &&
-              'tap tile-action -mx-1 rounded-sm border-x border-b border-x-transparent border-b-transparent px-1'
-            "
-            @click="step.exerciseId && ui.openExercise(step.exerciseId)"
-          >
-            <UiExerciseFigure
-              v-if="step.exerciseId"
-              :exercise-id="step.exerciseId"
-              still
-              :width="36"
-              class="shrink-0 self-start"
-            />
-            <span class="flex min-w-0 flex-1 flex-col gap-px">
-              <span class="flex items-baseline gap-2">
-                <span class="text-body">
-                  <template v-if="step.repeats && !step.exerciseId">{{ step.repeats }} × </template>
-                  {{ step.label }}
-                </span>
-                <span
-                  v-if="step.repeats && step.reps"
-                  class="mono whitespace-nowrap text-meta text-text-dim"
-                >
-                  {{ step.repeats }} × {{ step.reps }}{{ step.isometric ? '″' : ''
-                  }}{{ step.unilateral ? '/côté' : '' }}
-                </span>
-                <span v-if="step.superset" class="pill text-caption">superset</span>
-                <!-- Les kilos quand ils sont connus, la réserve sinon : le
-                   pourcentage d'un maximum jamais mesuré ne dit quel poids
-                   prendre à personne. Il reste dans la bulle (P25). -->
-                <UiHoverBubble
-                  v-if="step.intensity"
-                  :label="step.intensity"
-                  size="sm"
-                  trigger-class="ml-auto shrink-0"
-                >
-                  <template #trigger>
-                    <span class="pill explicable text-caption">{{ loadPill(step) }}</span>
-                  </template>
-                  <span class="mono text-meta text-text-dim">{{ step.intensity }} du maximum</span>
-                </UiHoverBubble>
-              </span>
-              <span class="mono text-meta text-text-dim">
-                <template v-if="step.distanceM">{{ formatDistance(step.distanceM) }}</template>
-                <template v-if="step.durationS && !step.reps">
-                  · {{ formatSeconds(step.durationS) }}
-                </template>
-                <template v-if="step.paceSecPerKm">
-                  · {{ formatPace(step.paceSecPerKm) }}/km
-                </template>
-                <template v-if="step.tempo"> · tempo {{ step.tempo }}</template>
-                <template v-if="step.recoveryS">
-                  · récup {{ formatSeconds(step.recoveryS) }}</template
-                >
-                <template v-if="loads[step.exerciseId ?? '']">
-                  ·
-                  <span class="text-text-dim line-through">
-                    {{ formatLoad(loads[step.exerciseId!]!.lastLoadKg) }}
-                  </span>
-                  <span v-if="!step.intensity" class="ml-1 text-accent">
-                    {{ formatLoad(loads[step.exerciseId!]!.suggestedLoadKg) }}
-                  </span>
-                </template>
-                <template v-else-if="formats[step.exerciseId ?? '']">
-                  ·
-                  <span class="text-text-dim line-through">
-                    {{ step.repeats }} × {{ formats[step.exerciseId!]!.lastReps
-                    }}{{ step.isometric ? '″' : '' }}
-                  </span>
-                  <span class="ml-1 text-accent">
-                    {{ step.repeats }} × {{ formats[step.exerciseId!]!.suggestedReps
-                    }}{{ step.isometric ? '″' : '' }}
-                  </span>
-                </template>
-              </span>
-              <!-- Un remplacement se dit sous l'exercice qu'on fait, pas ailleurs. -->
-              <span v-if="step.replacesLabel" class="text-meta text-text-dim">
-                Remplace {{ step.replacesLabel }} : le matériel qu'il demande n'est pas déclaré.
-              </span>
-              <!-- Les disques sous la charge, pour un exercice à la barre (P26). -->
-              <span
-                v-if="step.exerciseId && states[step.exerciseId]?.plates?.length"
-                class="mono text-meta text-text-dim"
-              >
-                {{
-                  states[step.exerciseId]!.plates!.map((plate) => formatDecimal(plate)).join(' + ')
-                }}
-                kg par côté
-              </span>
-              <span v-if="step.note" class="text-meta text-text-dim">{{ step.note }}</span>
-            </span>
-          </component>
-        </div>
+        <SessionsStructure :session="session" :states="states" />
 
         <!-- Un exercice sans estimation se cale avant la séance : le calage
              remplace l'échauffement, pas la séance (P26). -->
@@ -573,108 +319,20 @@ const plannedMinutes = computed(() => {
           </p>
         </div>
 
-        <!-- Une journée peut recevoir une séance de plus, vide ou non (P6.43).
-             Sur une séance faite, c'est de la saisie : elle passe par la porte. -->
-        <div
-          v-if="session.date >= plan.today && !reading"
-          class="tile order-4 bg-surface-inset lean:order-none"
-        >
-          <span class="label text-caption">Ajouter une séance ce jour-là</span>
+        <SessionsPlanGestures
+          :session="session"
+          :planned-minutes="plannedMinutes"
+          :manual-day="manualDay"
+          :reading="reading"
+          @saved="emit('saved')"
+        />
 
-          <PlanSessionForm v-if="adding" :date="session.date" @saved="emit('saved')" />
-          <button
-            v-else
-            type="button"
-            class="btn btn-ghost self-stretch lean:self-start"
-            @click="adding = true"
-          >
-            <UiAppIcon name="plus" :size="15" />
-            Poser une séance de plus
-          </button>
-        </div>
-
-        <!--
-          Les deux gestes de la main : changer la séance pour celle qu'on veut,
-          ou la retirer sans la compter comme manquée. Le moteur dit ce que ça
-          coûte, il ne l'interdit pas (§ 1, P6.43).
-        -->
-        <div v-if="editable" class="tile order-4 bg-surface-inset lean:order-none">
-          <span class="label text-caption">Changer cette séance</span>
-
-          <PlanSessionForm
-            v-if="editing"
-            :date="session.date"
-            :session-id="session.id"
-            :initial="{ sport: session.sport, code: session.code, durationMin: plannedMinutes }"
-            @saved="emit('saved')"
-          />
-
-          <div v-else class="flex flex-col gap-2 lean:flex-row">
-            <button type="button" class="btn btn-ghost flex-1" @click="editing = true">
-              Remplacer
-            </button>
-            <UiActionButton class="btn btn-ghost flex-1" :action="cancelSession">
-              Retirer du plan
-            </UiActionButton>
-          </div>
-
-          <UiActionButton
-            v-if="manualDay"
-            class="btn btn-ghost self-stretch lean:self-start"
-            :action="restoreDay"
-          >
-            Rendre la journée au moteur
-          </UiActionButton>
-          <p v-if="editError" class="text-body text-warn">{{ editError }}</p>
-        </div>
-
-        <!-- Le retour de séance dit « faite » ; ceci dit l'inverse, sans ressenti.
-             Contrairement au retrait, la séance compte comme manquée (§ 5, R6). -->
-        <div v-if="missable" class="tile order-4 bg-surface-inset lean:order-none">
-          <span class="label text-caption">Pas faite</span>
-          <UiActionButton class="btn btn-ghost self-stretch lean:self-start" :action="markMissed">
-            Marquer manquée
-          </UiActionButton>
-          <p v-if="skipError" class="text-body text-warn">{{ skipError }}</p>
-        </div>
-
-        <!--
-          Un vélo qu'on ne peut pas faire n'a d'issue que « manquée » : ici il
-          devient une endurance, payée par les endurances suivantes de la
-          semaine. Bouton fantôme — le retour de séance reste l'action
-          principale de la fenêtre (§ 8, P6.42).
-        -->
-        <div v-if="canSwap" class="tile order-4 bg-surface-inset lean:order-none">
-          <span class="label text-caption">Si tu ne peux pas la faire</span>
-
-          <template v-if="replacement">
-            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span class="mono text-body text-text-dim line-through">
-                {{ session.prescription.label }} · {{ formatMinutes(plannedMinutes) }}
-              </span>
-              <span class="mono text-body text-accent">
-                Endurance fondamentale ·
-                {{ formatDistance(replacement.prescription.totalDistanceM) }} ·
-                {{ formatMinutes(prescribedMinutes(replacement.prescription)) }}
-              </span>
-            </div>
-
-            <span class="text-meta text-text-dim">{{ givebackText }}</span>
-
-            <UiActionButton
-              class="btn btn-ghost self-stretch lean:self-start"
-              icon="run"
-              :icon-size="15"
-              :action="replaceWithRun"
-            >
-              Remplacer par une sortie course
-            </UiActionButton>
-          </template>
-
-          <span v-else-if="swap" class="text-meta text-text-dim">{{ swap.refusal }}</span>
-
-          <p v-if="swapError" class="text-body text-warn">{{ swapError }}</p>
-        </div>
+        <SessionsRideSwap
+          v-if="canSwap"
+          :session="session"
+          :planned-minutes="plannedMinutes"
+          @saved="emit('saved')"
+        />
 
         <!--
           La séance part sur la montre en un fichier. L'itinéraire garde son
@@ -710,46 +368,7 @@ const plannedMinutes = computed(() => {
           :source-id="session.id"
         />
 
-        <!-- Trois lignes courtes ne sont pas un objet à axe : la table se
-             replie au lieu de défiler, et ses deux titres se disent une fois
-             en tête (§ 8, P12). -->
-        <!-- Avant le réalisé, le bloc alignait trois tirets : il n'apparaît
-             qu'une fois la séance faite, la structure disait déjà le reste (P20). -->
-        <div v-if="done" class="tile order-3 bg-surface-inset lean:order-none">
-          <span class="label text-caption">Prescrit contre réalisé</span>
-          <table class="w-full text-body">
-            <thead>
-              <tr>
-                <th class="label pb-1 text-left text-caption font-semibold"></th>
-                <th class="label pb-1 text-right text-caption font-semibold">Prévu</th>
-                <th class="label pb-1 text-right text-caption font-semibold">Réalisé</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="border-t border-line-soft">
-                <td class="py-[6px] text-text-dim">Durée</td>
-                <td class="mono py-[6px] text-right">{{ plannedMinutes }} min</td>
-                <td class="mono py-[6px] text-right">
-                  {{ session.actualDurationMin ? `${session.actualDurationMin} min` : '—' }}
-                </td>
-              </tr>
-              <tr v-if="session.prescription.totalDistanceM > 0" class="border-t border-line-soft">
-                <td class="py-[6px] text-text-dim">Distance</td>
-                <td class="mono py-[6px] text-right">
-                  {{ formatDistance(session.prescription.totalDistanceM) }}
-                </td>
-                <td class="mono py-[6px] text-right">
-                  {{ session.actualDistanceM ? formatDistance(session.actualDistanceM) : '—' }}
-                </td>
-              </tr>
-              <tr class="border-t border-line-soft">
-                <td class="py-[6px] text-text-dim">RPE</td>
-                <td class="mono py-[6px] text-right">{{ session.prescription.expectedRpe }}</td>
-                <td class="mono py-[6px] text-right">{{ session.feedbackRpe ?? '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <SessionsPlannedVsActual v-if="done" :session="session" :planned-minutes="plannedMinutes" />
 
         <!-- Une sortie à venir a besoin d'un parcours : il se demande ici, à
              la distance de la séance, depuis l'adresse du profil (§ 9, P5.5).
@@ -783,26 +402,7 @@ const plannedMinutes = computed(() => {
              leurs heures (§ 9, P6.4). -->
         <NutritionDayMealPlan v-if="day" class="order-3 lean:order-none" :date="day" />
 
-        <div v-if="history.length > 0" class="tile order-3 bg-surface-inset lean:order-none">
-          <span class="label text-caption">Les fois d'avant</span>
-          <div
-            v-for="item in history"
-            :key="item.id"
-            class="flex items-baseline gap-3 border-t border-line-soft pt-2 first:border-t-0 first:pt-0"
-          >
-            <span class="mono text-meta text-text-dim">{{ formatDate(item.date) }}</span>
-            <span class="mono text-meta">
-              <template v-if="item.prescription.totalDistanceM > 0">
-                {{ formatDistance(item.actualDistanceM ?? item.prescription.totalDistanceM) }}
-              </template>
-              <template v-else>
-                {{ formatMinutes(item.actualDurationMin ?? item.prescription.durationMin) }}
-              </template>
-            </span>
-            <span v-if="item.feedbackRpe" class="pill ml-auto">RPE {{ item.feedbackRpe }}</span>
-            <span v-else-if="item.status === 'sautee'" class="pill ml-auto">manquée</span>
-          </div>
-        </div>
+        <SessionsHistory :session="session" />
       </div>
 
       <!-- Le retour de séance est de la saisie : sur une séance faite il ne
