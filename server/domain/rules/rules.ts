@@ -9,6 +9,7 @@ import {
 import { VDOT_GAIN_PER_BLOCK } from '../fitness/projection'
 import { EMPTY_ADJUSTMENTS, type PersonalAdjustments } from '../learning/personal-rules'
 import { FATIGUE_SENSATIONS, type Pain, type Sensation } from '../load/feedback'
+import { CONFORMING_SHARE } from '../load/week-summary'
 import { addDays, weekday as weekdayOf, type IsoDate } from '../plan/calendar'
 import { RunSessionCode, runSessionType } from '../running/session-types'
 import { frenchKm, frenchShortDate } from '../shared/french'
@@ -26,6 +27,8 @@ export enum RuleId {
   R8 = 'R8',
   /** Le moteur se trompe toujours dans le même sens : sa progression estimée se recale. */
   R9 = 'R9',
+  /** La semaine close n'a pas couru son volume : la suivante ne monte pas. */
+  R10 = 'R10',
   /** Imprévu : une indisponibilité déclarée en texte libre touche une séance (§ 6). */
   I1 = 'I1',
   /** Calendrier : la date annoncée d'une course a changé depuis la recherche (§ 6). */
@@ -114,6 +117,17 @@ export interface UpcomingSession {
   expectedRpe?: number
 }
 
+/** La dernière semaine close, que R10 juge sur ses kilomètres (§ 5). */
+export interface ClosedWeek {
+  weekId: number
+  startDate: IsoDate
+  targetRunM: number
+  /** Mètres courus ; nul tant qu'une course de la semaine attend son réalisé. */
+  runM: number | null
+  /** Couverte par une pause, ou semaine de reprise : elle ne se juge pas. */
+  excused: boolean
+}
+
 export interface RuleContext {
   today: IsoDate
   /** Séances passées, de la plus récente à la plus ancienne. */
@@ -127,6 +141,7 @@ export interface RuleContext {
   forecasts?: ResolvedForecast[]
   /** Progression estimée en vigueur, que R9 propose de corriger. */
   gainPerBlock?: number
+  closedWeek?: ClosedWeek
 }
 
 const isFatigueSensation = (sensation: Sensation) =>
@@ -485,10 +500,33 @@ function r9(context: RuleContext): Proposal[] {
     .slice(0, 1)
 }
 
-const RULES = [r1, r2, r3, r4, r5, r6, r7, r8, r9, learnedMoves, learnedRpe]
+/**
+ * R10 — la semaine close a couru moins de 80 % de sa cible : la suivante ne
+ * monte pas. Le seuil est celui de la conformité (P6.5), en kilomètres au lieu
+ * de séances. Une semaine allégée se juge sur sa cible allégée ; le gel part
+ * de la semaine prochaine, celle en cours ayant déjà ses séances faites.
+ */
+function r10(context: RuleContext): Proposal[] {
+  const closed = context.closedWeek
+  if (!closed || closed.excused || closed.runM === null || closed.targetRunM === 0) return []
+  if (closed.runM >= closed.targetRunM * CONFORMING_SHARE) return []
+
+  return [
+    {
+      ruleId: RuleId.R10,
+      effect: ProposalEffect.FreezeProgression,
+      target: { kind: 'week', id: closed.weekId },
+      before: 'progression du bloc',
+      after: 'volume maintenu la semaine prochaine',
+      explanation: `La semaine du ${frenchShortDate(closed.startDate)} a couru ${frenchKm(closed.runM)} sur ${frenchKm(closed.targetRunM)} visés.`,
+    },
+  ]
+}
+
+const RULES = [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, learnedMoves, learnedRpe]
 
 /**
- * Évalue les règles R1 à R9 puis les règles apprises, et retourne des
+ * Évalue les règles R1 à R10 puis les règles apprises, et retourne des
  * propositions. Rien n'est appliqué ici : la décision revient à l'athlète
  * (§ 1.3). Une famille refusée systématiquement est retirée en dernier — une
  * règle apprise ne dépasse jamais une règle de sécurité, elle la tait.

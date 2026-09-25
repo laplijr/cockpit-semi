@@ -279,6 +279,40 @@ describe('R9 — le moteur se trompe toujours dans le même sens', () => {
   })
 })
 
+describe('R10 — la semaine qui n’a pas couru son volume ne monte pas', () => {
+  const closed = {
+    weekId: 42,
+    startDate: '2026-11-09',
+    targetRunM: 30_000,
+    runM: 21_000,
+    excused: false,
+  }
+
+  it('gèle la semaine prochaine sous 80 % de la cible', () => {
+    const [proposal] = evaluateRules(context({ closedWeek: closed })).filter(
+      (p) => p.ruleId === RuleId.R10,
+    )
+    expect(proposal!.effect).toBe(ProposalEffect.FreezeProgression)
+    expect(proposal!.target).toEqual({ kind: 'week', id: 42 })
+    expect(proposal!.explanation).toBe('La semaine du 9 nov. a couru 21 km sur 30 km visés.')
+  })
+
+  it('ne déclenche pas à 80 % de la cible', () => {
+    const held = { ...closed, runM: 24_000 }
+    expect(idsOf(evaluateRules(context({ closedWeek: held })))).not.toContain(RuleId.R10)
+  })
+
+  it('ne juge pas une semaine dont une course attend son réalisé', () => {
+    const pending = { ...closed, runM: null }
+    expect(idsOf(evaluateRules(context({ closedWeek: pending })))).not.toContain(RuleId.R10)
+  })
+
+  it('ne juge pas une semaine de pause ou de reprise', () => {
+    const excused = { ...closed, runM: 0, excused: true }
+    expect(idsOf(evaluateRules(context({ closedWeek: excused })))).not.toContain(RuleId.R10)
+  })
+})
+
 describe('moteur de règles', () => {
   it('écrit ses textes en français : ni point décimal ni date ISO (P19)', () => {
     const tired = outcome({

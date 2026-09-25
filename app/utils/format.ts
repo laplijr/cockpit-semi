@@ -316,6 +316,7 @@ export const RULE_NAMES: Record<string, string> = {
   R7: 'Séances clés tenues',
   R8: 'Course vers vélo',
   R9: 'Recalage de la progression',
+  R10: 'Volume non couru',
   I1: 'Imprévu',
   C1: 'Date de course',
   R100: 'Habitude de jour',

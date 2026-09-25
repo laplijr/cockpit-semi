@@ -1,8 +1,21 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lt, notInArray } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  notInArray,
+  or,
+} from 'drizzle-orm'
 import { loadAcceptedHabits } from '../../application/detect-habits'
 import { STANDARD_INCREASE_PCT } from '../../domain/athlete/profile'
 import { adjustmentsFrom } from '../../domain/learning/personal-rules'
-import { addDays } from '../../domain/plan/calendar'
+import { addDays, startOfWeek } from '../../domain/plan/calendar'
 import { frozenRamp, restoredRamp } from '../../domain/plan/ramp'
 import { SessionStatus } from '../../domain/plan/session'
 import { PauseType } from '../../domain/pause/pause'
@@ -17,6 +30,7 @@ import {
 import {
   ProposalEffect,
   evaluateRules,
+  type ClosedWeek,
   type Proposal as DomainProposal,
   type RuleContext,
   type SessionOutcome,
@@ -26,7 +40,12 @@ import type { RunSessionCode, Prescription } from '../../domain/running/session-
 import { Sport } from '../../domain/shared/sport'
 import type { Database } from './client'
 import { loadGainPerBlock, loadResolvedForecasts } from './forecast-repository'
-import { athleteWeekIds, createPlanGateway, loadActivePlanVersion } from './plan-gateway'
+import {
+  athleteWeekIds,
+  createPlanGateway,
+  loadActivePlanVersion,
+  loadRealizedRuns,
+} from './plan-gateway'
 import { athlete, feedback, pause, proposal, race, session, week } from './schema'
 
 /** Fenêtre de séances passées examinée par les règles. */
@@ -130,6 +149,74 @@ async function buildContext(db: Database, athleteId: number, today: string): Pro
     personal: adjustmentsFrom(await loadAcceptedHabits(db, athleteId)),
     forecasts: resolved,
     gainPerBlock: gain,
+    closedWeek: await loadClosedWeek(db, athleteId, today),
+  }
+}
+
+/**
+ * La dernière semaine close, lue sur la version qui la portait : le plan actif
+ * commence souvent au lundi en cours et n'en a aucune (même borne que le bilan
+ * du dimanche, P7.1). Une course qui attend son retour, ou faite sans distance
+ * relevée, laisse la semaine sans mesure : elle ne se juge pas encore.
+ */
+async function loadClosedWeek(
+  db: Database,
+  athleteId: number,
+  today: string,
+): Promise<ClosedWeek | undefined> {
+  const start = addDays(startOfWeek(today), -7)
+  const end = addDays(start, 6)
+  const mine = athleteWeekIds(db, athleteId)
+
+  const [[planned], runs, realized, pauses] = await Promise.all([
+    db
+      .select()
+      .from(week)
+      .where(and(eq(week.startDate, start), inArray(week.id, mine)))
+      .orderBy(desc(week.planVersionId))
+      .limit(1),
+    db
+      .select({ status: session.status, distanceM: session.actualDistanceM })
+      .from(session)
+      .where(
+        and(
+          inArray(session.weekId, mine),
+          eq(session.sport, Sport.Running),
+          gte(session.date, start),
+          lte(session.date, end),
+        ),
+      ),
+    loadRealizedRuns(db, athleteId, start),
+    db
+      .select({ id: pause.id })
+      .from(pause)
+      .where(
+        and(
+          eq(pause.athleteId, athleteId),
+          lte(pause.startDate, end),
+          or(isNull(pause.endDate), gte(pause.endDate, start)),
+        ),
+      )
+      .limit(1),
+  ])
+  if (!planned) return undefined
+
+  const unmeasured = runs.some(
+    (run) =>
+      run.status === SessionStatus.Planned ||
+      run.status === SessionStatus.Modified ||
+      (run.status === SessionStatus.Done && run.distanceM === null),
+  )
+  const runM = realized
+    .filter((run) => run.date <= end)
+    .reduce((total, run) => total + run.distanceM, 0)
+
+  return {
+    weekId: planned.id,
+    startDate: start,
+    targetRunM: planned.targetRunM,
+    runM: unmeasured ? null : Math.round(runM),
+    excused: pauses.length > 0 || planned.comebackRatio !== null,
   }
 }
 
@@ -148,14 +235,27 @@ export async function evaluateAndStore(
   const found = evaluateRules(await buildContext(db, athleteId, today))
   if (found.length === 0) return []
 
-  const pending = await db
+  /**
+   * Une proposition qui nomme une semaine ne se redemande pas une fois
+   * décidée : la semaine close ne change plus, et la reposer à chaque
+   * évaluation serait insister (R10, P28).
+   */
+  const existing = await db
     .select()
     .from(proposal)
-    .where(and(eq(proposal.athleteId, athleteId), eq(proposal.status, ProposalStatus.Proposed)))
+    .where(
+      and(
+        eq(proposal.athleteId, athleteId),
+        or(
+          eq(proposal.status, ProposalStatus.Proposed),
+          and(eq(proposal.targetKind, 'week'), isNotNull(proposal.targetId)),
+        ),
+      ),
+    )
 
   const signature = (item: { ruleId: string; effect: string; targetId: number | null }) =>
     `${item.ruleId}|${item.effect}|${item.targetId ?? ''}`
-  const known = new Set(pending.map(signature))
+  const known = new Set(existing.map(signature))
 
   const fresh = found.filter((item) => !known.has(signature({ ...item, targetId: item.target.id })))
   if (fresh.length === 0) return []
