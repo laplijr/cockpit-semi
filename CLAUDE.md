@@ -2,7 +2,7 @@
 
 Projet personnel de Ronan : cockpit d'entraînement (course à pied, vélo, muscu), web, gratuit, mono-utilisateur.
 
-**Source de vérité : `docs/PLAN.md`.** Le lire en entier avant d'agir, puis exécuter la prochaine case non cochée de la section « État d'avancement et consigne aux agents ». Cocher les cases au fil de l'eau, dans ce fichier.
+**Source de vérité : `docs/PLAN.md`.** Le lire en entier avant d'agir, puis exécuter la prochaine case non cochée de la section « État d'avancement et consigne aux agents ». Cocher les cases au fil de l'eau, dans ce fichier. Les phases livrées sont dans `docs/archive/PLAN-livre.md` : on y cherche la raison d'un arbitrage, pas la prochaine case.
 
 Règles qui priment sur tout le reste :
 
