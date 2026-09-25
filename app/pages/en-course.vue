@@ -2,8 +2,7 @@
 import { FIX_TOLERANCE } from '~~/server/domain/tracking/fix'
 import { paceGap, paceOffBand, stepRemaining } from '~~/server/domain/tracking/steps'
 import type { StepTarget } from '~~/server/domain/tracking/steps'
-import { WorkoutStepKind } from '~~/server/domain/watch/workout'
-import { averagePace, offTrackM, type Split } from '~~/server/domain/tracking/track'
+import { averagePace, offTrackM } from '~~/server/domain/tracking/track'
 
 /**
  * L'écran de course, hors coque (§ 9, P10). Ni barre du bas ni fil d'Ariane :
@@ -48,60 +47,9 @@ const targetDistanceM = computed(
 
 const loopable = computed(() => targetDistanceM.value > 0)
 
-const tilesReady = ref(false)
-
-/**
- * Garder la carte avant de partir (§ 9, P10.3) : sans réseau, les tuiles ne
- * se chargent plus et la carte est grise. Quelques dizaines de tuiles au zoom
- * utile, demandées une fois — le navigateur les garde dans son cache HTTP —
- * et bornées pour rester dans les limites d'usage d'OpenStreetMap.
- */
-const TILE_ZOOM = 15
-const MAX_TILES = 64
-
-function tileX(lon: number, zoom: number): number {
-  return Math.floor(((lon + 180) / 360) * 2 ** zoom)
-}
-
-function tileY(lat: number, zoom: number): number {
-  const radians = (lat * Math.PI) / 180
-  const merc = Math.log(Math.tan(radians) + 1 / Math.cos(radians))
-  return Math.floor(((1 - merc / Math.PI) / 2) * 2 ** zoom)
-}
-
-async function keepTiles(points: { lat: number; lon: number }[]) {
-  if (points.length === 0 || tilesReady.value) return
-
-  const xs = points.map((point) => tileX(point.lon, TILE_ZOOM))
-  const ys = points.map((point) => tileY(point.lat, TILE_ZOOM))
-  const urls: string[] = []
-
-  /** Une tuile de marge autour de la boîte : la trace passe rarement au centre. */
-  for (let x = Math.min(...xs) - 1; x <= Math.max(...xs) + 1; x += 1) {
-    for (let y = Math.min(...ys) - 1; y <= Math.max(...ys) + 1; y += 1) {
-      urls.push(`https://tile.openstreetmap.org/${TILE_ZOOM}/${x}/${y}.png`)
-    }
-  }
-
-  await Promise.all(
-    urls.slice(0, MAX_TILES).map(
-      (url) =>
-        new Promise<void>((resolve) => {
-          const image = new Image()
-          image.onload = () => resolve()
-          image.onerror = () => resolve()
-          image.src = url
-        }),
-    ),
-  )
-
-  tilesReady.value = true
-}
-
 const started = ref(false)
 const stepIndex = ref(0)
 const stepSince = ref({ distanceM: 0, elapsedS: 0 })
-const finishError = ref('')
 
 const session = computed(() =>
   sessionId === null
@@ -130,14 +78,8 @@ const guide = computed(() => {
   return all.length === 0 ? [] : (all[shownRoute.value % all.length]?.points ?? [])
 })
 
-/** La boucle connue, les tuiles partent avec : c'est le seul moment tranquille. */
-watch(
-  () => guide.value,
-  (points) => {
-    if (points.length > 1) void keepTiles(points)
-  },
-  { immediate: true },
-)
+/** La carte gardée avant de partir, pour le hors-réseau (§ 9, P10.3). */
+const tilesReady = useOfflineTiles(() => guide.value)
 
 const distanceM = computed(() => tracker.track.value.distanceM)
 const elapsedS = computed(() => tracker.track.value.elapsedS)
@@ -231,9 +173,6 @@ watch(sunlight, (value) => {
   }
 })
 
-/** Chiffres repliés : il ne reste qu'une ligne, et la carte prend le reste. */
-const folded = ref(false)
-
 /** La carte a été déplacée au doigt : elle ne suit plus, et le dit. */
 const adrift = ref(false)
 const map = useTemplateRef<{ recenter: () => void }>('map')
@@ -248,9 +187,6 @@ const offTrack = computed(() => {
   const away = offTrackM(position, guide.value)
   return away !== null && away > FIX_TOLERANCE.offTrackM
 })
-
-/** Trop court pour être une séance : l'abandon passe devant l'enregistrement. */
-const tooShort = computed(() => distanceM.value < FIX_TOLERANCE.minRunM)
 
 /** Étape franchie : la suivante prend la main, et s'annonce. */
 watch(remaining, (value) => {
@@ -275,61 +211,7 @@ function nextStep() {
   if (next) tracker.announce(`${next.label}, ${speakLine(next)}`)
 }
 
-function describeTarget(step: StepTarget): string {
-  if (step.durationS) return formatSeconds(step.durationS)
-  if (step.distanceM) return formatDistance(step.distanceM)
-  return 'à la sensation'
-}
-
-/**
- * Ce qu'il y a à tenir sur l'étape. Une récupération ne porte ni allure ni
- * effort : elle ne dit que sa durée, et « à RPE — » n'aurait rien dit.
- */
-/**
- * Une ligne par bloc, avant de partir : « 4 × (500 m à 5:23/km + récup 2′30) »,
- * comme dans la fenêtre de séance. Dépliées, les répétitions faisaient dix
- * lignes et poussaient « Démarrer » hors de l'écran (P21).
- */
-const blockLines = computed(() =>
-  (brief.value?.blocks ?? []).flatMap((block) => {
-    if (block.repeats <= 1)
-      return block.steps.map((step) => ({ label: step.label, line: targetLine(step) }))
-    const parts = block.steps.map((step) =>
-      step.kind === WorkoutStepKind.Recovery ? `récup ${describeTarget(step)}` : targetLine(step),
-    )
-    return [
-      { label: block.steps[0]?.label ?? '', line: `${block.repeats} × (${parts.join(' + ')})` },
-    ]
-  }),
-)
-
-function targetLine(step: StepTarget): string {
-  if (step.paceSecPerKm) return `${describeTarget(step)} à ${formatPace(step.paceSecPerKm)}/km`
-  if (step.rpe) return `${describeTarget(step)} à RPE ${step.rpe}`
-  return describeTarget(step)
-}
-
-/**
- * La même étape, dite à voix haute. Ni « 8′ » ni « 4:15 » ne se lisent : la
- * synthèse vocale en fait un prime muet et des heures (§ 9, P18).
- */
-function speakLine(step: StepTarget): string {
-  const size = step.durationS
-    ? speakDuration(step.durationS)
-    : step.distanceM
-      ? speakDistance(step.distanceM)
-      : 'à la sensation'
-
-  if (step.paceSecPerKm) return `${size} à ${speakPace(step.paceSecPerKm)}`
-  if (step.rpe) return `${size} à RPE ${step.rpe}`
-  return size
-}
-
-/** Barre d'un split : le kilomètre le plus rapide fait la largeur pleine. */
-function splitWidth(seconds: number, all: Split[]): number {
-  const fastest = Math.min(...all.map((split) => split.seconds))
-  return Math.round((fastest / seconds) * 100)
-}
+const blockLines = computed(() => stepBlockLines(brief.value?.blocks ?? []))
 
 async function start() {
   started.value = true
@@ -344,46 +226,6 @@ async function abandon() {
   }
   tracker.forget()
   await navigateTo('/')
-}
-
-/** Une seule requête pour la trace et le ressenti : la sortie s'enregistre d'un coup. */
-async function record(payload: {
-  rpe: number
-  sensations: string[]
-  sleepHours: number | null
-  pain: { zone: string; intensity: number } | null
-  durationMin: number
-  distanceM: number | null
-  notes: string | null
-}) {
-  finishError.value = ''
-  const measuredMin = Math.round(elapsedS.value / 60)
-
-  try {
-    await $fetch(`/api/runs/${tracker.runId.value}/finish`, {
-      method: 'POST',
-      body: {
-        fixes: tracker.fixes.value,
-        rpe: payload.rpe,
-        sensations: payload.sensations,
-        sleepHours: payload.sleepHours,
-        pain: payload.pain,
-        notes: payload.notes,
-        correctedDistanceM:
-          payload.distanceM !== null && payload.distanceM !== distanceM.value
-            ? payload.distanceM
-            : null,
-        correctedDurationMin: payload.durationMin === measuredMin ? null : payload.durationMin,
-      },
-    })
-
-    tracker.forget()
-    await plan.load()
-    await navigateTo('/')
-  } catch (cause) {
-    finishError.value = apiMessage(cause, 'Enregistrement impossible.')
-    throw cause
-  }
 }
 </script>
 
@@ -561,70 +403,14 @@ async function record(payload: {
 
     <!-- 5 · Bilan et ressenti : une seule action, et elle enregistre tout. -->
     <template v-else-if="tracker.phase.value === RunPhase.Done">
-      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 class="display text-display-m font-semibold">Sortie terminée</h1>
-        <span class="mono w-full text-meta text-text-dim">
-          <template v-if="brief?.label">{{ brief.label }} · </template>
-          <template v-else-if="free">Hors plan · </template>
-          {{ formatDistance(distanceM) }} · {{ formatDuration(elapsedS) }}
-        </span>
-      </div>
-
-      <div v-if="tooShort" class="tile bg-surface-inset">
-        <p class="text-body text-warn">
-          Moins de {{ formatDistance(FIX_TOLERANCE.minRunM) }} : ce n'est pas une séance, et ça
-          fausserait la charge.
-        </p>
-        <UiActionButton class="btn" :action="abandon">Abandonner la sortie</UiActionButton>
-        <button type="button" class="btn btn-ghost" @click="tracker.resumeRun">Reprendre</button>
-      </div>
-
-      <template v-else>
-        <div class="tile bg-surface-inset">
-          <span class="label text-caption">Splits</span>
-          <div
-            v-for="split in tracker.kilometres.value"
-            :key="split.km"
-            class="flex items-center gap-3"
-          >
-            <span class="mono w-[34px] text-meta text-text-dim">km {{ split.km }}</span>
-            <span class="h-2 flex-1 rounded-sm bg-surface-muted">
-              <span
-                class="block h-2 rounded-sm bg-accent"
-                :style="{ width: `${splitWidth(split.seconds, tracker.kilometres.value)}%` }"
-              />
-            </span>
-            <span class="mono w-[42px] text-right text-meta">{{ formatPace(split.seconds) }}</span>
-          </div>
-          <p v-if="tracker.kilometres.value.length === 0" class="text-meta text-text-dim">
-            Moins d'un kilomètre.
-          </p>
-        </div>
-
-        <div class="tile bg-surface-inset">
-          <span class="label text-caption">Trace</span>
-          <ClientOnly>
-            <UiRouteMap :points="tracker.track.value.points" :guide="guide" :height="190" />
-          </ClientOnly>
-          <span class="mono text-meta text-text-dim">
-            {{ formatDistance(distanceM) }} · D+ environ {{ tracker.track.value.elevationGainM }} m
-          </span>
-        </div>
-
-        <!-- Une sortie libre n'a pas de séance : le formulaire s'en passe et
-             l'enregistrement, lui, ne change pas (§ 9, P10.3). -->
-        <FeedbackForm
-          v-if="session || free"
-          :session="session"
-          :watch-zones="plan.lastWatchZones"
-          :measured="{ durationMin: Math.round(elapsedS / 60), distanceM }"
-          :submit="record"
-          action="Enregistrer"
-        />
-        <p v-else class="text-body text-text-dim">Séance introuvable : le plan n'est pas chargé.</p>
-
-        <p v-if="finishError" class="text-body text-warn">{{ finishError }}</p>
-      </template>
+      <RunSummary
+        :tracker="tracker"
+        :session="session"
+        :free="free"
+        :brief-label="brief?.label"
+        :guide="guide"
+        :abandon="abandon"
+      />
     </template>
 
     <!-- 3 · En course : la carte prend l'écran, les chiffres se posent dessus,
@@ -641,129 +427,22 @@ async function record(payload: {
         />
       </ClientOnly>
 
-      <!-- Le bandeau laisse passer le doigt, seuls ses objets le prennent :
-           sinon la moitié haute de la carte serait morte sous la main. -->
-      <div
-        class="pointer-events-none absolute inset-x-0 top-0 z-map flex flex-col gap-3 bg-gradient-to-b from-ink from-80% to-transparent px-4 pt-3 pb-10"
-      >
-        <div class="pointer-events-auto flex items-center gap-3">
-          <div class="flex min-w-0 flex-1 flex-col gap-px">
-            <span class="text-body">
-              <template v-if="targets.length > 0">
-                {{ brief?.label }} · étape {{ stepIndex + 1 }} / {{ targets.length }}
-              </template>
-              <template v-else-if="cycling">{{ session?.prescription.label }}</template>
-              <template v-else>Sortie libre</template>
-            </span>
-            <span class="mono truncate text-meta text-text-dim">
-              <template v-if="target">{{ target.label }} · {{ targetLine(target) }}</template>
-            </span>
-          </div>
-          <button
-            v-if="targets.length > 0"
-            type="button"
-            class="btn btn-ghost size-11 shrink-0 bg-surface/95 p-0"
-            aria-label="Passer à l'étape suivante"
-            @click="nextStep"
-          >
-            <UiAppIcon name="chevron" :size="18" />
-          </button>
-        </div>
-
-        <div class="flex gap-[3px]">
-          <span
-            v-for="(step, index) in targets"
-            :key="`bar-${index}`"
-            class="h-1 flex-1 rounded-sm"
-            :class="
-              index < stepIndex
-                ? 'bg-accent-track'
-                : index === stepIndex
-                  ? beyond
-                    ? 'bg-ok'
-                    : 'bg-accent'
-                  : 'bg-surface-muted'
-            "
-          />
-        </div>
-
-        <!-- Replié, il ne reste que ce qui se lit d'un coup d'œil : la carte
-             prend alors presque tout l'écran. -->
-        <div v-if="folded" class="pointer-events-auto flex items-baseline gap-3">
-          <span
-            class="display text-display-l leading-none font-bold"
-            :class="beyond && 'text-accent'"
-            >{{ headline }}</span
-          >
-          <span class="mono text-title" :class="offBand ? 'text-warn' : 'text-text-dim'">
-            <template v-if="cycling">{{ formatSpeed(tracker.pace.value) }}</template>
-            <template v-else>{{ formatPace(tracker.pace.value) }}/km</template>
-          </span>
-          <button
-            type="button"
-            class="tap -my-2 -mr-2 ml-auto inline-flex size-11 items-center justify-center self-center text-text-dim"
-            aria-label="Déplier les chiffres"
-            @click="folded = false"
-          >
-            <UiAppIcon name="chevron" :size="20" class="rotate-90" />
-          </button>
-        </div>
-
-        <template v-else>
-          <div class="flex flex-col items-center gap-1 pt-1">
-            <!-- Sans étape à décompter — sortie libre ou vélo — le grand chiffre
-                 est le temps de la sortie : c'est ce qu'on regarde (§ 8, P10.3). -->
-            <span class="label text-caption">{{ headlineLabel }}</span>
-            <span
-              class="display text-display-xxl leading-[0.92] font-bold"
-              :class="beyond && 'text-accent'"
-              >{{ headline }}</span
-            >
-            <span v-if="target" class="mono pt-1 text-meta text-text-dim">
-              cible {{ targetLine(target) }}
-            </span>
-          </div>
-
-          <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-            <span class="mono text-display-m" :class="offBand ? 'text-warn' : 'text-text'">
-              <template v-if="cycling">{{ formatSpeed(tracker.pace.value) }}</template>
-              <template v-else>{{ formatPace(tracker.pace.value) }}</template>
-            </span>
-            <span v-if="!cycling" class="mono text-meta text-text-dim">/km</span>
-            <span v-if="beyond" class="pill bg-ok/15 text-ok">cible atteinte</span>
-            <span v-else-if="gapLine" class="pill pill-warn">{{ gapLine }}</span>
-            <span v-if="tracker.lost.value" class="pill pill-warn">signal perdu</span>
-            <span v-else-if="offTrack" class="pill pill-warn">hors trace</span>
-          </div>
-
-          <div class="flex items-end justify-between gap-2 border-t border-line-soft pt-3">
-            <span class="flex flex-col gap-px">
-              <span class="mono text-title">{{ formatDistance(distanceM) }}</span>
-              <span class="label text-caption">distance</span>
-            </span>
-            <span class="flex flex-col gap-px">
-              <span class="mono text-title">{{ formatDuration(elapsedS) }}</span>
-              <span class="label text-caption">temps</span>
-            </span>
-            <span class="flex flex-col gap-px text-right">
-              <span class="mono text-title">
-                <template v-if="!average">—</template>
-                <template v-else-if="cycling">{{ formatSpeed(average) }}</template>
-                <template v-else>{{ formatPace(average) }}/km</template>
-              </span>
-              <span class="label text-caption">{{ cycling ? 'vitesse moy.' : 'allure moy.' }}</span>
-            </span>
-            <button
-              type="button"
-              class="tap pointer-events-auto -mr-2 -mb-2 inline-flex size-11 items-center justify-center text-text-dim"
-              aria-label="Replier les chiffres"
-              @click="folded = true"
-            >
-              <UiAppIcon name="chevron" :size="20" class="-rotate-90" />
-            </button>
-          </div>
-        </template>
-      </div>
+      <RunHud
+        :tracker="tracker"
+        :brief-label="brief?.label"
+        :session-label="session?.prescription.label"
+        :cycling="cycling"
+        :targets="targets"
+        :step-index="stepIndex"
+        :target="target"
+        :beyond="beyond"
+        :headline="headline"
+        :headline-label="headlineLabel"
+        :off-band="offBand"
+        :gap-line="gapLine"
+        :off-track="offTrack"
+        @next="nextStep"
+      />
 
       <!-- Un voile, pas un bandeau : les ronds restent lisibles sur la carte
            sans lui prendre le bas de l'écran. -->
