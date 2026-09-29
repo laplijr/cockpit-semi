@@ -9,8 +9,9 @@ import { currentAthleteId, systemClock } from '../../../utils/context'
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
 /**
- * Marque manquée une séance prévue dont le jour est arrivé (§ 5, R6). Une
- * séance à venir se retire du plan, elle ne se manque pas d'avance.
+ * Marque manquée une séance prévue dont le jour est arrivé (§ 5, R6), qu'elle
+ * vienne du moteur ou de la main. Une séance à venir se retire du plan, elle ne
+ * se manque pas d'avance.
  */
 export default defineEventHandler(async (event) => {
   const athleteId = await currentAthleteId(event)
@@ -18,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   const db = useDatabase()
   const row = await ownedSession(db, athleteId, id)
-  if (row.status !== SessionStatus.Planned) {
+  if (row.status !== SessionStatus.Planned && row.status !== SessionStatus.Modified) {
     throw createError({
       statusCode: 409,
       statusMessage: 'Seule une séance prévue se marque manquée.',
