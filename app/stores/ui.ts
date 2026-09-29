@@ -12,6 +12,7 @@ export const MODAL_IDS = [
   'bloc',
   'publication',
   'calage',
+  'activite',
 ] as const
 
 /** Cadrans du cockpit qui ouvrent un détail (§ 8). */

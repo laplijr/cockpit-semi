@@ -17,6 +17,7 @@ const WIDTHS: Record<string, number> = {
   bloc: 880,
   publication: 600,
   calage: 560,
+  activite: 560,
 }
 
 const TITLES: Record<string, string> = {
@@ -32,6 +33,7 @@ const TITLES: Record<string, string> = {
   bloc: 'Bloc',
   publication: 'Publication',
   calage: 'Caler',
+  activite: 'Hors plan',
 }
 
 /** Un jour sans séance n'est pas une séance : la fenêtre le dit dans son titre. */
@@ -54,6 +56,12 @@ async function onRaceChanged() {
 /** Un commentaire ou un retrait change la semaine affichée derrière la fenêtre. */
 async function onPostChanged() {
   await useCircleStore().load()
+}
+
+/** Un effort corrigé change la charge : le plan et les cadrans se relisent. */
+async function onActivityCorrected() {
+  await Promise.all([plan.load(), refreshNuxtData()])
+  ui.closeModal()
 }
 
 async function onDecided() {
@@ -126,6 +134,12 @@ async function onDecided() {
       <DialogsBlockDialog
         v-else-if="ui.modal === 'bloc' && ui.modalTargetId"
         :phase-id="ui.modalTargetId"
+      />
+
+      <DialogsActivityDialog
+        v-else-if="ui.modal === 'activite' && ui.modalTargetId"
+        :activity-id="ui.modalTargetId"
+        @corrected="onActivityCorrected"
       />
 
       <DialogsPostDialog

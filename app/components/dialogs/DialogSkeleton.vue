@@ -20,6 +20,7 @@ const SHAPES: Record<ModalId, { columns: number; tiles: number; lines: number }>
   'course-passee': { columns: 1, tiles: 1, lines: 6 },
   publication: { columns: 1, tiles: 2, lines: 3 },
   calage: { columns: 1, tiles: 3, lines: 2 },
+  activite: { columns: 2, tiles: 2, lines: 1 },
 }
 
 const shape = computed(() => SHAPES[props.modal])

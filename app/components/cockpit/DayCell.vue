@@ -8,7 +8,7 @@ export interface DayRace {
   distanceM: number
 }
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     label: string
     date: string
@@ -22,6 +22,8 @@ withDefaults(
 
 const ui = useUiStore()
 const plan = usePlanStore()
+
+const activities = computed(() => plan.offPlanByDate.get(props.date) ?? [])
 
 /**
  * Le seul chiffre de la cellule est celui du réalisé dès que la séance est
@@ -145,9 +147,44 @@ function figureOf(session: PlanSession): string {
       </span>
     </div>
 
+    <!-- Ce que la charge compte sans séance : la grammaire d'une séance, en ton
+         atténué et derrière un filet pointillé — rien ne la confond avec le
+         plan, et elle ouvre son effort pour qu'on le corrige (§ 8, P29). -->
+    <div
+      v-for="(item, index) in activities"
+      :key="`hors-plan-${item.id}`"
+      class="tap tile-action -mx-1 flex flex-col justify-center gap-px rounded-sm border border-dashed border-transparent px-1"
+      :class="(index > 0 || sessions.length > 0 || race) && 'mt-1 border-t-line-strong pt-2'"
+      role="button"
+      :tabindex="0"
+      @click="ui.openModal('activite', item.id)"
+      @keydown.enter.prevent="ui.openModal('activite', item.id)"
+      @keydown.space.prevent="ui.openModal('activite', item.id)"
+    >
+      <span class="flex items-center gap-[6px]">
+        <UiAppIcon
+          :name="sportStyle(item.sport).icon"
+          :size="13"
+          class="text-text-dim"
+          :label="SPORT_LABELS[item.sport] ?? item.sport"
+        />
+        <span
+          class="display line-clamp-2 min-w-0 text-copy leading-[1.15] font-semibold text-text-dim lean:block lean:truncate lean:leading-normal"
+        >
+          {{ item.name ?? SPORT_LABELS[item.sport] ?? item.sport }}
+        </span>
+      </span>
+      <span class="mono flex flex-wrap gap-x-1 pl-[19px] text-caption text-text-dim">
+        <span class="whitespace-nowrap">{{ formatMinutes(item.durationMin) }}</span>
+        <!-- Au pouce la colonne ne tient pas le mot : le filet pointillé et le
+             ton atténué le disent déjà, et le dialog le redit. -->
+        <span class="hidden whitespace-nowrap lean:inline">· hors plan</span>
+      </span>
+    </div>
+
     <!-- Un jour de repos a son détail, lui aussi : ses repas (§ 9, P6.4). -->
     <button
-      v-if="sessions.length === 0 && !race"
+      v-if="sessions.length === 0 && !race && activities.length === 0"
       type="button"
       class="tile-action -mx-1 flex-1 rounded-sm border border-transparent px-1 text-left text-meta text-text-dim"
       @click="ui.openDay(date)"

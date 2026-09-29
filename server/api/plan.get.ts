@@ -3,6 +3,7 @@ import { pauseDay } from '../domain/pause/pause'
 import { SessionStatus } from '../domain/plan/session'
 import { useDatabase } from '../infra/db/client'
 import { loadActivePlanVersion } from '../infra/db/plan-gateway'
+import { loadOffPlanActivities } from '../infra/db/off-plan-gateway'
 import { pause } from '../infra/db/schema'
 import { currentAthleteId, planGateway, systemClock } from '../utils/context'
 
@@ -21,6 +22,15 @@ export default defineEventHandler(async (event) => {
     .orderBy(desc(pause.startDate), desc(pause.id))
     .limit(1)
 
+  const weeks = active?.weeks ?? []
+  const offPlan =
+    weeks.length === 0
+      ? []
+      : await loadOffPlanActivities(useDatabase(), athleteId, {
+          from: weeks[0]!.startDate,
+          to: weeks.at(-1)!.endDate,
+        })
+
   // Seule une pause encore ouverte se présente comme telle dans le cockpit.
   const openPause = latestPause?.endDate === null ? latestPause : null
 
@@ -28,6 +38,8 @@ export default defineEventHandler(async (event) => {
     today,
     watchZones: watchZones?.zones ?? [],
     plan: active ?? null,
+    /** Ce que la charge compte sans séance : la semaine le montre à part (§ 8, P29). */
+    offPlan,
     pause: openPause ? { ...openPause, day: pauseDay(openPause.startDate, today) } : null,
     /** Une séance retirée du plan n'est plus à faire : elle quitte la journée. */
     todaySessions:

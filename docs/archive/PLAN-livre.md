@@ -1680,6 +1680,17 @@ Une relecture du moteur contre le code, à la question de Ronan : « le moteur n
   - La fenêtre d'une séance, l'écran de course, Progression et la porte fermée : voir leurs cases. **R10 et le gel, sur la base de dev au 24 nov.** : le cron quotidien lancé à la main a posé R10 sur la semaine du 16 nov. — « La semaine du 16 nov. a couru 12,2 km sur 16,9 km visés. » —, en tête de « À décider » sous « Progression de bloc gelée » ; appliquée depuis sa fenêtre, elle a ramené la semaine du 30 nov. de 29,3 à 26,6 km et la semaine allégée du 7 déc. de 20,5 à 18,6 km, et laissé celle du 14 déc. à 29,3 km, soit 26,6 × 1,1. Le cron relancé n'a rien reposé : la proposition décidée ne revient pas. **Vu à 1440 px seulement** pour « À décider » : la proposition une fois appliquée, il n'y en avait plus à montrer au téléphone.
 - [x] Fini : lint, typecheck, tests (879) et build verts ; un commit par livrable, « P28 — <résumé> ».
 
+P29 — L'activité hors plan se voit dans la semaine
+
+Le 29 sept. 2026, 45 min de squash déclarées par l'Imprévu sont entrées dans la charge (315 UA en « autre ») et nulle part ailleurs : la bande de semaine ne montre que les séances du plan, et le cadran Charge est encore éteint en semaine 2 de reprise, faute de 28 jours d'historique. Ronan a choisi, sur trois maquettes, la variante A : la même ligne qu'une séance, atténuée, derrière un filet pointillé.
+
+- [x] `GET /api/plan` rend `offPlan` : les activités sans séance rattachée sur les dates du plan actif, avec leur durée, l'effort que la charge compte — celui par défaut pour un import sans RPE, et le dit — et leur charge. `loadOffPlanActivities` dans `server/infra/db/off-plan-gateway.ts`.
+- [x] `DayCell` ajoute une ligne par activité, après les séances : icône du sport en gris, nom (ce que Ronan a écrit, ou le sport pour un import), durée, « hors plan » à partir de `lean`. Filet pointillé quand la case porte déjà quelque chose ; « repos » s'efface quand le jour n'a qu'elle. Le cockpit et la page Semaine lisent la même case, donc les deux la montrent.
+- [x] Dialog **Hors plan** : durée, charge, effort perçu au curseur ; la charge proposée affiche l'ancienne barrée. `PUT /api/activities/[id]/rpe` passe par `correctActivityRpe` (`server/application/correct-activity-rpe.ts`) : seule une activité hors plan de l'athlète se corrige — une activité rattachée a l'effort du ressenti de sa séance —, puis la charge du jour est recalculée. Deux cas dans `tests/domain/activity-rpe-flow.test.ts`.
+- [x] § 8 : la règle de la case du jour et le dialog Hors plan.
+- [x] Vérifié dans le navigateur sur la base de dev au 24 nov., avec un squash de 45 min à RPE 7 confirmé par le cas d'usage de l'Imprévu : la ligne dans la case du mardi de la page Semaine et du cockpit à 1440 px (filet `dashed`, « 45′ · hors plan ») ; à 390 px, la ligne se lit sans déborder de sa colonne, sans le mot ; le dialog passe la charge de 315 barré à 360 UA à RPE 8, l'enregistre, se ferme, et la semaine compte 360 UA en « autre ».
+- [x] Fini : lint, typecheck, tests (882) et build verts ; un commit, « P29 — <résumé> ».
+
 ## 9. Phases de livraison
 
 Chaque phase est déployable et utilisable seule. « Fini » = tests verts, `vue-tsc` vert, lint vert, parcours vérifié dans le navigateur à 1440 px — et à 390 px à partir de P6.8, pour tout écran de la boucle du jour.

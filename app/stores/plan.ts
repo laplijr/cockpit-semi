@@ -99,10 +99,23 @@ export interface OpenPause {
   notes: string | null
 }
 
+/** Une activité que la charge compte sans séance : un imprévu, un import non rattaché (P29). */
+export interface OffPlanActivity {
+  id: number
+  date: string
+  sport: string
+  name: string | null
+  durationMin: number
+  rpe: number
+  rpeIsDefault: boolean
+  loadUa: number
+}
+
 export interface PlanPayload {
   today: string
   watchZones: string[]
   plan: ActivePlan | null
+  offPlan: OffPlanActivity[]
   pause: OpenPause | null
   todaySessions: PlanSession[]
 }
@@ -176,6 +189,16 @@ export const usePlanStore = defineStore('plan', () => {
     return map
   })
 
+  const offPlan = computed(() => payload.value?.offPlan ?? [])
+
+  const offPlanByDate = computed(() => {
+    const map = new Map<string, OffPlanActivity[]>()
+    for (const item of offPlan.value) {
+      map.set(item.date, [...(map.get(item.date) ?? []), item])
+    }
+    return map
+  })
+
   /** Prochaine semaine portant un test 20′, pour le cadran VDOT (§ 5). */
   const nextTestWeek = computed(() =>
     plan.value?.weeks.find((week) => week.test && week.endDate >= today.value),
@@ -204,5 +227,7 @@ export const usePlanStore = defineStore('plan', () => {
     awaitingResumption,
     nextTestWeek,
     sessionsByWeek,
+    offPlan,
+    offPlanByDate,
   }
 })
