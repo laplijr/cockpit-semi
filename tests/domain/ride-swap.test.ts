@@ -112,10 +112,15 @@ describe('quand une séance de vélo se remplace (§ 5, P6.42)', () => {
 
   it('refuse une séance déjà faite ou déjà remplacée', () => {
     const done = { ...ride(), status: SessionStatus.Done }
-    const modified = { ...ride(), status: SessionStatus.Modified }
+    const swapped = { ...easyRun(1, '2026-11-18', 6000), status: SessionStatus.Modified }
 
     expect(rideSwapRefusal(done, '2026-11-18')).toMatch(/plus à faire/)
-    expect(rideSwapRefusal(modified, '2026-11-18')).toMatch(/plus à faire/)
+    expect(rideSwapRefusal(swapped, '2026-11-18')).toMatch(/plus à faire/)
+  })
+
+  it('accepte une sortie vélo posée à la main', () => {
+    const manual = { ...ride(), status: SessionStatus.Modified }
+    expect(rideSwapRefusal(manual, '2026-11-18')).toBeUndefined()
   })
 })
 

@@ -164,7 +164,15 @@ export function isShortOfPrescription(session: PlanSession): boolean {
   return session.actualDurationMin < prescribedMinutes(session.prescription) * COMPLIANCE_FLOOR
 }
 
+/**
+ * Ni faite, ni manquée, ni retirée. Posée, remplacée ou déplacée à la main,
+ * elle est « modifiée » et reste à faire.
+ */
+export function isToDo(session: PlanSession): boolean {
+  return session.status === 'prevue' || session.status === 'modifiee'
+}
+
 /** Une séance prévue dont le jour est passé : ni faite ni sautée, elle attend son retour (P20). */
 export function isAwaitingFeedback(session: PlanSession, today: string): boolean {
-  return (session.status === 'prevue' || session.status === 'modifiee') && session.date < today
+  return isToDo(session) && session.date < today
 }

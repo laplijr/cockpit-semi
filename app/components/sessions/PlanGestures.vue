@@ -34,14 +34,8 @@ async function cancelSession() {
   }
 }
 
-/**
- * Son jour est arrivé et rien n'est renseigné : elle peut se dire manquée (§ 5, R6).
- * Posée ou remplacée à la main, elle est « modifiée » et reste à faire.
- */
-const missable = computed(
-  () =>
-    (session.status === 'prevue' || session.status === 'modifiee') && session.date <= plan.today,
-)
+/** Son jour est arrivé et rien n'est renseigné : elle peut se dire manquée (§ 5, R6). */
+const missable = computed(() => isToDo(session) && session.date <= plan.today)
 
 const skipError = ref('')
 

@@ -63,8 +63,12 @@ export function rideSwapRefusal(
   session: Pick<SwappableSession, 'date' | 'sport' | 'status'>,
   today: IsoDate,
 ): string | undefined {
-  // L'état d'abord : une séance déjà remplacée porte le sport de son remplacement.
-  if (session.status !== SessionStatus.Planned) return 'Cette séance n’est plus à faire.'
+  // Modifiée, une sortie vélo reste à faire : posée ou déplacée à la main. Déjà
+  // remplacée, elle porte le sport de son remplacement.
+  const open =
+    session.status === SessionStatus.Planned ||
+    (session.status === SessionStatus.Modified && session.sport === Sport.Cycling)
+  if (!open) return 'Cette séance n’est plus à faire.'
   if (session.sport !== Sport.Cycling) {
     return 'Seule une séance de vélo se remplace par une sortie course.'
   }

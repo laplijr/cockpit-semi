@@ -40,9 +40,7 @@ const runnable = computed(
 /** Une séance de renforcement du jour se fait en salle, au téléphone (P27). */
 const gym = computed(
   () =>
-    props.session.sport === 'muscu' &&
-    props.session.date === plan.today &&
-    props.session.status === 'prevue',
+    props.session.sport === 'muscu' && props.session.date === plan.today && isToDo(props.session),
 )
 
 /** Le vélo prend le même écran, et le verbe qui lui va (§ 9, P10.3). */

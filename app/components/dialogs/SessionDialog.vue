@@ -81,9 +81,7 @@ const ui = useUiStore()
 /** Une sortie vélo encore à faire aujourd'hui, et elle seule (§ 5, P6.42). */
 const canSwap = computed(
   () =>
-    session.value?.sport === 'velo' &&
-    session.value.date === plan.today &&
-    session.value.status === 'prevue',
+    session.value?.sport === 'velo' && session.value.date === plan.today && isToDo(session.value),
 )
 
 /** Une journée posée à la main : le générateur ne la retouche plus (§ 5, P6.43). */
@@ -128,15 +126,13 @@ const runnable = computed(
   () =>
     ['course', 'velo'].includes(session.value?.sport ?? '') &&
     session.value?.date === plan.today &&
-    session.value.status === 'prevue',
+    isToDo(session.value),
 )
 
 /** Une séance de renforcement du jour : elle se démarre en salle (P27). */
 const gymToday = computed(
   () =>
-    session.value?.sport === 'muscu' &&
-    session.value.date === plan.today &&
-    session.value.status === 'prevue',
+    session.value?.sport === 'muscu' && session.value.date === plan.today && isToDo(session.value),
 )
 
 /**
