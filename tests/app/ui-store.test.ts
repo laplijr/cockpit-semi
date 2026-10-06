@@ -61,4 +61,50 @@ describe('pile d’affichage de la coque', () => {
     expect(ui.modalDial).toBeNull()
     expect(ui.modalTargetId).toBe(7)
   })
+
+  it('revient à la séance d’où un exercice a été ouvert', () => {
+    const ui = useUiStore()
+    ui.openModal('seance', 12)
+    ui.openExercise('squat')
+
+    ui.goBack()
+    expect(ui.modal).toBe('seance')
+    expect(ui.modalTargetId).toBe(12)
+    expect(ui.modalExerciseId).toBeNull()
+    expect(ui.returns).toEqual([])
+  })
+
+  it('remonte un calage jusqu’à la séance, fenêtre par fenêtre', () => {
+    const ui = useUiStore()
+    ui.openStrengthSession('force-a')
+    ui.openExercise('squat')
+    ui.openCalibration('squat', null)
+
+    ui.goBack()
+    expect(ui.modal).toBe('exercice')
+    expect(ui.modalExerciseId).toBe('squat')
+
+    ui.goBack()
+    expect(ui.modal).toBe('seance-muscu')
+    expect(ui.modalStrengthCode).toBe('force-a')
+  })
+
+  it('n’offre pas de retour à un exercice ouvert hors de toute fenêtre', () => {
+    const ui = useUiStore()
+    ui.openExercise('squat')
+    expect(ui.returns).toEqual([])
+  })
+
+  it('oublie le chemin du retour en fermant ou en ouvrant une autre fenêtre', () => {
+    const ui = useUiStore()
+    ui.openModal('seance', 12)
+    ui.openExercise('squat')
+    ui.openDial('charge')
+    expect(ui.returns).toEqual([])
+
+    ui.openModal('seance', 12)
+    ui.openExercise('squat')
+    ui.closeModal()
+    expect(ui.returns).toEqual([])
+  })
 })

@@ -76,7 +76,9 @@ async function onDecided() {
       v-if="ui.modal"
       :title="title"
       :width="WIDTHS[ui.modal] ?? 760"
+      :can-go-back="ui.returns.length > 0"
       @close="ui.closeModal()"
+      @back="ui.goBack()"
     >
       <template #skeleton>
         <DialogsDialogSkeleton :modal="ui.modal" />

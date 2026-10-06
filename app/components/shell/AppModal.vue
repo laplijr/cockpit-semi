@@ -1,6 +1,9 @@
 <script setup lang="ts">
-const props = withDefaults(defineProps<{ title: string; width?: number }>(), { width: 880 })
-const emit = defineEmits<{ close: [] }>()
+const props = withDefaults(defineProps<{ title: string; width?: number; canGoBack?: boolean }>(), {
+  width: 880,
+  canGoBack: false,
+})
+const emit = defineEmits<{ close: []; back: [] }>()
 
 const dialog = useDialogFocus()
 const sheet = useSheetDrag(() => emit('close'))
@@ -41,6 +44,15 @@ const sizing = computed(() => ({ '--modal-width': `${props.width}px`, ...sheet.s
       </div>
 
       <div class="flex items-center gap-3 px-[18px] lean:p-0">
+        <button
+          v-if="canGoBack"
+          type="button"
+          class="tap -ml-2 inline-flex items-center justify-center text-text-dim hover:text-text lean:ml-0"
+          aria-label="Retour"
+          @click="emit('back')"
+        >
+          <UiAppIcon name="chevron" :size="18" class="rotate-180" />
+        </button>
         <h2 class="heading">{{ title }}</h2>
         <button
           type="button"

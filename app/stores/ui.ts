@@ -22,6 +22,16 @@ export type DialId = (typeof DIAL_IDS)[number]
 export type PanelId = (typeof PANEL_IDS)[number]
 export type ModalId = (typeof MODAL_IDS)[number]
 
+interface ModalView {
+  modal: ModalId
+  targetId: number | null
+  dial: DialId | null
+  exerciseId: string | null
+  strengthCode: string | null
+  library: { sport: 'course' | 'velo'; code: string } | null
+  date: string | null
+}
+
 /**
  * Pile d'affichage du cockpit : au plus un panneau latéral et une fenêtre.
  * Échap ferme la couche la plus haute, la fenêtre avant le panneau.
@@ -43,6 +53,8 @@ export const useUiStore = defineStore('ui', () => {
   const modalLibrary = ref<{ sport: 'course' | 'velo'; code: string } | null>(null)
   /** Jour visé quand la fenêtre ouverte est un jour de repos, sans séance (P6.4). */
   const modalDate = ref<string | null>(null)
+  /** Les fenêtres quittées pour un exercice ou un calage, la plus récente en dernier. */
+  const returns = ref<ModalView[]>([])
 
   function openPanel(id: PanelId, targetId: number | null = null) {
     panel.value = id
@@ -56,6 +68,7 @@ export const useUiStore = defineStore('ui', () => {
 
   /** Toute ouverture repart d'une cible vide : chaque fenêtre vise à sa façon. */
   function reset() {
+    returns.value = []
     modalTargetId.value = null
     modalDial.value = null
     modalExerciseId.value = null
@@ -70,8 +83,32 @@ export const useUiStore = defineStore('ui', () => {
     modalTargetId.value = targetId
   }
 
-  function openExercise(exerciseId: string) {
+  function currentView(): ModalView | null {
+    if (!modal.value) return null
+    return {
+      modal: modal.value,
+      targetId: modalTargetId.value,
+      dial: modalDial.value,
+      exerciseId: modalExerciseId.value,
+      strengthCode: modalStrengthCode.value,
+      library: modalLibrary.value,
+      date: modalDate.value,
+    }
+  }
+
+  /**
+   * Un exercice s'ouvre depuis la séance qui le contient : la fenêtre quittée
+   * est gardée pour y revenir, au lieu de fermer et de tout rouvrir.
+   */
+  function resetKeepingReturn() {
+    const left = currentView()
+    const trail = left ? [...returns.value, left] : []
     reset()
+    returns.value = trail
+  }
+
+  function openExercise(exerciseId: string) {
+    resetKeepingReturn()
     modal.value = 'exercice'
     modalExerciseId.value = exerciseId
   }
@@ -81,7 +118,7 @@ export const useUiStore = defineStore('ui', () => {
    * part est gardée : le calage remplace l'échauffement, on y retourne.
    */
   function openCalibration(exerciseId: string, sessionId: number | null) {
-    reset()
+    resetKeepingReturn()
     modal.value = 'calage'
     modalExerciseId.value = exerciseId
     modalTargetId.value = sessionId
@@ -115,6 +152,21 @@ export const useUiStore = defineStore('ui', () => {
     modalDial.value = dial
   }
 
+  function goBack() {
+    const previous = returns.value.at(-1)
+    if (!previous) return
+    const trail = returns.value.slice(0, -1)
+    reset()
+    returns.value = trail
+    modal.value = previous.modal
+    modalTargetId.value = previous.targetId
+    modalDial.value = previous.dial
+    modalExerciseId.value = previous.exerciseId
+    modalStrengthCode.value = previous.strengthCode
+    modalLibrary.value = previous.library
+    modalDate.value = previous.date
+  }
+
   function closeModal() {
     reset()
     modal.value = null
@@ -138,6 +190,7 @@ export const useUiStore = defineStore('ui', () => {
     modalStrengthCode,
     modalLibrary,
     modalDate,
+    returns,
     openPanel,
     closePanel,
     openModal,
@@ -147,6 +200,7 @@ export const useUiStore = defineStore('ui', () => {
     openStrengthSession,
     openLibrarySession,
     openDay,
+    goBack,
     closeModal,
     closeTopLayer,
   }
