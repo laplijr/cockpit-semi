@@ -1,4 +1,10 @@
 import type { PlanSession } from '~/stores/plan'
+import {
+  averagePrescribedPace,
+  hasSeveralPaces,
+  keyStepIndex,
+  keyStepPace,
+} from '~~/server/domain/running/splits'
 
 /**
  * Les trois chiffres d'une séance, et eux seuls (§ 8, P11.1). Une séance
@@ -15,26 +21,37 @@ export interface SessionFigure {
   planned?: string
 }
 
-/**
- * L'allure qui donne le ton de la séance : celle des fractions quand il y en a,
- * sinon celle de l'étape la plus longue. La plus longue seule faisait lire
- * l'allure de l'échauffement en tête d'une VMA (P19).
- */
+/** L'allure qui donne le ton de la séance : celle de son étape clé. */
 function targetPace(session: PlanSession): string {
-  const paced = session.prescription.steps.filter((step) => step.paceSecPerKm)
-  const intense = paced.filter((step) => step.intense)
-  const ranked = (intense.length > 0 ? intense : paced).sort(
-    (a, b) => (b.distanceM ?? b.durationS ?? 0) - (a.distanceM ?? a.durationS ?? 0),
-  )
-
-  return ranked[0]?.paceSecPerKm ? `${formatPace(ranked[0].paceSecPerKm)}/km` : '—'
+  const key = keyStepIndex(session.prescription)
+  const pace = key === undefined ? undefined : session.prescription.steps[key]!.paceSecPerKm
+  return pace ? `${formatPace(pace)}/km` : '—'
 }
 
-/** L'allure tenue se déduit du réalisé ; il faut les deux mesures. */
-function heldPace(session: PlanSession): string | null {
+/** L'allure moyenne se déduit du réalisé ; il faut les deux mesures. */
+function averagePace(session: PlanSession): string | null {
   const { actualDistanceM, actualDurationMin } = session
   if (!actualDistanceM || !actualDurationMin) return null
   return `${formatPace((actualDurationMin * 60) / (actualDistanceM / 1000))}/km`
+}
+
+/**
+ * L'allure réalisée se compare à une allure prescrite de même nature. L'étape
+ * clé chronométrée se lit contre l'allure visée ; sans elle, la moyenne
+ * d'une séance à plusieurs allures se lit contre la moyenne prescrite — la
+ * moyenne d'un progressif contre l'allure de son dernier tiers ne disait rien.
+ */
+function heldPaceFigure(session: PlanSession): Omit<SessionFigure, 'key'> {
+  const onKeyStep = keyStepPace(session.prescription, session.actualSteps ?? [])
+  if (onKeyStep !== null) return { label: 'allure tenue', value: `${formatPace(onKeyStep)}/km` }
+
+  const average = averagePace(session) ?? ''
+  if (!hasSeveralPaces(session.prescription)) return { label: 'allure tenue', value: average }
+  return {
+    label: 'allure moyenne',
+    value: average,
+    planned: `${formatPace(averagePrescribedPace(session.prescription))}/km`,
+  }
 }
 
 function distance(session: PlanSession): string {
@@ -126,11 +143,10 @@ function measuredFigures(session: PlanSession): SessionFigure[] | null {
     ]
   }
 
-  const held = heldPace(session)
   return [
     { key: 'un', ...measured },
     { key: 'deux', ...(minutes ?? { label: 'durée', value: '' }) },
-    { key: 'trois', label: 'allure tenue', value: held ?? '' },
+    { key: 'trois', ...heldPaceFigure(session) },
   ]
 }
 
@@ -139,11 +155,13 @@ export function sessionFigures(session: PlanSession): SessionFigure[] {
   const measured = measuredFigures(session)
   if (!measured) return planned
 
-  return measured.map((figure, index) => {
+  return measured.map(({ key, label, value, planned: reference }, index) => {
     const before = planned[index]!
     /** Sans mesure pour ce chiffre, c'est le prescrit qui reste, et seul. */
-    if (figure.value === '') return before
-    return figure.value === before.value ? figure : { ...figure, planned: before.value }
+    if (value === '') return before
+    /** Un chiffre réalisé peut nommer son propre prescrit : une moyenne contre une moyenne. */
+    const prescribed = reference ?? before.value
+    return value === prescribed ? { key, label, value } : { key, label, value, planned: prescribed }
   })
 }
 

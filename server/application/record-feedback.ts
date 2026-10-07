@@ -2,6 +2,7 @@ import type { Pain, Sensation } from '../domain/load/feedback'
 import type { IsoDate } from '../domain/plan/calendar'
 import { ProposalTrigger } from '../domain/rules/proposal-status'
 import type { Proposal } from '../domain/rules/rules'
+import type { StepSplit } from '../domain/running/splits'
 import type { Clock } from '../domain/shared/clock'
 
 export interface FeedbackInput {
@@ -13,6 +14,11 @@ export interface FeedbackInput {
   durationMin: number
   distanceM: number | null
   notes: string | null
+  /**
+   * Le réalisé portion par portion, quand il est saisi à la main. Absent, il
+   * reste ce qu'il était : une sortie importée ne connaît que ses totaux.
+   */
+  steps?: StepSplit[]
 }
 
 export interface DailyLoadRow {

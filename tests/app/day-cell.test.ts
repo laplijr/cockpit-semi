@@ -13,6 +13,7 @@ const session = (key: boolean): PlanSession => ({
   status: 'prevue',
   actualDurationMin: null,
   actualDistanceM: null,
+  actualSteps: null,
   feedbackRpe: null,
   prescription: { label: 'VMA', totalDistanceM: 5000, expectedRpe: 8, steps: [] },
 })

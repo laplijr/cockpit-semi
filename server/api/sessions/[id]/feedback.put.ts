@@ -4,6 +4,8 @@ import { Sensation } from '../../../domain/load/feedback'
 import { useDatabase } from '../../../infra/db/client'
 import { createFeedbackGateway } from '../../../infra/db/feedback-gateway'
 import { SessionStatus } from '../../../domain/plan/session'
+import { isSlotOf } from '../../../domain/running/splits'
+import type { Prescription } from '../../../domain/shared/prescription'
 import { shareDoneSession } from '../../../utils/circle-share'
 import { ownedSession } from '../../../utils/scope'
 import { currentAthleteId, systemClock } from '../../../utils/context'
@@ -21,6 +23,16 @@ const bodySchema = z.object({
   durationMin: z.number().positive(),
   distanceM: z.number().positive().nullable().default(null),
   notes: z.string().nullable().default(null),
+  steps: z
+    .array(
+      z.object({
+        step: z.number().int().min(0),
+        rep: z.number().int().min(0),
+        distanceM: z.number().positive(),
+        durationS: z.number().positive(),
+      }),
+    )
+    .optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -31,6 +43,11 @@ export default defineEventHandler(async (event) => {
   const db = useDatabase()
   /** L'état d'avant décide du cercle : une correction ne republie pas (§ 9, P12). */
   const before = await ownedSession(db, athleteId, id)
+
+  const prescription = before.prescription as unknown as Prescription
+  if (body.steps?.some((split) => !isSlotOf(prescription, split))) {
+    throw createError({ statusCode: 400, statusMessage: 'Étape absente de la séance.' })
+  }
 
   try {
     const result = await recordFeedback(createFeedbackGateway(db, athleteId), systemClock, {

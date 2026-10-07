@@ -51,6 +51,7 @@ export function createFeedbackGateway(db: Database, athleteId: number): Feedback
           status: SessionStatus.Done,
           actualDurationMin: input.durationMin,
           actualDistanceM: input.distanceM,
+          ...(input.steps && { actualSteps: input.steps.length > 0 ? input.steps : null }),
         })
         .where(
           and(

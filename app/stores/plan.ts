@@ -1,3 +1,5 @@
+import type { StepSplit } from '~~/server/domain/running/splits'
+
 export interface PlanSession {
   id: number
   weekId: number
@@ -10,6 +12,8 @@ export interface PlanSession {
   origin: string
   actualDurationMin: number | null
   actualDistanceM: number | null
+  /** Le réalisé portion par portion, quand il a été saisi. */
+  actualSteps: StepSplit[] | null
   /** RPE du ressenti enregistré ; nul tant qu'il n'y en a pas. */
   feedbackRpe: number | null
   prescription: {

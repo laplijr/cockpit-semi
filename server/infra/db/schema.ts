@@ -18,6 +18,7 @@ import { ForecastTarget } from '../../domain/fitness/accuracy'
 import { FitnessOrigin } from '../../domain/fitness/fitness-point'
 import { Sensation, type Pain } from '../../domain/load/feedback'
 import { PauseType, type PauseAllowances } from '../../domain/pause/pause'
+import type { StepSplit } from '../../domain/running/splits'
 import type { GeoFix } from '../../domain/tracking/fix'
 import { RunStatus } from '../../domain/tracking/run'
 import { ProposalStatus, ProposalTrigger } from '../../domain/rules/proposal-status'
@@ -333,6 +334,8 @@ export const session = pgTable('session', {
   /** Réalisé saisi à la main, faute de connexion à une montre. */
   actualDurationMin: real('actual_duration_min'),
   actualDistanceM: real('actual_distance_m'),
+  /** Le réalisé portion par portion, quand il a été saisi : un tour de montre par fraction. */
+  actualSteps: jsonb('actual_steps').$type<StepSplit[]>(),
 })
 
 export const pause = pgTable('pause', {

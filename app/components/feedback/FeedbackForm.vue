@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PlanSession } from '~/stores/plan'
+import { splitSlots, type StepSplit } from '~~/server/domain/running/splits'
 
 /** Ce que le ressenti envoie, quand c'est un autre chemin qui l'enregistre. */
 interface FeedbackPayload {
@@ -52,16 +53,43 @@ const plannedMinutes = computed(() =>
     : (props.measured?.durationMin ?? 0),
 )
 
+/**
+ * Une correction part du réalisé enregistré, pas du prescrit : rouvrir une
+ * séance faite pour changer un chiffre ne doit pas réécrire les autres.
+ */
 const form = reactive({
-  rpe: props.session?.prescription.expectedRpe ?? 5,
+  rpe: props.session?.feedbackRpe ?? props.session?.prescription.expectedRpe ?? 5,
   sensations: [] as string[],
   sleepHours: null as number | null,
   painZone: '',
   painIntensity: 0,
-  durationMin: props.measured?.durationMin ?? plannedMinutes.value,
-  distanceM: props.measured?.distanceM ?? props.session?.prescription.totalDistanceM ?? null,
+  durationMin:
+    props.measured?.durationMin ?? props.session?.actualDurationMin ?? plannedMinutes.value,
+  distanceM:
+    props.measured?.distanceM ??
+    props.session?.actualDistanceM ??
+    props.session?.prescription.totalDistanceM ??
+    null,
+  steps: props.session?.actualSteps ?? ([] as StepSplit[]),
   notes: '',
 })
+
+/**
+ * Une séance à plusieurs portions se saisit aussi portion par portion. Une
+ * sortie courue dans l'app a déjà ses mesures : elle n'en redemande pas.
+ */
+const hasSplits = computed(
+  () =>
+    isRunning.value &&
+    props.session !== undefined &&
+    props.measured === undefined &&
+    splitSlots(props.session.prescription).length > 1,
+)
+
+function followSplits(totals: { durationS: number; distanceM: number }) {
+  form.durationMin = Math.round(totals.durationS / 60)
+  form.distanceM = totals.distanceM
+}
 
 const isTest = computed(() => props.session?.code === 'test')
 const testDistanceM = ref<number | null>(null)
@@ -99,7 +127,10 @@ async function save() {
 
     if (props.submit) await props.submit(payload)
     else
-      await $fetch(`/api/sessions/${props.session!.id}/feedback`, { method: 'PUT', body: payload })
+      await $fetch(`/api/sessions/${props.session!.id}/feedback`, {
+        method: 'PUT',
+        body: { ...payload, steps: form.steps },
+      })
 
     emit('saved')
   } catch (cause) {
@@ -161,6 +192,13 @@ defineExpose({ save })
         />
       </label>
     </div>
+
+    <FeedbackStepSplits
+      v-if="hasSplits && session"
+      v-model="form.steps"
+      :session="session"
+      @totals="followSplits"
+    />
 
     <FeedbackStrengthSets
       v-if="isStrength && session"

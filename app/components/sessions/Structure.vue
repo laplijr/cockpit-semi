@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PlanSession } from '~/stores/plan'
+import { splitsPace } from '~~/server/domain/running/splits'
 import { reserveLabel, targetReserve } from '~~/server/domain/strength/reserve'
 
 /** Ce que la fenêtre sait d'un exercice : sa charge, son format, ses disques (P26). */
@@ -49,6 +50,24 @@ function loadPill(step: PlanSession['prescription']['steps'][number]): string {
   if (known) return formatLoad(known)
   return reserve === null ? step.intensity! : reserveLabel(reserve)
 }
+
+/**
+ * Ce qui a été tenu sur l'étape, quand elle a été chronométrée : la distance
+ * et le temps d'une étape seule, les temps d'une étape répétée, et l'allure
+ * pour se lire contre celle de la ligne du dessus.
+ */
+function realized(index: number): string {
+  const splits = (session.actualSteps ?? []).filter((split) => split.step === index)
+  if (splits.length === 0) return ''
+  const pace = `${formatPace(splitsPace(splits))}/km`
+  if (splits.length === 1) {
+    return `${formatDistance(splits[0]!.distanceM)} en ${formatSeconds(splits[0]!.durationS)} · ${pace}`
+  }
+  const times = [...splits]
+    .sort((a, b) => a.rep - b.rep)
+    .map((split) => formatSeconds(split.durationS))
+  return `${times.join(' · ')} · ${pace}`
+}
 </script>
 
 <template>
@@ -58,7 +77,7 @@ function loadPill(step: PlanSession['prescription']['steps'][number]): string {
          ouvre sa fiche. L'échauffement, sans exercice, ne change pas (P25). -->
     <component
       :is="step.exerciseId ? 'button' : 'div'"
-      v-for="step in session.prescription.steps"
+      v-for="(step, index) in session.prescription.steps"
       :key="step.label"
       :type="step.exerciseId ? 'button' : undefined"
       class="flex gap-3 border-t border-line-soft pt-2 text-left first:border-t-0 first:pt-0"
@@ -144,6 +163,9 @@ function loadPill(step: PlanSession['prescription']['steps'][number]): string {
         >
           {{ states[step.exerciseId]!.plates!.map((plate) => formatDecimal(plate)).join(' + ') }}
           kg par côté
+        </span>
+        <span v-if="realized(index)" class="mono text-meta text-text">
+          tenu {{ realized(index) }}
         </span>
         <span v-if="step.note" class="text-meta text-text-dim">{{ step.note }}</span>
       </span>

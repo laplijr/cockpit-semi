@@ -19,6 +19,7 @@ function session(overrides: Partial<PlanSession> = {}): PlanSession {
     origin: 'moteur',
     actualDurationMin: null,
     actualDistanceM: null,
+    actualSteps: null,
     feedbackRpe: null,
     prescription: {
       label: 'Endurance',
@@ -122,6 +123,53 @@ describe('les trois chiffres du sport', () => {
     expect(figures[1]).toMatchObject({ label: 'durée', value: '1 h 10' })
     expect(figures[1]!.planned).toBeUndefined()
     expect(figures[2]).toMatchObject({ label: 'allure tenue', value: '7:47/km' })
+  })
+
+  describe('un progressif fait', () => {
+    const progressive = (overrides: Partial<PlanSession> = {}) =>
+      session({
+        code: 'progressif',
+        status: 'faite',
+        actualDistanceM: 5100,
+        actualDurationMin: 33,
+        prescription: {
+          label: 'Progressif',
+          totalDistanceM: 4500,
+          expectedRpe: 6,
+          steps: [
+            { label: 'Premier tiers', distanceM: 1500, paceSecPerKm: 485 },
+            { label: 'Deuxième tiers', distanceM: 1500, paceSecPerKm: 425 },
+            { label: 'Dernier tiers', distanceM: 1500, paceSecPerKm: 385, intense: true },
+          ],
+        },
+        ...overrides,
+      })
+
+    it('compare sa moyenne à la moyenne prescrite, pas à l’allure du dernier tiers', () => {
+      expect(sessionFigures(progressive())[2]).toEqual({
+        key: 'trois',
+        label: 'allure moyenne',
+        value: '6:28/km',
+        planned: '7:12/km',
+      })
+    })
+
+    it('compare le dernier tiers chronométré à l’allure visée', () => {
+      const figures = sessionFigures(
+        progressive({
+          actualSteps: [
+            { step: 0, rep: 0, distanceM: 1700, durationS: 700 },
+            { step: 2, rep: 0, distanceM: 1700, durationS: 646 },
+          ],
+        }),
+      )
+      expect(figures[2]).toEqual({
+        key: 'trois',
+        label: 'allure tenue',
+        value: '6:20/km',
+        planned: '6:25/km',
+      })
+    })
   })
 
   it('rend le RPE ressenti d’un renforcement fait, et garde ses exercices', () => {
