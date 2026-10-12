@@ -170,6 +170,19 @@ describe.skipIf(!db)('ce que la régénération relit', () => {
     athleteId = await seedAthlete()
   })
 
+  it('lit le volume visé de la semaine en cours dans le plan actif', async () => {
+    const gateway = createPlanGateway(db!, athleteId)
+    await regeneratePlan(gateway, fixedClock(TODAY), PlanTrigger.Onboarding)
+
+    const active = await loadActivePlanVersion(db!, athleteId)
+    const current = active!.weeks.find((item) => item.startDate <= TODAY && item.endDate >= TODAY)
+    expect(await gateway.loadActiveWeekTarget(TODAY)).toBe(current!.targetRunM)
+  })
+
+  it('ne rend rien sans plan actif', async () => {
+    expect(await createPlanGateway(db!, athleteId).loadActiveWeekTarget(TODAY)).toBeNull()
+  })
+
   it('corrige un test ressaisi le même jour au lieu de l’ajouter', async () => {
     const fitness = createFitnessGateway(db!, athleteId)
     const plans = createPlanGateway(db!, athleteId)

@@ -99,6 +99,8 @@ export interface PlanGateway {
   loadLastTestDate(): Promise<IsoDate | null>
   /** Courses faites depuis une date, avec leur distance : référence du plafond de pic (§ 5). */
   loadRunsSince(date: IsoDate): Promise<RecentRun[]>
+  /** Volume visé par le plan actif pour la semaine d'une date ; nul sans plan ni semaine. */
+  loadActiveWeekTarget(date: IsoDate): Promise<number | null>
   savePlan(plan: GeneratedPlan, trigger: PlanTrigger, parameters: PlanParameters): Promise<number>
   /**
    * Sérialise les régénérations d'un même athlète. Deux qui s'entrelacent se

@@ -141,6 +141,27 @@ export function createPlanGateway(db: Database, athleteId: number): PlanGateway 
       return loadRealizedRuns(db, athleteId, date)
     },
 
+    async loadActiveWeekTarget(date: IsoDate): Promise<number | null> {
+      const active = db
+        .select({ id: planVersion.id })
+        .from(planVersion)
+        .where(eq(planVersion.athleteId, athleteId))
+        .orderBy(desc(planVersion.createdAt), desc(planVersion.id))
+        .limit(1)
+      const [row] = await db
+        .select({ targetRunM: week.targetRunM })
+        .from(week)
+        .where(
+          and(
+            inArray(week.planVersionId, active),
+            lte(week.startDate, date),
+            gte(week.endDate, date),
+          ),
+        )
+        .limit(1)
+      return row?.targetRunM ?? null
+    },
+
     async savePlan(
       plan: GeneratedPlan,
       trigger: PlanTrigger,

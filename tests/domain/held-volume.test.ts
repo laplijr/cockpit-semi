@@ -38,7 +38,11 @@ describe('heldWeeklyVolume', () => {
   })
 })
 
-function gateway(runs: RecentRun[], pauseEnd: string | null = null) {
+function gateway(
+  runs: RecentRun[],
+  pauseEnd: string | null = null,
+  ongoingTargetM: number | null = null,
+) {
   const saved: GeneratedPlan[] = []
   const fake: PlanGateway = {
     loadAthlete: async () => ({
@@ -81,6 +85,7 @@ function gateway(runs: RecentRun[], pauseEnd: string | null = null) {
     loadCurrentFitness: async () => ({ date: '2026-11-16', vdot: 34, isFloor: false }),
     loadLastTestDate: async () => '2026-11-16',
     loadRunsSince: async () => runs,
+    loadActiveWeekTarget: async () => ongoingTargetM,
     savePlan: async (plan) => {
       saved.push(plan)
       return 1
@@ -99,6 +104,24 @@ describe('régénération (§ 5, Volume et blocs)', () => {
     const { fake, saved } = gateway(RUNS)
     await regeneratePlan(fake, clock, PlanTrigger.TestRecorded)
     expect(saved[0]!.weeks[0]!.targetRunM).toBe(26_400)
+  })
+
+  it('ne descend pas sous la semaine en cours du plan remplacé', async () => {
+    const { fake, saved } = gateway(RUNS, null, 29_000)
+    await regeneratePlan(fake, clock, PlanTrigger.TestRecorded)
+    expect(saved[0]!.weeks[0]!.targetRunM).toBe(29_000)
+  })
+
+  it('garde le volume tenu quand il dépasse la semaine en cours du plan remplacé', async () => {
+    const { fake, saved } = gateway(RUNS, null, 18_000)
+    await regeneratePlan(fake, clock, PlanTrigger.TestRecorded)
+    expect(saved[0]!.weeks[0]!.targetRunM).toBe(26_400)
+  })
+
+  it('ignore la semaine en cours du plan remplacé pendant une reprise', async () => {
+    const { fake, saved } = gateway(RUNS, addDays(TODAY, -1), 29_000)
+    await regeneratePlan(fake, clock, PlanTrigger.TestRecorded)
+    expect(saved[0]!.weeks.find((week) => week.comebackRatio === 1)!.targetRunM).toBe(20_000)
   })
 
   it('garde le volume déclaré sans trois semaines de réalisé', async () => {

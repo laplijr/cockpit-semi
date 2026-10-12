@@ -51,14 +51,16 @@ async function regenerate(
   clock: Clock,
   trigger: PlanTrigger,
 ): Promise<RegenerateResult> {
-  const [athlete, races, latestPause, fitness, lastTestDate, recentRuns] = await Promise.all([
-    gateway.loadAthlete(),
-    gateway.loadRaces(),
-    gateway.loadLatestPause(),
-    gateway.loadCurrentFitness(clock.today()),
-    gateway.loadLastTestDate(),
-    gateway.loadRunsSince(addDays(clock.today(), -LONG_RUN_SPIKE_WINDOW_DAYS)),
-  ])
+  const [athlete, races, latestPause, fitness, lastTestDate, recentRuns, ongoingTargetM] =
+    await Promise.all([
+      gateway.loadAthlete(),
+      gateway.loadRaces(),
+      gateway.loadLatestPause(),
+      gateway.loadCurrentFitness(clock.today()),
+      gateway.loadLastTestDate(),
+      gateway.loadRunsSince(addDays(clock.today(), -LONG_RUN_SPIKE_WINDOW_DAYS)),
+      gateway.loadActiveWeekTarget(clock.today()),
+    ])
 
   const openPause = latestPause?.endDate === null ? latestPause : undefined
   // Une pause fermée récemment ouvre encore droit à ses trois semaines de reprise.
@@ -73,13 +75,16 @@ async function regenerate(
   /**
    * L'escalier repart de ce qui a été couru, pas du volume déclaré au profil :
    * sans ça, un test 20′ ou une course ajoutée en milieu de cycle faisaient
-   * redescendre la montée au point de départ (P28). Une reprise garde le
-   * volume déclaré — ses 60 / 80 / 100 % s'y rapportent (§ 5).
+   * redescendre la montée au point de départ (P28). Ni sous la semaine en
+   * cours du plan remplacé : quelques séances manquées ne doivent pas faire
+   * reculer le plan dès qu'il se régénère. Une reprise garde le volume
+   * déclaré — ses 60 / 80 / 100 % s'y rapportent (§ 5).
    */
   const comeback = openPause !== undefined || resumedRecently
   const held = comeback ? null : heldWeeklyVolume(recentRuns, clock.today())
+  const startM = held ?? athlete?.startWeeklyVolumeM ?? DEFAULT_START_VOLUME_M
   const baseWeeklyVolumeM = Math.min(
-    held ?? athlete?.startWeeklyVolumeM ?? DEFAULT_START_VOLUME_M,
+    comeback ? startM : Math.max(startM, ongoingTargetM ?? 0),
     peakWeeklyVolumeM,
   )
 
