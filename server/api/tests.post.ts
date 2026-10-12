@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { TEST_DURATION_S, recordTest } from '../application/record-test'
+import { recordTest } from '../application/record-test'
+import { TEST_DURATION_S } from '../domain/running/session-types'
 import { useDatabase } from '../infra/db/client'
 import { createFitnessGateway } from '../infra/db/feedback-gateway'
 import { currentAthleteId, planGateway, systemClock } from '../utils/context'

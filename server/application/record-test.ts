@@ -1,13 +1,11 @@
 import { FitnessOrigin } from '../domain/fitness/fitness-point'
-import { vdotFromRace } from '../domain/fitness/vdot'
+import { distanceForVdot, vdotFromRace } from '../domain/fitness/vdot'
 import type { IsoDate } from '../domain/plan/calendar'
 import { PlanTrigger } from '../domain/plan/session'
+import { TEST_DURATION_S } from '../domain/running/session-types'
 import type { Clock } from '../domain/shared/clock'
 import type { PlanGateway } from './ports'
 import { regeneratePlan } from './regenerate-plan'
-
-/** Durée du test de terrain servant à recaler le VDOT (§ 5). */
-export const TEST_DURATION_S = 20 * 60
 
 /**
  * VDOT déduit d'un test 20′ : la distance couverte en vingt minutes d'effort
@@ -20,26 +18,24 @@ export function vdotFromTest(distanceM: number, durationS: number = TEST_DURATIO
 
 /** Distance à couvrir en 20′ pour atteindre un VDOT visé : l'inverse du test. */
 export function testDistanceForVdot(vdot: number, durationS: number = TEST_DURATION_S): number {
-  let low = 1000
-  let high = 12_000
+  return Math.round(distanceForVdot(vdot, durationS))
+}
 
-  for (let i = 0; i < 60; i++) {
-    const middle = (low + high) / 2
-    if (vdotFromTest(middle, durationS) < vdot) low = middle
-    else high = middle
-  }
-
-  return Math.round((low + high) / 2)
+export interface FitnessPointInput {
+  date: IsoDate
+  vdot: number
+  origin: FitnessOrigin
+  isFloor: boolean
+  note: string
 }
 
 export interface FitnessGateway {
-  saveFitnessPoint(point: {
-    date: IsoDate
-    vdot: number
-    origin: FitnessOrigin
-    isFloor: boolean
-    note: string
-  }): Promise<void>
+  saveFitnessPoint(point: FitnessPointInput): Promise<void>
+}
+
+export interface TestPointGateway {
+  /** Un test par jour : le ressaisir corrige le précédent au lieu de s'y ajouter. */
+  replaceTestPoint(point: FitnessPointInput): Promise<void>
 }
 
 export interface RecordTestResult {
@@ -53,7 +49,7 @@ export interface RecordTestResult {
  * et régénère le plan avec les nouvelles allures (§ 5).
  */
 export async function recordTest(
-  fitness: FitnessGateway,
+  fitness: TestPointGateway,
   plans: PlanGateway,
   clock: Clock,
   input: { distanceM: number; durationS?: number; date?: IsoDate },
@@ -62,7 +58,7 @@ export async function recordTest(
   const vdot = vdotFromTest(input.distanceM, durationS)
   const date = input.date ?? clock.today()
 
-  await fitness.saveFitnessPoint({
+  await fitness.replaceTestPoint({
     date,
     vdot,
     origin: FitnessOrigin.Test,

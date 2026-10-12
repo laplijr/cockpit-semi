@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { TEST_DURATION_S, vdotFromTest } from '~~/server/application/record-test'
+import { vdotFromTest } from '~~/server/application/record-test'
+import { TEST_DURATION_S } from '~~/server/domain/running/session-types'
 import { RACE_DISTANCES_M, raceTimeForVdot } from '~~/server/domain/fitness/vdot'
 
 describe('test 20′', () => {

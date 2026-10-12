@@ -4,9 +4,10 @@ import type {
   FeedbackGateway,
   FeedbackInput,
 } from '../../application/record-feedback'
-import type { FitnessGateway } from '../../application/record-test'
+import type { FitnessGateway, TestPointGateway } from '../../application/record-test'
 import type { PauseWriter } from '../../application/open-pause'
 import type { PauseGateway } from '../../application/resume-pause'
+import { FitnessOrigin } from '../../domain/fitness/fitness-point'
 import type { IsoDate } from '../../domain/plan/calendar'
 import { SessionStatus } from '../../domain/plan/session'
 import type { ProposalTrigger } from '../../domain/rules/proposal-status'
@@ -80,9 +81,25 @@ export function createFeedbackGateway(db: Database, athleteId: number): Feedback
   }
 }
 
-export function createFitnessGateway(db: Database, athleteId: number): FitnessGateway {
+export function createFitnessGateway(
+  db: Database,
+  athleteId: number,
+): FitnessGateway & TestPointGateway {
   return {
     async saveFitnessPoint(point) {
+      await db.insert(fitnessPoint).values({ ...point, athleteId })
+    },
+
+    async replaceTestPoint(point) {
+      await db
+        .delete(fitnessPoint)
+        .where(
+          and(
+            eq(fitnessPoint.athleteId, athleteId),
+            eq(fitnessPoint.origin, FitnessOrigin.Test),
+            eq(fitnessPoint.date, point.date),
+          ),
+        )
       await db.insert(fitnessPoint).values({ ...point, athleteId })
     },
   }

@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { eq, sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { recordTest } from '~~/server/application/record-test'
 import { regeneratePlan } from '~~/server/application/regenerate-plan'
 import { addDays } from '~~/server/domain/plan/calendar'
 import { PlanTrigger, SessionStatus } from '~~/server/domain/plan/session'
@@ -9,6 +10,7 @@ import { ObjectiveMode, RacePriority } from '~~/server/domain/races/race'
 import { fixedClock } from '~~/server/domain/shared/clock'
 import { Sport } from '~~/server/domain/shared/sport'
 import { FitnessOrigin } from '~~/server/domain/fitness/fitness-point'
+import { createFitnessGateway } from '~~/server/infra/db/feedback-gateway'
 import { createPlanGateway, loadActivePlanVersion } from '~~/server/infra/db/plan-gateway'
 import * as schema from '~~/server/infra/db/schema'
 
@@ -159,6 +161,26 @@ describe.skipIf(!db)('ce qu’une régénération repose', () => {
           group by 1 having count(distinct w.plan_version_id) > 1`,
     )
     expect(duplicated.rows).toHaveLength(0)
+  })
+})
+
+describe.skipIf(!db)('ce que la régénération relit', () => {
+  beforeEach(async () => {
+    await truncate()
+    athleteId = await seedAthlete()
+  })
+
+  it('corrige un test ressaisi le même jour au lieu de l’ajouter', async () => {
+    const fitness = createFitnessGateway(db!, athleteId)
+    const plans = createPlanGateway(db!, athleteId)
+    await recordTest(fitness, plans, fixedClock(TODAY), { distanceM: 3500, date: TODAY })
+    await recordTest(fitness, plans, fixedClock(TODAY), { distanceM: 3600, date: TODAY })
+
+    const tests = await db!
+      .select({ note: schema.fitnessPoint.note })
+      .from(schema.fitnessPoint)
+      .where(eq(schema.fitnessPoint.date, TODAY))
+    expect(tests.map((row) => row.note)).toEqual(['Test 20′ · 3600 m'])
   })
 })
 

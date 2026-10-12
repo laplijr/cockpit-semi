@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { testDistanceForVdot, vdotFromTest } from '~~/server/application/record-test'
 import { halfMarathonPace } from '~~/server/domain/fitness/vdot'
 import { PhaseType } from '~~/server/domain/plan/phases'
 import {
@@ -10,6 +11,7 @@ import {
   maxDistanceFor,
   prescription,
   respectsQuota,
+  TEST_DURATION_S,
 } from '~~/server/domain/running/session-types'
 
 const WEEKLY_VOLUME_M = 40_000
@@ -108,6 +110,18 @@ describe('prescription', () => {
     const steps = prescription(RunSessionCode.Progressive, context).steps
     expect(steps[1]!.paceSecPerKm!).toBeLessThan(steps[0]!.paceSecPerKm!)
     expect(steps[2]!.paceSecPerKm!).toBeLessThan(steps[1]!.paceSecPerKm!)
+  })
+})
+
+describe('test 20′ (§ 5)', () => {
+  it('vise la distance qui garde le VDOT courant', () => {
+    const step = prescription(RunSessionCode.Test, {
+      vdot: VDOT,
+      weeklyVolumeM: WEEKLY_VOLUME_M,
+      phaseProgress: 0,
+    }).steps.find((item) => item.durationS === TEST_DURATION_S)!
+    expect(step.distanceM).toBe(testDistanceForVdot(VDOT))
+    expect(vdotFromTest(step.distanceM!)).toBeCloseTo(VDOT, 1)
   })
 })
 

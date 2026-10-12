@@ -41,6 +41,12 @@ export function vdotFromRace(distanceM: number, timeS: number): number {
   return oxygenCost(velocity) / sustainableFraction(durationMin)
 }
 
+/** Distance (m) qu'un VDOT donné permet de couvrir en un temps de course — l'inverse de `vdotFromRace`. */
+export function distanceForVdot(vdot: number, timeS: number): number {
+  const durationMin = timeS / 60
+  return velocityForOxygenCost(vdot * sustainableFraction(durationMin)) * durationMin
+}
+
 /**
  * Temps de course (s) qu'un VDOT donné permet sur une distance.
  * Newton sur `vdotFromRace(d, t) - vdot`, amorcé par une estimation linéaire.

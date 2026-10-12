@@ -1,5 +1,11 @@
 import { PhaseType } from '../plan/phases'
-import { TrainingZone, halfMarathonPace, paceFor, paceRangeFor } from '../fitness/vdot'
+import {
+  TrainingZone,
+  distanceForVdot,
+  halfMarathonPace,
+  paceFor,
+  paceRangeFor,
+} from '../fitness/vdot'
 import type { Prescription, PrescriptionStep } from '../shared/prescription'
 
 export type { Prescription, PrescriptionStep }
@@ -213,6 +219,9 @@ export interface PrescriptionContext {
 /** Distances exactes de l'échauffement et du retour au calme, quand la séance en porte. */
 export const WARMUP_M = 2000
 export const COOLDOWN_M = 1000
+
+/** Durée du test de terrain servant à recaler le VDOT (§ 5). */
+export const TEST_DURATION_S = 20 * 60
 
 function easyPace(vdot: number): number {
   return paceFor(vdot, TrainingZone.Easy)
@@ -470,16 +479,21 @@ function buildSteps(
       ]
     }
 
-    case RunSessionCode.Test:
+    case RunSessionCode.Test: {
+      // Le test se lit comme une course de 20′ : l'objectif est la distance qui
+      // garde le VDOT courant. L'allure seuil, tenable une heure, le sous-estimait
+      // de 6 % — la battre faisait baisser le VDOT.
+      const testDistanceM = distanceForVdot(vdot, TEST_DURATION_S)
       return [
         warmup,
         {
           label: 'Test 20 minutes à effort contrôlé',
-          durationS: 20 * 60,
-          distanceM: Math.round((20 * 60 * 1000) / paceFor(vdot, TrainingZone.Threshold)),
-          paceSecPerKm: paceFor(vdot, TrainingZone.Threshold),
+          durationS: TEST_DURATION_S,
+          distanceM: Math.round(testDistanceM),
+          paceSecPerKm: (TEST_DURATION_S * 1000) / testDistanceM,
         },
         cooldown,
       ]
+    }
   }
 }
